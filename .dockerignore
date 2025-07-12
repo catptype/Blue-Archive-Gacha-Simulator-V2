@@ -1,0 +1,10 @@
+Dockerfile
+README.md
+.gitattributes
+.gitignore
+*.pyc
+*.log
+*.yml
+*.env
+__pycache__/
+node_modules/
