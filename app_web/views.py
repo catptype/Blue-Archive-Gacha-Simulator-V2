@@ -1,3 +1,10 @@
+from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.shortcuts import render
 
-# Create your views here.
+#######################################
+#####        HTTPRESPONSE         #####
+#######################################  
+def home(request:HttpRequest) -> HttpResponse:
+
+    context = {}
+    return render(request, 'app_web/index.html', context)
