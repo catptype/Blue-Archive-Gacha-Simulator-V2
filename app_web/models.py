@@ -86,7 +86,7 @@ class Student(models.Model):
     version_id = models.ForeignKey(Version, on_delete=models.CASCADE)
     student_rarity = models.PositiveIntegerField(choices=[(1, '★'), (2, '★★'), (3, '★★★')])
     school_id = models.ForeignKey(School, on_delete=models.CASCADE)
-    asset_id = models.OneToOneField(ImageAsset, on_delete=models.PROTECT)
+    asset_id = models.OneToOneField(ImageAsset, null=True, blank=True, on_delete=models.PROTECT)
     student_is_limited = models.BooleanField(default=False)
 
     def __str__(self) -> str:
