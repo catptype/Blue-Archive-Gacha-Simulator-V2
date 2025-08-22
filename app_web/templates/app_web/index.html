@@ -18,6 +18,93 @@
   }
 </style>
 
+
+<!--
+  Navbar powered by Tailwind CSS and Alpine.js for interactivity.
+  - `x-data="{ openMenu: false, openDropdown: false }"`: Initializes Alpine.js state for the mobile menu and user dropdown.
+  - `@click.away`: A helper to close the dropdown/menu when clicking outside of it.
+  - `x-show="openMenu"`: Toggles visibility based on the 'openMenu' state.
+-->
+
+<nav x-data="{ openMenu: false, openDropdown: false }" class="fixed top-0 left-0 right-0 z-50 bg-slate-900/60 backdrop-blur-lg border-b border-slate-700/50">
+  <div class="w-full max-w-6xl mx-auto px-4">
+    <div class="flex items-center justify-between h-20">
+      
+      <!-- Navbar Brand (Left) -->
+      <a class="flex-shrink-0" href="{% url 'home' %}">
+        <img src="{% static 'images/web/logo.png' %}" alt="logo" class="h-12 w-auto">
+      </a>
+
+      <!-- Primary Navigation (Desktop) -->
+      <div class="hidden lg:flex lg:items-center lg:space-x-8">
+        <a class="text-slate-300 hover:text-cyan-400 transition-colors duration-200" href="{% url 'student' %}">Student</a>
+        <a class="text-slate-300 hover:text-cyan-400 transition-colors duration-200" href="{% url 'gacha' %}">Gacha</a>
+        
+        <!-- User authentication links for desktop -->
+        {% if user.is_authenticated %}
+          <div class="relative">
+            <!-- Dropdown Toggle Button -->
+            <button @click="openDropdown = !openDropdown" class="flex items-center space-x-2 text-slate-300 hover:text-cyan-400 transition-colors duration-200">
+              <span>{{ user.username }}</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+            
+            <!-- Dropdown Menu -->
+            <div x-show="openDropdown" @click.away="openDropdown = false" x-transition class="absolute right-0 mt-2 w-48 py-2 bg-slate-800 border border-slate-700 rounded-lg shadow-xl" style="display: none;">
+              {% if user.is_superuser %}
+                <a class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-cyan-400" href="{% url 'admin:index' %}">Superuser</a>
+                <hr class="border-slate-700">
+              {% endif %}
+              <a class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-cyan-400" href="{% url 'dashboard' %}">Dashboard</a>
+              <form action="{% url 'logout' %}" method="POST">
+                {% csrf_token %}
+                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-cyan-400">Logout</button>
+              </form>
+            </div>
+          </div>
+        {% else %}
+          <a class="text-slate-300 hover:text-cyan-400 transition-colors duration-200" href="{% url 'register' %}">Register</a>
+          <a class="px-4 py-2 text-white bg-cyan-600 hover:bg-cyan-500 rounded-md transition-colors duration-200" href="{% url 'login' %}">Login</a>
+        {% endif %}
+      </div>
+
+      <!-- Mobile Menu Button -->
+      <div class="lg:hidden">
+        <button @click="openMenu = !openMenu" class="text-slate-300 hover:text-cyan-400">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Mobile Menu (collapsible) -->
+  <div x-show="openMenu" x-transition class="lg:hidden bg-slate-900/80 border-t border-slate-700" style="display: none;">
+    <div class="px-4 pt-2 pb-4 space-y-2">
+      <a class="block px-3 py-2 text-slate-300 hover:bg-slate-700 rounded-md" href="{% url 'student' %}">Student</a>
+      <a class="block px-3 py-2 text-slate-300 hover:bg-slate-700 rounded-md" href="{% url 'gacha' %}">Gacha</a>
+      
+      <hr class="border-slate-700">
+
+      <!-- User authentication links for mobile -->
+      {% if user.is_authenticated %}
+        <div class="px-3 py-2 text-slate-400 font-semibold">{{ user.username }}</div>
+        {% if user.is_superuser %}
+          <a class="block px-3 py-2 text-slate-300 hover:bg-slate-700 rounded-md" href="{% url 'admin:index' %}">Superuser</a>
+        {% endif %}
+        <a class="block px-3 py-2 text-slate-300 hover:bg-slate-700 rounded-md" href="{% url 'dashboard' %}">Dashboard</a>
+        <form action="{% url 'logout' %}" method="POST" class="w-full">
+          {% csrf_token %}
+          <button type="submit" class="w-full text-left block px-3 py-2 text-slate-300 hover:bg-slate-700 rounded-md">Logout</button>
+        </form>
+      {% else %}
+        <a class="block px-3 py-2 text-slate-300 hover:bg-slate-700 rounded-md" href="{% url 'register' %}">Register</a>
+        <a class="block px-3 py-2 text-slate-300 hover:bg-slate-700 rounded-md" href="{% url 'login' %}">Login</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+
 <!--
   Key Adaptation Choices:
   - Background: A full-page background image is used to create an immersive feel. A dark overlay ensures text readability.
@@ -28,7 +115,7 @@
   - Spacing & Layout: More generous padding (`p-6` or `p-8`) is used inside containers for a premium, uncluttered look.
 -->
 
-<div class="relative min-h-screen w-full bg-black antialiased">
+<div class="relative min-h-screen w-full bg-black antialiased pt-20">
   <!-- Background Image / Video -->
   <div class="absolute inset-0 z-0">
     <!-- 
@@ -58,8 +145,7 @@
           </div>
 
           <p class="text-lg text-slate-300 font-light">
-            This is an unofficial web application, serving as a Gacha Simulator for the mobile game Blue Archive, developed by Nexon Games and published by Yostar (Japan) and Nexon (Global).
-            An unofficial Gacha Simulator for Blue Archive. Experience the gacha, test your luck, and have fun without spending any Pyroxene.
+            An unofficial web application, serving as a Gacha Simulator for the mobile game Blue Archive, developed by Nexon Games and published by Yostar (Japan) and Nexon (Global). Experience the gacha, test your luck, and have fun without spending any Pyroxene.
           </p>
           
           <h2 class="mt-8 mb-3 text-2xl font-semibold text-white border-b-2 border-cyan-400/30 pb-2">Features</h2>
@@ -87,16 +173,28 @@
           </ul>
         </div>
 
-        <!-- Right Column (Spanning 2 of 5 columns on large screens) -->
-        <div class="lg:col-span-2 flex flex-col p-6 bg-slate-900/50 backdrop-blur-lg border border-slate-700 rounded-lg shadow-2xl">
-          <h2 class="text-2xl font-bold text-center text-white uppercase tracking-widest">SALTY</h2>
-          <div class="w-full mt-4 overflow-hidden rounded-md aspect-video border border-slate-700 shadow-lg shadow-cyan-500/10">
-            <video autoplay muted loop class="object-cover w-full h-full">
-              <source src="{% static 'video/gacha.mov' %}" type="video/mp4">
-              Your browser does not support the video tag.
-            </video>
+        <!-- Right Column (hero section) -->
+        <div class="relative lg:col-span-2 w-full min-h-[300px] lg:min-h-0 overflow-hidden bg-slate-900 border border-slate-700 rounded-lg shadow-2xl">
+          <!-- Video Background -->
+          <video autoplay muted loop class="absolute top-0 left-0 w-full h-full object-cover z-0">
+            <source src="{% static 'video/gacha.mov' %}" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+          
+          <!-- Gradient Overlay for Text Readability -->
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent z-10"></div>
+          
+          <!-- Centered Caption -->
+          <div class="absolute inset-0 flex items-center justify-center z-20">
+            <h2 
+              class="text-6xl font-black text-white uppercase tracking-widest" 
+              style="text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.7);"
+            >
+              SALTY
+            </h2>
           </div>
         </div>
+        <!-- End of Right Column -->
 
       </div>
 
@@ -113,82 +211,4 @@
     </div>
   </div>
 </div>
-
-
-
-
-
-
-<!-- 
-  Notes on Conversion from Bootstrap to Tailwind:
-  - container-fluid container-lg -> w-full max-w-5xl mx-auto px-4 (Creates a centered container with padding)
-  - mt-2 -> mt-2 (Directly equivalent)
-  - row g-2 -> Replaced with Flexbox (flex flex-col) or Grid (grid) with a `gap-2` for spacing.
-  - col -> Becomes an implicit child of the flex/grid container.
-  - row-cols-1 row-cols-lg-2 -> grid grid-cols-1 lg:grid-cols-2 (Tailwind's responsive grid system)
-  - p-3, border, bg-light -> p-3, border, bg-slate-100 (Using Tailwind's color palette)
-  - d-flex, align-items-center, etc. -> flex, items-center, etc. (Directly equivalent utility classes)
-  - rounded-circle -> rounded-full
-  - position-relative/absolute -> relative/absolute
-  - h-100, w-100 -> h-full, w-full
-  - ratio ratio-16x9 -> aspect-video (Modern CSS approach, built into Tailwind)
--->
-
-<div class="w-full max-w-5xl mx-auto px-4 mt-2">
-  <!-- Outer Container -->
-  <div class="flex flex-col gap-2">
-
-    <!-- Upper Row -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-2">
-      
-      <!-- Left Column -->
-      <div class="flex flex-col p-4 border border-slate-200 bg-slate-100 rounded-lg">
-        <div class="flex flex-wrap items-center mb-4 gap-4">
-          <div class="relative flex-shrink-0 w-24 h-24 overflow-hidden rounded-full">
-            <img class="absolute top-0 left-0 object-cover w-full h-full" src="{% static 'asset/other/Arona.png' %}" alt="Arona">
-          </div>
-          <h1 class="text-4xl font-bold text-slate-800">Welcome, Sensei!</h1>
-        </div>
-
-        <p class="text-xl text-slate-700">
-          This is an unofficial web application, serving as a Gacha Simulator for the mobile game Blue Archive, developed by Nexon Games and published by Yostar (Japan) and Nexon (Global).
-        </p>
-        <p class="mt-2 text-slate-600">Have fun with gacha draws without spending Pyroxene.</p>
-        
-        <h2 class="mt-4 text-2xl font-semibold text-slate-800">Features</h2>
-        <ul class="mt-2 space-y-1 list-disc list-inside text-slate-600">
-          <li><span class="font-semibold text-slate-700">Gacha simulator</span> with pick-up rates similar to the mobile game</li>
-          <li><span class="font-semibold text-slate-700">User account</span> for tracking information such as collections and achievements</li>
-          <li><span class="font-semibold text-slate-700">Guest mode</span> allows you to have fun testing your luck</li>
-          <li>Full <span class="font-semibold text-slate-700">student list</span> in the current game version</li>
-          <li><span class="font-semibold text-slate-700">Open source</span> and <span class="font-semibold text-slate-700">no collection of user information</span>, as this is a case study for full-stack web development</li>
-        </ul>
-      </div>
-
-      <!-- Right Column -->
-      <div class="flex flex-col p-4 border h-full border-slate-200 bg-slate-100 rounded-lg">
-        <h2 class="text-2xl font-bold text-center text-slate-800">SALTY</h2>
-        <div class="w-full mt-2 overflow-hidden rounded-md aspect-video">
-          <video autoplay muted loop class="object-cover w-full h-full">
-            <source src="{% static 'video/gacha.mov' %}" type="video/mp4">
-            Your browser does not support the video tag.
-          </video>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Below Row -->
-    <div class="p-4 text-center border border-slate-200 bg-slate-100 rounded-lg">
-      <p class="text-sm text-slate-500">
-        Designed, developed, and maintained by <a href="https://github.com/catptype/" class="font-medium text-sky-600 hover:underline">Catptype</a><br>
-        This website is not affiliated with Nexon, Nexon Games, or Yostar.<br>
-        All assets used in this website are the property and copyright of the respective authors.
-      </p>
-      <p class="mt-2 text-sm text-slate-500">Source code: <a href="https://github.com/catptype/Blue-Archive-Gacha-Simulator" class="font-medium text-sky-600 hover:underline">GitHub</a></p>
-    </div>
-
-  </div>
-</div>
-
 {% endblock %}
