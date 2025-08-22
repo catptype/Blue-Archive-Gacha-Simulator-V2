@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 
 # Create your models here.
 class Version(models.Model):
@@ -48,7 +49,8 @@ class Student(models.Model):
     version_id = models.ForeignKey(Version, on_delete=models.CASCADE)
     student_rarity = models.PositiveIntegerField(choices=[(1, '★'), (2, '★★'), (3, '★★★')])
     school_id = models.ForeignKey(School, on_delete=models.CASCADE)
-    student_image = models.BinaryField(null=True, verbose_name='Portrait')
+    student_portrait = models.BinaryField(null=True, verbose_name='Portrait')
+    student_artwork = models.BinaryField(null=True, verbose_name='Artwork')
     student_is_limited = models.BooleanField(default=False)
 
     def __str__(self) -> str:
@@ -56,6 +58,12 @@ class Student(models.Model):
             return f"[{self.id:03d}] {self.school} {self.fullname} ★"
         else:
             return f"[{self.id:03d}] {self.school} {self.fullname}"
+        
+    def clean(self):
+        query = Student.objects.exclude(pk=self.pk)
+        existing_student = query.filter(name=self.name).first()
+        if existing_student and existing_student.school != self.school:
+            raise ValidationError({'name': f'A student \'{self.name}\' already exists in \'{existing_student.school}\' but you select \'{self.school}\'.'})
         
     @property
     def id(self) -> int:
@@ -85,8 +93,12 @@ class Student(models.Model):
         return self.school_id.name
     
     @property
-    def image(self) -> bytes:
-        return self.student_image
+    def portrait(self) -> bytes:
+        return self.student_portrait
+    
+    @property
+    def artwork(self) -> bytes:
+        return self.student_artwork
     
     @property
     def is_limited(self) -> bool:
