@@ -1,0 +1,87 @@
+{% load static %}
+<!--
+  Navbar powered by Tailwind CSS and Alpine.js for interactivity.
+  - `x-data="{ openMenu: false, openDropdown: false }"`: Initializes Alpine.js state for the mobile menu and user dropdown.
+  - `@click.away`: A helper to close the dropdown/menu when clicking outside of it.
+  - `x-show="openMenu"`: Toggles visibility based on the 'openMenu' state.
+-->
+
+<nav x-data="{ openMenu: false, openDropdown: false }" class="fixed top-0 left-0 right-0 z-50 bg-slate-900/60 backdrop-blur-lg border-b border-slate-700/50">
+
+  <div class="w-full max-w-6xl mx-auto px-4">
+    <div class="flex items-center justify-between h-20">
+      
+      <!-- Navbar Brand (Left) -->
+      <a class="flex-shrink-0" href="{% url 'home' %}">
+        <img src="{% static 'images/web/logo.png' %}" alt="logo" class="h-12 w-auto">
+      </a>
+
+      <!-- Primary Navigation (Desktop) -->
+      <div class="hidden lg:flex lg:items-center lg:space-x-8">
+        <a class="text-slate-300 hover:text-cyan-400 transition-colors duration-200" href="{% url 'student' %}">Student</a>
+        <a class="text-slate-300 hover:text-cyan-400 transition-colors duration-200" href="{% url 'gacha' %}">Gacha</a>
+        
+        <!-- User authentication links for desktop -->
+        {% if user.is_authenticated %}
+          <div class="relative">
+            <!-- Dropdown Toggle Button -->
+            <button @click="openDropdown = !openDropdown" class="flex items-center space-x-2 text-slate-300 hover:text-cyan-400 transition-colors duration-200">
+              <span>{{ user.username }}</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+            
+            <!-- Dropdown Menu -->
+            <div x-show="openDropdown" @click.away="openDropdown = false" x-transition class="absolute right-0 mt-2 w-48 py-2 bg-slate-800 border border-slate-700 rounded-lg shadow-xl" style="display: none;">
+              {% if user.is_superuser %}
+                <a class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-cyan-400" href="{% url 'admin:index' %}">Superuser</a>
+                <hr class="border-slate-700">
+              {% endif %}
+              <a class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-cyan-400" href="{% url 'dashboard' %}">Dashboard</a>
+              <form action="{% url 'logout' %}" method="POST">
+                {% csrf_token %}
+                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-cyan-400">Logout</button>
+              </form>
+            </div>
+          </div>
+        {% else %}
+          <a class="text-slate-300 hover:text-cyan-400 transition-colors duration-200" href="{% url 'register' %}">Register</a>
+          <a class="px-4 py-2 text-white bg-cyan-600 hover:bg-cyan-500 rounded-md transition-colors duration-200" href="{% url 'login' %}">Login</a>
+        {% endif %}
+      </div>
+
+      <!-- Mobile Menu Button -->
+      <div class="lg:hidden">
+        <button @click="openMenu = !openMenu" class="text-slate-300 hover:text-cyan-400">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Mobile Menu (collapsible) -->
+  <div x-show="openMenu" x-transition class="lg:hidden bg-slate-900/80 border-t border-slate-700" style="display: none;">
+    <div class="px-4 pt-2 pb-4 space-y-2">
+      <a class="block px-3 py-2 text-slate-300 hover:bg-slate-700 rounded-md" href="{% url 'student' %}">Student</a>
+      <a class="block px-3 py-2 text-slate-300 hover:bg-slate-700 rounded-md" href="{% url 'gacha' %}">Gacha</a>
+      
+      <hr class="border-slate-700">
+
+      <!-- User authentication links for mobile -->
+      {% if user.is_authenticated %}
+        <div class="px-3 py-2 text-slate-400 font-semibold">{{ user.username }}</div>
+        {% if user.is_superuser %}
+          <a class="block px-3 py-2 text-slate-300 hover:bg-slate-700 rounded-md" href="{% url 'admin:index' %}">Superuser</a>
+        {% endif %}
+        <a class="block px-3 py-2 text-slate-300 hover:bg-slate-700 rounded-md" href="{% url 'dashboard' %}">Dashboard</a>
+        <form action="{% url 'logout' %}" method="POST" class="w-full">
+          {% csrf_token %}
+          <button type="submit" class="w-full text-left block px-3 py-2 text-slate-300 hover:bg-slate-700 rounded-md">Logout</button>
+        </form>
+      {% else %}
+        <a class="block px-3 py-2 text-slate-300 hover:bg-slate-700 rounded-md" href="{% url 'register' %}">Register</a>
+        <a class="block px-3 py-2 text-slate-300 hover:bg-slate-700 rounded-md" href="{% url 'login' %}">Login</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>

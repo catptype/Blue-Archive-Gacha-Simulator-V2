@@ -4,7 +4,7 @@ from . import views
 urlpatterns = [
     # HTTPRESPONSE
     path('', views.home, name='home'),
-    path('', views.home, name='student'),
+    path('student', views.student, name='student'),
     path('', views.home, name='gacha'),
     path('', views.home, name='login'),
     path('', views.home, name='logout'),
