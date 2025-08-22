@@ -39,6 +39,7 @@ COPY . .
 
 # Collect staticfiles for deploy production
 RUN python manage.py migrate && \
+    python manage.py unpack && \
     python manage.py createsuperuser --noinput && \
     python manage.py collectstatic --noinput
 
