@@ -6,6 +6,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>{% block title %}{% endblock %}</title>
         <link rel="stylesheet" type="text/css" href="{% static '/css/font.css' %}">
+        <script defer src="{% static '/js/alpinejs.cdn.min.js' %}"></script>
         {% block css %}{% endblock %}
         {% block head_js %}{% endblock %}
         {% stylesheet_pack 'app' %}
