@@ -5,11 +5,12 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>{% block title %}{% endblock %}</title>
+        <link rel="stylesheet" type="text/css" href="{% static '/css/font.css' %}">
         {% block css %}{% endblock %}
         {% block head_js %}{% endblock %}
         {% stylesheet_pack 'app' %}
     </head>
-    <body class="bg-gray-100 p-6 flex justify-center">
+    <body class="bg-gray-100 flex justify-center">
         {% block body %}{% endblock %}
         {% block js %}{% endblock %}
     </body>
