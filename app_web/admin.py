@@ -42,4 +42,83 @@ class SchoolAdmin(admin.ModelAdmin):
             'school_name': obj.name,
         }
         print(context)
-        return render_to_string('admin/school_logo.html', context)
+        return render_to_string('admin/school-logo.html', context)
+    
+class StudentAdminForm(forms.ModelForm):
+    rarity = forms.TypedChoiceField(
+        choices=Student._meta.get_field('student_rarity').choices,
+        widget=forms.RadioSelect(),
+        coerce=int,
+        empty_value=None,
+    )
+    version = forms.ModelChoiceField(
+        queryset=Version.objects.all(),
+        empty_label="Select version",  # Set the custom text for the blank choice
+        required=True,
+    )
+    school = forms.ModelChoiceField(
+        queryset=School.objects.all().order_by('school_name'),
+        empty_label="Select school",  # Set the custom text for the blank choice
+        required=True,
+    )
+    is_limited = forms.TypedChoiceField(
+        label="Is limited",
+        choices=((True, 'Yes'), (False, 'No')),
+        widget=forms.RadioSelect(),
+        coerce=lambda x: x == 'True',  # Ensure True/False values are used
+        initial=False,
+    )
+    image = forms.ImageField(
+        label="Portrait",
+        widget=forms.ClearableFileInput(), 
+        required=False,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['image'].widget.template_name = 'admin/widgets-portrait.html'
+
+    class Meta:
+        model = Student
+        fields = '__all__'
+
+class StudentAdmin(admin.ModelAdmin):
+    form = StudentAdminForm
+    list_display = [
+        'student_id', 
+        'student_portrait', 
+        'student_name', 
+        'version_id', 
+        'student_rarity', 
+        'school_id', 
+        'student_is_limited', 
+        'edit_button'
+    ]
+    list_per_page = 10
+    ordering = ['student_name']
+
+    show_facets = admin.ShowFacets.ALWAYS
+    search_fields = ['name']
+    list_filter = [RarityFilter, 'school_id', 'version_id', 'student_is_limited']
+
+    def student_portrait(self, obj:Student):
+        context = {
+            'student_id': obj.pk,
+            'student_name': f"{obj.name} {obj.version}"
+        }
+        return render_to_string('admin/student-portrait.html', context)
+
+    def edit_button(self, obj):
+        app = obj._meta.app_label
+        model = obj._meta.model_name
+        edit_url = reverse(f'admin:{app}_{model}_change',  args=[obj.id])
+        context = { 'edit_url': edit_url }
+        return render_to_string('admin/edit-button.html', context)
+
+    student_portrait.short_description = 'Portrait'
+    edit_button.short_description = ''
+
+
+
+admin.site.register(Student, StudentAdmin)
+admin.site.register(School, SchoolAdmin)

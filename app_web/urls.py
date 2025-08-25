@@ -10,4 +10,7 @@ urlpatterns = [
     path('', views.home, name='logout'),
     path('', views.home, name='dashboard'),
     path('', views.home, name='register'),
+
+    path('image/school/<int:school_id>', views.serve_school_image, name='serve_school_image'),
+    path('image/student/<int:student_id>', views.serve_student_image, name='serve_student_image'),
 ]
