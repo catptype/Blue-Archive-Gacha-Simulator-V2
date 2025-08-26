@@ -16,6 +16,7 @@ del db.sqlite3
 REM ✅ Run createsuperuser without prompts
 python manage.py makemigrations
 python manage.py migrate
+python manage.py unpack
 python manage.py createsuperuser --noinput
 
 REM ✅ Optional: pause so you can see output

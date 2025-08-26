@@ -6,6 +6,23 @@ from django.template.loader import render_to_string
 
 from .models import Student, School, Version
 
+def create_image_display(image_type, description):
+    """
+    A factory function that creates a method for the Django admin list_display.
+    This avoids duplicating the logic for each image type.
+    """
+    def image_display_method(self, obj: Student):
+        context = {
+            'student_id': obj.pk,
+            'student_name': f"{obj.name} {obj.version}",
+            'image_type': image_type,  # Pass the specific image type to the template
+        }
+        return render_to_string('admin/student-image.html', context)
+
+    # Set attributes required by the Django admin
+    image_display_method.short_description = description
+    return image_display_method
+
 class RarityFilter(admin.SimpleListFilter):
     title = "rarity"
     parameter_name = "rarity"
@@ -31,6 +48,7 @@ class SchoolAdminForm(forms.ModelForm):
         model = School
         fields = '__all__'
 
+@admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
     form = SchoolAdminForm
     list_display = ['school_id', 'school_name', 'school_logo']
@@ -43,7 +61,8 @@ class SchoolAdmin(admin.ModelAdmin):
         }
         print(context)
         return render_to_string('admin/school-logo.html', context)
-    
+
+
 class StudentAdminForm(forms.ModelForm):
     rarity = forms.TypedChoiceField(
         choices=Student._meta.get_field('student_rarity').choices,
@@ -82,11 +101,13 @@ class StudentAdminForm(forms.ModelForm):
         model = Student
         fields = '__all__'
 
+@admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
     form = StudentAdminForm
     list_display = [
         'student_id', 
         'student_portrait', 
+        'student_artwork', 
         'student_name', 
         'version_id', 
         'student_rarity', 
@@ -95,30 +116,19 @@ class StudentAdmin(admin.ModelAdmin):
         'edit_button'
     ]
     list_per_page = 10
-    ordering = ['student_name']
+    ordering = ['student_id']
 
     show_facets = admin.ShowFacets.ALWAYS
     search_fields = ['name']
     list_filter = [RarityFilter, 'school_id', 'version_id', 'student_is_limited']
 
-    def student_portrait(self, obj:Student):
-        context = {
-            'student_id': obj.pk,
-            'student_name': f"{obj.name} {obj.version}"
-        }
-        return render_to_string('admin/student-portrait.html', context)
+    student_portrait = create_image_display(image_type='portrait', description='Portrait')
+    student_artwork = create_image_display(image_type='artwork', description='Artwork')
 
+    @admin.display(description="")
     def edit_button(self, obj):
         app = obj._meta.app_label
         model = obj._meta.model_name
         edit_url = reverse(f'admin:{app}_{model}_change',  args=[obj.id])
         context = { 'edit_url': edit_url }
         return render_to_string('admin/edit-button.html', context)
-
-    student_portrait.short_description = 'Portrait'
-    edit_button.short_description = ''
-
-
-
-admin.site.register(Student, StudentAdmin)
-admin.site.register(School, SchoolAdmin)

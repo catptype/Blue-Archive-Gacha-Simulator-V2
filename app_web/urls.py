@@ -12,5 +12,8 @@ urlpatterns = [
     path('', views.home, name='register'),
 
     path('image/school/<int:school_id>', views.serve_school_image, name='serve_school_image'),
-    path('image/student/<int:student_id>', views.serve_student_image, name='serve_student_image'),
+    path('image/student/<int:student_id>/<str:image_type>', views.serve_student_image, name='serve_student_image'),
+    # path('image/student/<int:student_id>/artwork', views.serve_student_artwork, name='serve_student_artwork'),
+    # path('image/student/<int:student_id>/portrait', views.serve_student_portrait, name='serve_student_portrait'),
+
 ]
