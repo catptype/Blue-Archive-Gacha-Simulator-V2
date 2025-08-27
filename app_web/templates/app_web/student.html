@@ -13,6 +13,9 @@
     MODIFIED: Left column now expands on hover, revealing the full school name.
     This provides a larger, more readable target for the user.
     */
+    /* #left-column {
+        transition: width 300ms ease-in-out;
+    } */
     #left-column:hover {
         width: 16rem; /* 256px */
     }
@@ -20,7 +23,6 @@
         opacity: 1;
         max-width: 200px; /* Reveal width */
     }
-
     /*
     NEW: Glow effect for the school logo PNGs.
     We use a filter: drop-shadow which respects the transparent areas of the PNG.
@@ -36,6 +38,7 @@
 </style>
 
 <div class="relative min-h-screen w-full bg-black antialiased text-white overflow-hidden">
+    
     <!-- FIXED BACKGROUND -->
     <div class="fixed inset-0 z-0">
         <img src="{% static 'images/web/background.png' %}" alt="Background" class="object-cover w-full h-full opacity-30 filter blur-sm">
@@ -43,20 +46,20 @@
     </div>
 
     <!-- MAIN CONTENT GRID -->
-    <div class="relative z-10 grid grid-cols-12 h-screen">
+    <div class="absolute top-20 left-0 right-0 grid grid-cols-12" style="height: calc(100vh - 5rem);">
+    <!-- <div class="relative z-10 grid grid-cols-12 h-screen"> -->
 
         <!-- =============================================================== -->
         <!-- LEFT COLUMN: SCHOOL SELECTION (FIXED)                           -->
         <!-- =============================================================== -->
-        <div id="left-column" class="col-span-1 w-24 bg-black/60 backdrop-blur-sm border-r border-gray-800 p-3 flex flex-col gap-y-3 transition-all duration-300 ease-in-out overflow-hidden">
+        <div id="left-column" class="relative z-50 col-span-1 w-24 bg-black/60 backdrop-blur-sm border-r border-gray-800 p-3 flex flex-col gap-y-3 transition-all duration-300 ease-in-out overflow-hidden">
             {% for data in schools_with_students %}
                 <button
                     class="school-button w-full p-2 rounded-lg flex items-center transition-colors duration-300 ease-in-out bg-gray-600/80 hover:bg-sky-600/70
                            {% if forloop.first %}active ring-2 ring-sky-400{% endif %}"
                     data-school-id="{{ data.school.school_id }}">
                     
-                    <!-- MODIFIED: Added transition classes for the glow animation -->
-                    <img src="{% url 'serve_school_image' school_id=data.school.school_id %}" alt="{{ data.school.school_name }} Logo" class="h-12 w-12 object-contain flex-shrink-0 transition-all duration-300">
+                    <img src="{% url 'serve_school_image' school_id=data.school.school_id %}" alt="{{ data.school.school_name }} Logo" class="h-12 w-12 pl-1 object-contain flex-shrink-0 transition-all duration-300">
                     
                     <span class="school-name ml-3 font-bold text-lg whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out opacity-0 max-w-0">
                         {{ data.school.school_name }}
