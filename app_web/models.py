@@ -94,7 +94,7 @@ class Student(models.Model):
         
     def clean(self):
         query = Student.objects.exclude(pk=self.pk)
-        existing_student = query.filter(name=self.name).first()
+        existing_student = query.filter(student_name=self.name).first()
         if existing_student and existing_student.school != self.school:
             raise ValidationError({'name': f'A student \'{self.name}\' already exists in \'{existing_student.school}\' but you select \'{self.school}\'.'})
         

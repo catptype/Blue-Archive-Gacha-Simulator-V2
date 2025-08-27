@@ -87,15 +87,15 @@ class StudentAdminForm(forms.ModelForm):
         coerce=lambda x: x == 'True',  # Ensure True/False values are used
         initial=False,
     )
-    image = forms.ImageField(
-        label="Portrait",
-        widget=forms.ClearableFileInput(), 
-        required=False,
-    )
+    # image = forms.ImageField(
+    #     label="Portrait",
+    #     widget=forms.ClearableFileInput(), 
+    #     required=False,
+    # )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['image'].widget.template_name = 'admin/widgets-portrait.html'
+        # self.fields['image'].widget.template_name = 'admin/widgets-portrait.html'
 
     class Meta:
         model = Student
@@ -119,7 +119,7 @@ class StudentAdmin(admin.ModelAdmin):
     ordering = ['student_id']
 
     show_facets = admin.ShowFacets.ALWAYS
-    search_fields = ['name']
+    search_fields = ['student_name']
     list_filter = [RarityFilter, 'school_id', 'version_id', 'student_is_limited']
 
     student_portrait = create_image_display(image_type='portrait', description='Portrait')

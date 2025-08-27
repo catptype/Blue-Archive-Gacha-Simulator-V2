@@ -10,16 +10,29 @@
 {% block body %}
 <style>
     /* 
-    FIXED: Left column name now only reveals on direct hover of a button 
-    or when it's the active selection. This is more intuitive.
+    MODIFIED: Left column now expands on hover, revealing the full school name.
+    This provides a larger, more readable target for the user.
     */
-    .school-button:hover .school-name,
-    .school-button.active .school-name {
+    #left-column:hover {
+        width: 16rem; /* 256px */
+    }
+    #left-column:hover .school-name {
         opacity: 1;
         max-width: 200px; /* Reveal width */
-        transform: translateX(0);
-        margin-left: 0.75rem; /* 12px */
     }
+
+    /*
+    NEW: Glow effect for the school logo PNGs.
+    We use a filter: drop-shadow which respects the transparent areas of the PNG.
+    This is applied when the parent button is active or hovered.
+    */
+    .school-button img {
+        filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.8)); /* A vibrant sky-blue glow */
+    }
+    .school-button:hover img {
+        transform: scale(1.1); /* Slightly enlarge the logo for emphasis */
+    }
+
 </style>
 
 <div class="relative min-h-screen w-full bg-black antialiased text-white overflow-hidden">
@@ -35,42 +48,49 @@
         <!-- =============================================================== -->
         <!-- LEFT COLUMN: SCHOOL SELECTION (FIXED)                           -->
         <!-- =============================================================== -->
-        <div class="col-span-2 lg:col-span-1 bg-black/60 backdrop-blur-sm border-r border-gray-800 p-4 flex flex-col items-start gap-y-3 transition-all duration-300 ease-in-out">
+        <div id="left-column" class="col-span-1 w-24 bg-black/60 backdrop-blur-sm border-r border-gray-800 p-3 flex flex-col gap-y-3 transition-all duration-300 ease-in-out overflow-hidden">
             {% for data in schools_with_students %}
                 <button
-                    class="school-button w-full p-2 rounded-lg flex items-center transition-colors duration-300 ease-in-out bg-slate-800/70 hover:bg-slate-700/90
-                           {% if forloop.first %}active{% endif %}"
+                    class="school-button w-full p-2 rounded-lg flex items-center transition-colors duration-300 ease-in-out bg-gray-600/80 hover:bg-sky-600/70
+                           {% if forloop.first %}active ring-2 ring-sky-400{% endif %}"
                     data-school-id="{{ data.school.school_id }}">
                     
-                    <img src="{% url 'serve_school_image' school_id=data.school.school_id %}" alt="{{ data.school.school_name }} Logo" class="h-14 w-14 object-contain flex-shrink-0">
+                    <!-- MODIFIED: Added transition classes for the glow animation -->
+                    <img src="{% url 'serve_school_image' school_id=data.school.school_id %}" alt="{{ data.school.school_name }} Logo" class="h-12 w-12 object-contain flex-shrink-0 transition-all duration-300">
                     
-                    <span class="school-name font-bold text-lg whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out opacity-0 max-w-0 transform -translate-x-4">
+                    <span class="school-name ml-3 font-bold text-lg whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out opacity-0 max-w-0">
                         {{ data.school.school_name }}
                     </span>
                 </button>
             {% endfor %}
         </div>
 
-
         <!-- =============================================================== -->
         <!-- RIGHT COLUMN: CHARACTER DISPLAY (OVERHAULED)                    -->
         <!-- =============================================================== -->
-        <div class="col-span-10 lg:col-span-11 h-full relative overflow-hidden">
+        <div class="col-span-11 h-full relative overflow-hidden">
             {% for data in schools_with_students %}
             <div id="school-group-{{ data.school.school_id }}"
                  class="character-group absolute inset-0 transition-opacity duration-500 ease-in-out {% if not forloop.first %}opacity-0 pointer-events-none{% endif %}">
 
-                <!-- This new slider div will contain all cards in a row and will be moved -->
                 <div class="slider-container absolute top-0 left-0 w-full h-full flex items-center transition-transform duration-500 ease-in-out">
                     {% for student in data.students %}
-                    <div class="character-card flex-shrink-0 w-[20%] h-[85%] mx-2 transition-all duration-500 ease-in-out">
-                         <div class="relative w-full h-full">
+                    <!-- MODIFIED: Card width is now a FIXED size for consistency -->
+                    <div class="character-card flex-shrink-0 w-[300px] h-[85%] mx-4 transition-all duration-500 ease-in-out">
+                         <div class="relative w-full h-full group">
                             <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}"
                                  alt="{{ student.student_name }}"
                                  class="w-full h-full object-cover rounded-lg">
                              
-                             <div class="character-name absolute -bottom-4 left-1/2 -translate-x-1/2 w-auto whitespace-nowrap opacity-0 transition-all duration-300 ease-in-out">
-                                 <p class="text-3xl font-bold bg-black/50 py-2 px-6 rounded-md">{{ student.student_name }}</p>
+                             <div class="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black/70 to-transparent rounded-b-lg"></div>
+
+                             <!-- MODIFIED: Container for the rotated text -->
+                             <div class="character-name absolute bottom-[20px] left-[100px] opacity-0 transition-all duration-500 ease-in-out transform -translate-x-8">
+                                 <!-- MODIFIED: Text is rotated, with fixed size and new origin -->
+                                 <h2 class="text-5xl font-black text-white uppercase tracking-widest origin-bottom-left transform -rotate-90" 
+                                     style="text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.7);">
+                                     {{ student.student_name }}
+                                 </h2>
                              </div>
                          </div>
                     </div>
@@ -103,73 +123,66 @@ document.addEventListener('DOMContentLoaded', () => {
         const total = cards.length;
         if (total === 0) return;
 
-        if (!carouselState[groupId]) {
-            carouselState[groupId] = { currentIndex: 0 };
-        }
+        if (!carouselState[groupId]) carouselState[groupId] = { currentIndex: 0 };
         let currentIndex = carouselState[groupId].currentIndex;
 
-        // --- 1. FLAT, SIDE-BY-SIDE LAYOUT LOGIC ---
-        // We calculate the position needed to center the active card.
-        // The entire slider moves, not the individual cards.
         const containerWidth = group.offsetWidth;
         const cardWidth = cards[0].offsetWidth;
-        const margin = parseInt(window.getComputedStyle(cards[0]).marginRight) * 2; // Approximating margin space
+        const margin = parseInt(window.getComputedStyle(cards[0]).marginRight) * 2;
         const cardAndMarginWidth = cardWidth + margin;
         
-        // Calculate the translation to center the current card
         const offsetToCenter = (containerWidth / 2) - (cardAndMarginWidth / 2);
         const newX = offsetToCenter - (currentIndex * cardAndMarginWidth);
         
         slider.style.transitionDuration = instant ? '0ms' : '500ms';
         slider.style.transform = `translateX(${newX}px)`;
 
-        // --- 2. STYLE CARDS (ACTIVE vs INACTIVE) ---
         cards.forEach((card, i) => {
             const nameElement = card.querySelector('.character-name');
             if (i === currentIndex) {
-                // Active Card
-                card.style.transform = 'scale(1.05)';
+                // --- ACTIVE CARD ---
+                // MODIFIED: Increased scale for a "wider" effect
+                card.style.transform = 'scale(1.15)'; 
                 card.style.opacity = '1';
-                nameElement.classList.remove('opacity-0', '-bottom-4');
-                nameElement.classList.add('opacity-100', 'bottom-8');
+                // MODIFIED: Remove grayscale filter
+                card.classList.remove('grayscale');
+
+                nameElement.classList.remove('opacity-0', 'translate-y-8');
+                nameElement.classList.add('opacity-100', 'translate-y-0');
             } else {
-                // Inactive Cards
+                // --- INACTIVE CARDS ---
                 card.style.transform = 'scale(0.9)';
-                card.style.opacity = '0.6';
-                nameElement.classList.remove('opacity-100', 'bottom-8');
-                nameElement.classList.add('opacity-0', '-bottom-4');
+                card.style.opacity = '0.5';
+                // MODIFIED: Add grayscale filter
+                card.classList.add('grayscale');
+
+                nameElement.classList.remove('opacity-100', 'translate-y-0');
+                nameElement.classList.add('opacity-0', 'translate-y-8');
             }
         });
-
-        const navLeft = group.querySelector('.nav-left');
-        const navRight = group.querySelector('.nav-right');
-        if (navLeft) navLeft.style.display = currentIndex > 0 ? 'block' : 'none';
-        if (navRight) navRight.style.display = currentIndex < total - 1 ? 'block' : 'none';
     }
 
-    // Initialize all carousels
+    // --- The rest of the script remains the same ---
     document.querySelectorAll('.character-group').forEach(group => {
         const groupId = group.id;
-        // A small delay to ensure correct width calculations after render
+        const total = group.querySelectorAll('.character-card').length;
+        if (total === 0) return;
+
         setTimeout(() => updateCarousel(groupId, true), 100);
 
         group.querySelector('.nav-left')?.addEventListener('click', () => {
-            if (carouselState[groupId].currentIndex > 0) {
-                carouselState[groupId].currentIndex--;
-                updateCarousel(groupId);
-            }
+            let currentIndex = carouselState[groupId].currentIndex;
+            carouselState[groupId].currentIndex = (currentIndex - 1 + total) % total;
+            updateCarousel(groupId);
         });
 
         group.querySelector('.nav-right')?.addEventListener('click', () => {
-            const total = group.querySelectorAll('.character-card').length;
-            if (carouselState[groupId].currentIndex < total - 1) {
-                carouselState[groupId].currentIndex++;
-                updateCarousel(groupId);
-            }
+            let currentIndex = carouselState[groupId].currentIndex;
+            carouselState[groupId].currentIndex = (currentIndex + 1) % total;
+            updateCarousel(groupId);
         });
     });
 
-    // Handle School Selection
     const schoolSelectors = document.querySelectorAll('.school-button');
     let activeGroupId = document.querySelector('.character-group:not(.opacity-0)')?.id;
 
@@ -177,11 +190,10 @@ document.addEventListener('DOMContentLoaded', () => {
         button.addEventListener('click', () => {
             const schoolId = button.dataset.schoolId;
             const newGroupId = `school-group-${schoolId}`;
-
             if (newGroupId === activeGroupId) return;
 
-            schoolSelectors.forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
+            schoolSelectors.forEach(btn => btn.classList.remove('active', 'ring-2', 'ring-sky-400'));
+            button.classList.add('active', 'ring-2', 'ring-sky-400');
             
             const oldGroup = document.getElementById(activeGroupId);
             if (oldGroup) oldGroup.classList.add('opacity-0', 'pointer-events-none');
@@ -195,11 +207,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     
-    // Recalculate on resize to maintain centering
     window.addEventListener('resize', () => {
-        if(activeGroupId) {
-            updateCarousel(activeGroupId, true);
-        }
+        if(activeGroupId) updateCarousel(activeGroupId, true);
     });
 });
 </script>

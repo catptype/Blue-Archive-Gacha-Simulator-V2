@@ -115,62 +115,64 @@ def serve_school_image(request:HttpRequest, school_id:int):
 
 def serve_student_image(request: HttpRequest, student_id: int, image_type: str):
     """
-    A generic view to serve a student image, with a simplified and clear
-    manual caching strategy.
+    Serves a student image (portrait or artwork) with a robust caching strategy
+    and correct model logic.
     """
     cache_key = f"student_image:{student_id}:{image_type}"
-    
-    # --- STAGE 1: GET THE DATA ---
-    
     image_data = cache.get(cache_key)
 
-    if image_data is None:  # A true CACHE MISS
+    if image_data is None:  # CACHE MISS
         print(f"CACHE MISS for key: {cache_key}")
-        
-        allowed_image_types = {'portrait': 'portrait', 'artwork': 'artwork'}
-        field_name = allowed_image_types.get(image_type)
+
+        # Define the correct field names on the ImageAsset model
+        allowed_image_fields = {
+            'portrait': 'asset_portrait_data',
+            'artwork': 'asset_artwork_data'
+        }
+        field_name = allowed_image_fields.get(image_type)
+
         if not field_name:
             return HttpResponseNotFound("Invalid image type specified.")
 
         try:
-            student_obj = Student.objects.get(student_id=student_id)
-            student_name = student_obj.name
-            student_version = student_obj.version
-            student_image_bytes = getattr(student_obj, field_name)
+            # Use select_related to fetch the student and its related asset in one DB query
+            student_obj = Student.objects.select_related('asset_id', 'version_id').get(student_id=student_id)
 
-            if student_image_bytes is None:
-                raise Student.DoesNotExist
+            # Check if the student has an asset assigned
+            if not student_obj.asset_id:
+                raise Student.DoesNotExist("Student has no linked ImageAsset.")
 
-            # Prepare the data structure to be cached
+            # CORRECTLY get the image bytes from the related ImageAsset model
+            image_bytes = getattr(student_obj.asset_id, field_name)
+
+            if not image_bytes:
+                raise Student.DoesNotExist("ImageAsset has no data for this image type.")
+
+            # Prepare data for caching
             image_data = {
-                'image_bytes': student_image_bytes,
-                'filename': f"{student_name}_{student_version}_{image_type}.png"
+                'image_bytes': image_bytes,
+                'filename': f"{student_obj.student_name}_{student_obj.version_id.version_name}_{image_type}.png"
             }
-            # Set the data in the cache for next time
-            cache.set(cache_key, image_data, timeout=1)
+            # Use a longer, more sensible timeout
+            cache.set(cache_key, image_data, timeout=CACHE_IMAGE_TIMEOUT) # Cache for 1 hour
 
-        except Student.DoesNotExist:
+        except Student.DoesNotExist as e:
+            print(f"Data not found for {cache_key}: {e}")
             # Cache the "not found" result to prevent future DB hits
             image_data = "NOT_FOUND"
-            cache.set(cache_key, image_data, timeout=1)
+            cache.set(cache_key, image_data, timeout=60) # Cache "not found" for 1 minute
+
     else:
         print(f"CACHE HIT for key: {cache_key}")
 
-    # --- STAGE 2: SERVE THE RESPONSE ---
-    
-    # By this point, image_data is guaranteed to be either the data dictionary or "NOT_FOUND"
-
+    # --- SERVE THE RESPONSE ---
     if image_data == "NOT_FOUND":
         fallback_path = finders.find("icon/website/portrait_404.png")
         if not fallback_path:
             return HttpResponseNotFound("Student image and fallback image not found.")
         return FileResponse(open(fallback_path, "rb"), content_type="image/png")
-
-    # If we get here, we have the image data and can build the successful response
-    temp_file = tempfile.NamedTemporaryFile(delete=False)
-    temp_file.write(image_data['image_bytes'])
-    temp_file.seek(0)
     
-    response = FileResponse(temp_file, content_type='image/png')
+    # We have valid image data
+    response = HttpResponse(image_data['image_bytes'], content_type='image/png')
     response['Content-Disposition'] = f"inline; filename=\"{image_data['filename']}\""
     return response
