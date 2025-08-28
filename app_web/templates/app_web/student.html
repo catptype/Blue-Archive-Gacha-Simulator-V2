@@ -16,9 +16,9 @@
     /* #left-column {
         transition: width 300ms ease-in-out;
     } */
-    #left-column:hover {
-        width: 16rem; /* 256px */
-    }
+    /* #left-column:hover {
+        width: 16rem;
+    } */
     #left-column:hover .school-name {
         opacity: 1;
         max-width: 200px; /* Reveal width */
@@ -39,8 +39,24 @@
     NEW: This rule pushes the right column over when the parent grid
     has the 'sidebar-expanded' class, preventing any overlap.
     */
-    .sidebar-expanded #right-column {
-        transform: translateX(calc(16rem - 6rem)); /* (Expanded Width - Initial Width) */
+    /* .sidebar-expanded #right-column {
+        transform: translateX(calc(16rem - 6rem));
+    } */
+
+    /* 
+    MODIFIED: The grid itself is now controlled here.
+    The parent grid animates its column widths.
+    */
+    #main-grid {
+        display: grid;
+        /* Initial state: narrow sidebar, rest of space for content */
+        grid-template-columns: 6rem 1fr; /* 6rem = w-24 */
+        transition: grid-template-columns 300ms ease-in-out;
+    }
+
+    #main-grid.sidebar-expanded {
+        /* Expanded state: wider sidebar */
+        grid-template-columns: 16rem 1fr;
     }
 
 </style>
@@ -54,13 +70,15 @@
     </div>
 
     <!-- MAIN CONTENT GRID -->
-    <div id="main-grid" class="absolute top-20 left-0 right-0 grid grid-cols-12" style="height: calc(100vh - 5rem);">
+    <div id="main-grid" class="absolute top-20 left-0 right-0" style="height: calc(100vh - 5rem);">
+    <!-- <div id="main-grid" class="absolute top-20 left-0 right-0 grid grid-cols-12" style="height: calc(100vh - 5rem);"> -->
     <!-- <div class="relative z-10 grid grid-cols-12 h-screen"> -->
 
         <!-- =============================================================== -->
         <!-- LEFT COLUMN: SCHOOL SELECTION (FIXED)                           -->
         <!-- =============================================================== -->
-        <div id="left-column" class="relative z-50 col-span-1 w-24 bg-black/60 backdrop-blur-sm border-r border-gray-800 p-3 flex flex-col gap-y-3 transition-all duration-300 ease-in-out overflow-hidden">
+        <div id="left-column" class="relative z-50 bg-black/60 backdrop-blur-sm border-r border-gray-800 p-3 flex flex-col gap-y-3 transition-all duration-300 ease-in-out overflow-hidden">
+        <!-- <div id="left-column" class="relative z-50 col-span-1 w-24 bg-black/60 backdrop-blur-sm border-r border-gray-800 p-3 flex flex-col gap-y-3 transition-all duration-300 ease-in-out overflow-hidden"> -->
             {% for data in schools_with_students %}
                 <button
                     class="school-button w-full p-2 rounded-lg flex items-center transition-colors duration-300 ease-in-out bg-gray-600/80 hover:bg-sky-600/70
@@ -79,7 +97,8 @@
         <!-- =============================================================== -->
         <!-- RIGHT COLUMN: CHARACTER DISPLAY (OVERHAULED)                    -->
         <!-- =============================================================== -->
-        <div id="right-column" class="col-span-11 h-full relative overflow-hidden transition-transform duration-300 ease-in-out">
+        <div id="right-column" class="h-full relative overflow-hidden">
+        <!-- <div id="right-column" class="col-span-11 h-full relative overflow-hidden transition-transform duration-300 ease-in-out"> -->
             {% for data in schools_with_students %}
             <div id="school-group-{{ data.school.school_id }}"
                  class="character-group absolute inset-0 transition-opacity duration-500 ease-in-out {% if not forloop.first %}opacity-0 pointer-events-none{% endif %}">
@@ -100,10 +119,10 @@
                     {% endfor %}
                 </div>
 
-                <button class="nav-arrow nav-left absolute left-4 top-1/2 -translate-y-1/2 bg-black/40 p-3 rounded-full hover:bg-sky-500/50 transition-colors z-40">
+                <button class="nav-arrow nav-left absolute left-6 top-1/2 -translate-y-1/2 bg-black/40 p-3 rounded-full hover:bg-sky-500/50 transition-colors z-40">
                     <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
                 </button>
-                <button class="nav-arrow nav-right absolute right-4 top-1/2 -translate-y-1/2 bg-black/40 p-3 rounded-full hover:bg-sky-500/50 transition-colors z-40">
+                <button class="nav-arrow nav-right absolute right-6 top-1/2 -translate-y-1/2 bg-black/40 p-3 rounded-full hover:bg-sky-500/50 transition-colors z-40">
                     <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
                 </button>
             </div>
@@ -115,15 +134,30 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // --- 1. COORDINATED SIDEBAR ANIMATION ---
     const mainGrid = document.getElementById('main-grid');
     const leftColumn = document.getElementById('left-column');
+    
+    // --- 1. ROBUST SIDEBAR EXPANSION (SIMPLIFIED) ---
+    function recenterActiveCarousel() {
+        // This function now uses the reliable activeGroupId string to find the current element.
+        if (activeGroupId) {
+            const activeGroupElement = document.getElementById(activeGroupId);
+            if (activeGroupElement) {
+                setTimeout(() => {
+                    updateCarousel(activeGroupElement, true); // Recalculate centering
+                }, 150);
+            }
+        }
+    }
 
     leftColumn.addEventListener('mouseenter', () => {
         mainGrid.classList.add('sidebar-expanded');
+        recenterActiveCarousel();
     });
+
     leftColumn.addEventListener('mouseleave', () => {
         mainGrid.classList.remove('sidebar-expanded');
+        recenterActiveCarousel();
     });
 
     // --- 2. ADVANCED SEAMLESS CAROUSEL LOGIC ---
@@ -232,6 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // School selection logic (unchanged)
+    // --- 3. SCHOOL SELECTION (Now cleaner) ---
     const schoolSelectors = document.querySelectorAll('.school-button');
     let activeGroupId = document.querySelector('.character-group:not(.opacity-0)')?.id;
 
@@ -249,10 +284,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const newGroup = document.getElementById(newGroupId);
             if (newGroup) {
-                // We don't need to re-init, just show and update
                 newGroup.classList.remove('opacity-0', 'pointer-events-none');
                 updateCarousel(newGroup, true);
-                activeGroupId = newGroupId;
+                
+                // This is the only update needed. The string ID is our "source of truth".
+                activeGroupId = newGroupId; 
             }
         });
     });
