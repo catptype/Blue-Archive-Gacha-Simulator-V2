@@ -9,25 +9,11 @@
 
 {% block body %}
 <style>
-    /* 
-    MODIFIED: Left column now expands on hover, revealing the full school name.
-    This provides a larger, more readable target for the user.
-    */
-    /* #left-column {
-        transition: width 300ms ease-in-out;
-    } */
-    /* #left-column:hover {
-        width: 16rem;
-    } */
     #left-column:hover .school-name {
         opacity: 1;
         max-width: 200px; /* Reveal width */
     }
-    /*
-    NEW: Glow effect for the school logo PNGs.
-    We use a filter: drop-shadow which respects the transparent areas of the PNG.
-    This is applied when the parent button is active or hovered.
-    */
+
     .school-button img {
         filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.8)); /* A vibrant sky-blue glow */
     }
@@ -35,28 +21,17 @@
         transform: scale(1.1); /* Slightly enlarge the logo for emphasis */
     }
 
-    /* 
-    NEW: This rule pushes the right column over when the parent grid
-    has the 'sidebar-expanded' class, preventing any overlap.
-    */
-    /* .sidebar-expanded #right-column {
-        transform: translateX(calc(16rem - 6rem));
-    } */
 
-    /* 
-    MODIFIED: The grid itself is now controlled here.
-    The parent grid animates its column widths.
-    */
     #main-grid {
         display: grid;
         /* Initial state: narrow sidebar, rest of space for content */
         grid-template-columns: 6rem 1fr; /* 6rem = w-24 */
         transition: grid-template-columns 300ms ease-in-out;
-    }
 
-    #main-grid.sidebar-expanded {
-        /* Expanded state: wider sidebar */
-        grid-template-columns: 16rem 1fr;
+        &.sidebar-expanded {
+            /* Expanded state: wider sidebar */
+            grid-template-columns: 16rem 1fr;
+        }
     }
 
 </style>
@@ -71,14 +46,11 @@
 
     <!-- MAIN CONTENT GRID -->
     <div id="main-grid" class="absolute top-20 left-0 right-0" style="height: calc(100vh - 5rem);">
-    <!-- <div id="main-grid" class="absolute top-20 left-0 right-0 grid grid-cols-12" style="height: calc(100vh - 5rem);"> -->
-    <!-- <div class="relative z-10 grid grid-cols-12 h-screen"> -->
 
         <!-- =============================================================== -->
         <!-- LEFT COLUMN: SCHOOL SELECTION (FIXED)                           -->
         <!-- =============================================================== -->
         <div id="left-column" class="relative z-50 bg-black/60 backdrop-blur-sm border-r border-gray-800 p-3 flex flex-col gap-y-3 transition-all duration-300 ease-in-out overflow-hidden">
-        <!-- <div id="left-column" class="relative z-50 col-span-1 w-24 bg-black/60 backdrop-blur-sm border-r border-gray-800 p-3 flex flex-col gap-y-3 transition-all duration-300 ease-in-out overflow-hidden"> -->
             {% for data in schools_with_students %}
                 <button
                     class="school-button w-full p-2 rounded-lg flex items-center transition-colors duration-300 ease-in-out bg-gray-600/80 hover:bg-sky-600/70
@@ -98,7 +70,6 @@
         <!-- RIGHT COLUMN: CHARACTER DISPLAY (OVERHAULED)                    -->
         <!-- =============================================================== -->
         <div id="right-column" class="h-full relative overflow-hidden">
-        <!-- <div id="right-column" class="col-span-11 h-full relative overflow-hidden transition-transform duration-300 ease-in-out"> -->
             {% for data in schools_with_students %}
             <div id="school-group-{{ data.school.school_id }}"
                  class="character-group absolute inset-0 transition-opacity duration-500 ease-in-out {% if not forloop.first %}opacity-0 pointer-events-none{% endif %}">
@@ -136,17 +107,15 @@
 document.addEventListener('DOMContentLoaded', () => {
     const mainGrid = document.getElementById('main-grid');
     const leftColumn = document.getElementById('left-column');
+
+    let activeGroupId = document.querySelector('.character-group:not(.opacity-0)')?.id;
     
     // --- 1. ROBUST SIDEBAR EXPANSION (SIMPLIFIED) ---
     function recenterActiveCarousel() {
-        // This function now uses the reliable activeGroupId string to find the current element.
         if (activeGroupId) {
-            const activeGroupElement = document.getElementById(activeGroupId);
-            if (activeGroupElement) {
-                setTimeout(() => {
-                    updateCarousel(activeGroupElement, true); // Recalculate centering
-                }, 150);
-            }
+            setTimeout(() => {
+                updateCarousel(document.getElementById(activeGroupId), true);
+            }, 300);
         }
     }
 
@@ -265,10 +234,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // School selection logic (unchanged)
-    // --- 3. SCHOOL SELECTION (Now cleaner) ---
+    // --- 3. SCHOOL SELECTION ---
     const schoolSelectors = document.querySelectorAll('.school-button');
-    let activeGroupId = document.querySelector('.character-group:not(.opacity-0)')?.id;
 
     schoolSelectors.forEach(button => {
         button.addEventListener('click', () => {
@@ -294,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     window.addEventListener('resize', () => {
-        if(activeGroupId) updateCarousel(document.getElementById(activeGroupId), true);
+        if (activeGroupId) updateCarousel(document.getElementById(activeGroupId), true);
     });
 });
 </script>
