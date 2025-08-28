@@ -8,6 +8,11 @@
 {% block title %}Student list{% endblock %} 
 
 {% block body %}
+<!--
+  This page implements an interactive, two-column character browser.
+  The left column is an expanding filter menu.
+  The right column is a seamless, infinitely looping character carousel.
+-->
 <div class="relative min-h-screen w-full bg-black antialiased text-white overflow-hidden">
     
     <!-- =============================================================== -->
@@ -16,21 +21,23 @@
     
     {% include 'app_web/components/background.html' %}
 
-    <!-- MAIN CONTENT GRID -->
+    <!-- =============================================================== -->
+    <!-- MAIN CONTAIN GRID                                               -->
+    <!-- =============================================================== -->
+    
+    <!-- This grid is positioned below the navbar and fills the remaining screen space. -->
     <div id="main-grid" class="absolute top-20 left-0 right-0" style="height: calc(100vh - 5rem);">
 
         <!-- =============================================================== -->
-        <!-- LEFT COLUMN: SCHOOL SELECTION (FIXED)                           -->
+        <!-- LEFT COLUMN: SCHOOL SELECTION                                   -->
         <!-- =============================================================== -->
+        
+        <!-- This sidebar acts as the filter menu and expands on hover. -->
         <div id="left-column" class="relative z-50 bg-black/60 backdrop-blur-sm border-r border-gray-800 p-3 flex flex-col gap-y-3 transition-all duration-300 ease-in-out overflow-hidden">
             {% for data in schools_with_students %}
-                <button
-                    class="school-button w-full p-2 rounded-lg flex items-center transition-colors duration-300 ease-in-out bg-gray-600/80 hover:bg-sky-600/70
-                           {% if forloop.first %}active ring-2 ring-sky-400{% endif %}"
+                <button class="school-button w-full p-2 rounded-lg flex items-center transition-colors duration-300 ease-in-out bg-gray-600/80 hover:bg-sky-600/70 {% if forloop.first %}active ring-2 ring-sky-400{% endif %}"
                     data-school-id="{{ data.school.school_id }}">
-                    
                     <img src="{% url 'serve_school_image' school_id=data.school.school_id %}" alt="{{ data.school.school_name }} Logo" class="h-12 w-12 pl-1 object-contain flex-shrink-0 transition-all duration-300">
-                    
                     <span class="school-name ml-3 font-bold text-lg whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out opacity-0 max-w-0">
                         {{ data.school.school_name }}
                     </span>
@@ -41,27 +48,33 @@
         <!-- =============================================================== -->
         <!-- RIGHT COLUMN: CHARACTER DISPLAY (OVERHAULED)                    -->
         <!-- =============================================================== -->
+        
         <div id="right-column" class="h-full relative overflow-hidden">
+
+            <!-- Container for a single school's set of characters. Fades in/out on selection. -->
             {% for data in schools_with_students %}
             <div id="school-group-{{ data.school.school_id }}"
                  class="character-group absolute inset-0 transition-opacity duration-500 ease-in-out {% if not forloop.first %}opacity-0 pointer-events-none{% endif %}">
 
+                <!-- This flex container holds all cards and is moved by JS for the carousel effect. -->
                 <div class="slider-container absolute top-0 left-0 w-full h-full flex items-center">
+                    
                     {% for student in data.students %}
                     <div class="character-card flex-shrink-0 w-[300px] h-[85%] mx-4 transition-all duration-500 ease-in-out">
                          <div class="relative w-full h-full group">
                             <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" alt="{{ student.student_name }}" class="w-full h-full object-cover rounded-lg">
-                             <div class="character-name absolute bottom-[20px] left-[70px] opacity-0 transition-all duration-500 ease-in-out transform -translate-x-8">
-                                 <h2 class="text-5xl font-black text-white uppercase tracking-widest origin-bottom-left transform -rotate-90" 
-                                     style="text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.7);">
-                                     {{ student.student_name }}
-                                 </h2>
-                             </div>
+                            <div class="character-name absolute bottom-[20px] left-[70px] opacity-0 transition-all duration-500 ease-in-out transform -translate-x-8">
+                                <h2 class="text-5xl font-black text-white uppercase tracking-widest origin-bottom-left transform -rotate-90" 
+                                    style="text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.7);">
+                                    {{ student.student_name }}
+                                </h2>
+                            </div>
                          </div>
                     </div>
                     {% endfor %}
                 </div>
 
+                <!-- Carousel Navigation Buttons -->
                 <button class="nav-arrow nav-left absolute left-6 top-1/2 -translate-y-1/2 bg-black/40 p-3 rounded-full hover:bg-sky-500/50 transition-colors z-40">
                     <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
                 </button>
