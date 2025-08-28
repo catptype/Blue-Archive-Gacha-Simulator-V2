@@ -48,6 +48,16 @@ def home(request:HttpRequest) -> HttpResponse:
 
 def student(request:HttpRequest) -> HttpResponse:
     """
+    Renders the initial "shell" of the student page, containing only the list of schools.
+    All student data will be loaded dynamically via API calls.
+    """
+    schools = School.objects.all().order_by('school_name')
+    context = { 'schools': schools }
+    return render(request, 'app_web/student.html', context)
+
+
+def student_HEAVY(request:HttpRequest) -> HttpResponse:
+    """
     Prepares the data for the character list page.
     Groups students by their school, only including their 'Original' version.
     """
@@ -80,7 +90,37 @@ def student(request:HttpRequest) -> HttpResponse:
     }
     return render(request, 'app_web/student.html', context)
 
+#######################################
+#####   REQUEST -> JSONRESPONSE   #####
+#######################################
+def get_students_by_school(request: HttpRequest, school_id: int) -> JsonResponse:
+    """
+    API endpoint that returns a list of students for a given school_id.
+    Filters for the 'Original' version of students.
+    """
+    try:
+        original_version = Version.objects.get(version_name='Original')
+    except Version.DoesNotExist:
+        # If there's no "Original" version, we can't find any students.
+        return JsonResponse({'students': []})
 
+    # Query for the students of the requested school and version.
+    students = Student.objects.filter(
+        school_id=school_id,
+        version_id=original_version
+    ).order_by('student_name')
+
+    # Convert the QuerySet into a list of simple dictionaries for JSON serialization.
+    # The frontend only needs the ID (for the image URL) and the name.
+    students_data = [
+        {
+            'id': student.student_id,
+            'name': student.student_name
+        }
+        for student in students
+    ]
+
+    return JsonResponse({'students': students_data})
 
 #######################################
 #####   REQUEST -> FILERESPONSE   #####

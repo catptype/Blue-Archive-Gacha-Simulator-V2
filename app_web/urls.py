@@ -12,6 +12,9 @@ urlpatterns = [
     path('', views.home, name='dashboard'),
     path('', views.home, name='register'),
 
+    # --- NEW API ENDPOINT ---
+    path('api/school/<int:school_id>/students/', views.get_students_by_school, name='get_students_by_school'),
+
     path('image/school/<int:school_id>', views.serve_school_image, name='serve_school_image'),
     path('image/student/<int:student_id>/<str:image_type>', views.serve_student_image, name='serve_student_image'),
     # path('image/student/<int:student_id>/artwork', views.serve_student_artwork, name='serve_student_artwork'),
