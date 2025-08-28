@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const animationDuration = 300; // Must match the CSS transition duration
         let startTime = null;
 
+        // The 'loop' function is called by the browser on every frame.
         const loop = (currentTime) => {
             if (!startTime) startTime = currentTime;
             const elapsedTime = currentTime - startTime;
@@ -54,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
         animationFrameId = requestAnimationFrame(loop);
     }
 
+    // Event listeners to trigger the synchronized animation.
     leftColumn.addEventListener('mouseenter', () => {
         mainGrid.classList.add('sidebar-expanded');
         startAnimationLoop();
@@ -64,40 +66,49 @@ document.addEventListener('DOMContentLoaded', () => {
         startAnimationLoop();
     });
 
-    // --- 2. ADVANCED SEAMLESS CAROUSEL LOGIC ---
-    const carouselState = {};
-    const CLONE_COUNT = 3; // Number of items to clone on each side for the seamless effect
+    // ==========================================================================
+    // SECTION 2: SEAMLESS CAROUSEL LOGIC
+    // ==========================================================================
+    const carouselState = {};   // A state object to hold data for each school's unique carousel.
+    const CLONE_COUNT = 3;      // The number of cards to clone on each side to create the seamless illusion.
 
+    /**
+     * The main function that controls the carousel's appearance and position.
+     * @param {HTMLElement} group - The character-group element to update.
+     * @param {boolean} instant - If true, the update is immediate (0ms). If false, it's a smooth slide (600ms).
+     */
     function updateCarousel(group, instant = false) {
         const slider = group.querySelector('.slider-container');
         const state = carouselState[group.id];
 
+        // Set the animation duration. Clicks get a smooth slide; the sidebar sync gets an instant update.
         slider.style.transitionDuration = instant ? '0ms' : '600ms';
         slider.style.transitionTimingFunction = instant ? '' : 'ease-in-out';
         
+        // --- Calculate the new center position ---
         const containerWidth = group.offsetWidth;
         const cardWidth = state.cards[0].offsetWidth;
         const margin = parseInt(window.getComputedStyle(state.cards[0]).marginRight) * 2;
         const cardAndMarginWidth = cardWidth + margin;
-        
         const offsetToCenter = (containerWidth / 2) - (cardAndMarginWidth / 2);
         const newX = offsetToCenter - (state.currentIndex * cardAndMarginWidth);
         
+        // Apply the new position to the slider.
         slider.style.transform = `translateX(${newX}px)`;
 
+        // --- Style each card based on whether it is "active" ---
         state.cards.forEach((card, i) => {
             const nameElement = card.querySelector('.character-name');
-            // We use the 'realIndex' to correctly identify the active card, ignoring clones
-            const realIndex = (state.currentIndex - CLONE_COUNT + state.totalRealCards) % state.totalRealCards;
+            const realIndex = (state.currentIndex - CLONE_COUNT + state.totalRealCards) % state.totalRealCards; // identify the true active card, ignoring the clones.
             const cardRealIndex = parseInt(card.dataset.realIndex);
 
-            if (realIndex === cardRealIndex) {
+            if (realIndex === cardRealIndex) { // Actived card
                 card.style.transform = 'scale(1.15)'; 
                 card.style.opacity = '1';
                 card.classList.remove('grayscale');
                 nameElement.classList.remove('opacity-0', '-translate-x-8');
                 nameElement.classList.add('opacity-100', 'translate-x-0');
-            } else {
+            } else { // Inactive card
                 card.style.transform = 'scale(0.9)';
                 card.style.opacity = '0.5';
                 card.classList.add('grayscale');
@@ -107,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Setup logic for each carousel ---
+    // --- One-time setup for each carousel on the page ---
     document.querySelectorAll('.character-group').forEach(group => {
         const slider = group.querySelector('.slider-container');
         const originalCards = Array.from(group.querySelectorAll('.character-card'));
@@ -117,15 +128,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // Assign a real index to each original card for later identification
         originalCards.forEach((card, i) => card.dataset.realIndex = i);
 
-        // Cloning for seamless effect
+        // --- Cloning Process for the Seamless Loop ---
+        // Take the last CLONE_COUNT=3 cards and add them to the beginning.
         const clonesStart = originalCards.slice(-CLONE_COUNT).map(c => c.cloneNode(true));
         const clonesEnd = originalCards.slice(0, CLONE_COUNT).map(c => c.cloneNode(true));
-        
         slider.append(...clonesEnd);
         slider.prepend(...clonesStart);
 
+        // Initialize the state for this specific carousel.
         const allCards = Array.from(slider.querySelectorAll('.character-card'));
-
         carouselState[group.id] = {
             currentIndex: CLONE_COUNT, // Start at the first "real" item
             totalRealCards: totalRealCards,
@@ -133,9 +144,10 @@ document.addEventListener('DOMContentLoaded', () => {
             isTransitioning: false
         };
 
+        // Set the initial position of the carousel.
         setTimeout(() => updateCarousel(group, true), 100);
 
-        // --- Event Listeners for seamless looping ---
+        // --- Event Listeners for Arrow Navigation ---
         group.querySelector('.nav-left')?.addEventListener('click', () => {
             const state = carouselState[group.id];
             if (state.isTransitioning) return;
@@ -152,17 +164,19 @@ document.addEventListener('DOMContentLoaded', () => {
             state.isTransitioning = true;
         });
 
-        // The magic happens here: check for clones after transition ends
+        // --- The "Magic Jump" for the Seamless Loop ---
+        // This listener waits for the slide animation to finish.
         slider.addEventListener('transitionend', () => {
             const state = carouselState[group.id];
             state.isTransitioning = false;
             
-            // If we are on a clone at the end, jump to the first real item
+            // If landed on a clone at the end, silently jump back to the corresponding real card.
             if (state.currentIndex >= state.totalRealCards + CLONE_COUNT) {
                 state.currentIndex = CLONE_COUNT;
                 updateCarousel(group, true);
             }
-            // If we are on a clone at the start, jump to the last real item
+
+            // If landed on a clone at the beginning, silently jump to the corresponding real card.
             if (state.currentIndex < CLONE_COUNT) {
                 state.currentIndex = state.totalRealCards + CLONE_COUNT - 1;
                 updateCarousel(group, true);
@@ -170,32 +184,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- 3. SCHOOL SELECTION ---
-    const schoolSelectors = document.querySelectorAll('.school-button');
+    // ==========================================================================
+    // SECTION 3: SCHOOL SELECTION & WINDOW RESIZE
+    // ==========================================================================
 
+    // --- Event listener for the school buttons in the left column ---
+    const schoolSelectors = document.querySelectorAll('.school-button');
     schoolSelectors.forEach(button => {
         button.addEventListener('click', () => {
             const schoolId = button.dataset.schoolId;
             const newGroupId = `school-group-${schoolId}`;
             if (newGroupId === activeGroupId) return;
 
+            // Update button styles.
             schoolSelectors.forEach(btn => btn.classList.remove('active', 'ring-2', 'ring-sky-400'));
             button.classList.add('active', 'ring-2', 'ring-sky-400');
             
+            // Fade out the old group.
             const oldGroup = document.getElementById(activeGroupId);
             if (oldGroup) oldGroup.classList.add('opacity-0', 'pointer-events-none');
 
+            // Fade in the new group.
             const newGroup = document.getElementById(newGroupId);
             if (newGroup) {
                 newGroup.classList.remove('opacity-0', 'pointer-events-none');
                 updateCarousel(newGroup, true);
                 
-                // This is the only update needed. The string ID is our "source of truth".
+                // Update our state tracker to the new active group ID.
                 activeGroupId = newGroupId; 
             }
         });
     });
     
+    // --- Event listener to re-center the carousel when the window is resized ---
     window.addEventListener('resize', () => {
         if (activeGroupId) updateCarousel(document.getElementById(activeGroupId), true);
     });
