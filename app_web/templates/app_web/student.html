@@ -35,6 +35,14 @@
         transform: scale(1.1); /* Slightly enlarge the logo for emphasis */
     }
 
+    /* 
+    NEW: This rule pushes the right column over when the parent grid
+    has the 'sidebar-expanded' class, preventing any overlap.
+    */
+    .sidebar-expanded #right-column {
+        transform: translateX(calc(16rem - 6rem)); /* (Expanded Width - Initial Width) */
+    }
+
 </style>
 
 <div class="relative min-h-screen w-full bg-black antialiased text-white overflow-hidden">
@@ -46,7 +54,7 @@
     </div>
 
     <!-- MAIN CONTENT GRID -->
-    <div class="absolute top-20 left-0 right-0 grid grid-cols-12" style="height: calc(100vh - 5rem);">
+    <div id="main-grid" class="absolute top-20 left-0 right-0 grid grid-cols-12" style="height: calc(100vh - 5rem);">
     <!-- <div class="relative z-10 grid grid-cols-12 h-screen"> -->
 
         <!-- =============================================================== -->
@@ -71,25 +79,17 @@
         <!-- =============================================================== -->
         <!-- RIGHT COLUMN: CHARACTER DISPLAY (OVERHAULED)                    -->
         <!-- =============================================================== -->
-        <div class="col-span-11 h-full relative overflow-hidden">
+        <div id="right-column" class="col-span-11 h-full relative overflow-hidden transition-transform duration-300 ease-in-out">
             {% for data in schools_with_students %}
             <div id="school-group-{{ data.school.school_id }}"
                  class="character-group absolute inset-0 transition-opacity duration-500 ease-in-out {% if not forloop.first %}opacity-0 pointer-events-none{% endif %}">
 
-                <div class="slider-container absolute top-0 left-0 w-full h-full flex items-center transition-transform duration-500 ease-in-out">
+                <div class="slider-container absolute top-0 left-0 w-full h-full flex items-center">
                     {% for student in data.students %}
-                    <!-- MODIFIED: Card width is now a FIXED size for consistency -->
                     <div class="character-card flex-shrink-0 w-[300px] h-[85%] mx-4 transition-all duration-500 ease-in-out">
                          <div class="relative w-full h-full group">
-                            <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}"
-                                 alt="{{ student.student_name }}"
-                                 class="w-full h-full object-cover rounded-lg">
-                             
-                             <div class="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black/70 to-transparent rounded-b-lg"></div>
-
-                             <!-- MODIFIED: Container for the rotated text -->
-                             <div class="character-name absolute bottom-[20px] left-[100px] opacity-0 transition-all duration-500 ease-in-out transform -translate-x-8">
-                                 <!-- MODIFIED: Text is rotated, with fixed size and new origin -->
+                            <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" alt="{{ student.student_name }}" class="w-full h-full object-cover rounded-lg">
+                             <div class="character-name absolute bottom-[20px] left-[70px] opacity-0 transition-all duration-500 ease-in-out transform -translate-x-8">
                                  <h2 class="text-5xl font-black text-white uppercase tracking-widest origin-bottom-left transform -rotate-90" 
                                      style="text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.7);">
                                      {{ student.student_name }}
@@ -100,7 +100,6 @@
                     {% endfor %}
                 </div>
 
-                <!-- Navigation -->
                 <button class="nav-arrow nav-left absolute left-4 top-1/2 -translate-y-1/2 bg-black/40 p-3 rounded-full hover:bg-sky-500/50 transition-colors z-40">
                     <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
                 </button>
@@ -110,82 +109,129 @@
             </div>
             {% endfor %}
         </div>
+
     </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    // --- 1. COORDINATED SIDEBAR ANIMATION ---
+    const mainGrid = document.getElementById('main-grid');
+    const leftColumn = document.getElementById('left-column');
+
+    leftColumn.addEventListener('mouseenter', () => {
+        mainGrid.classList.add('sidebar-expanded');
+    });
+    leftColumn.addEventListener('mouseleave', () => {
+        mainGrid.classList.remove('sidebar-expanded');
+    });
+
+    // --- 2. ADVANCED SEAMLESS CAROUSEL LOGIC ---
     const carouselState = {};
+    const CLONE_COUNT = 3; // Number of items to clone on each side for the seamless effect
 
-    function updateCarousel(groupId, instant = false) {
-        const group = document.getElementById(groupId);
-        if (!group) return;
-
+    function updateCarousel(group, instant = false) {
         const slider = group.querySelector('.slider-container');
-        const cards = group.querySelectorAll('.character-card');
-        const total = cards.length;
-        if (total === 0) return;
+        const state = carouselState[group.id];
 
-        if (!carouselState[groupId]) carouselState[groupId] = { currentIndex: 0 };
-        let currentIndex = carouselState[groupId].currentIndex;
-
+        slider.style.transitionDuration = instant ? '0ms' : '500ms';
+        
         const containerWidth = group.offsetWidth;
-        const cardWidth = cards[0].offsetWidth;
-        const margin = parseInt(window.getComputedStyle(cards[0]).marginRight) * 2;
+        const cardWidth = state.cards[0].offsetWidth;
+        const margin = parseInt(window.getComputedStyle(state.cards[0]).marginRight) * 2;
         const cardAndMarginWidth = cardWidth + margin;
         
         const offsetToCenter = (containerWidth / 2) - (cardAndMarginWidth / 2);
-        const newX = offsetToCenter - (currentIndex * cardAndMarginWidth);
+        const newX = offsetToCenter - (state.currentIndex * cardAndMarginWidth);
         
-        slider.style.transitionDuration = instant ? '0ms' : '500ms';
         slider.style.transform = `translateX(${newX}px)`;
 
-        cards.forEach((card, i) => {
+        state.cards.forEach((card, i) => {
             const nameElement = card.querySelector('.character-name');
-            if (i === currentIndex) {
-                // --- ACTIVE CARD ---
-                // MODIFIED: Increased scale for a "wider" effect
+            // We use the 'realIndex' to correctly identify the active card, ignoring clones
+            const realIndex = (state.currentIndex - CLONE_COUNT + state.totalRealCards) % state.totalRealCards;
+            const cardRealIndex = parseInt(card.dataset.realIndex);
+
+            if (realIndex === cardRealIndex) {
                 card.style.transform = 'scale(1.15)'; 
                 card.style.opacity = '1';
-                // MODIFIED: Remove grayscale filter
                 card.classList.remove('grayscale');
-
-                nameElement.classList.remove('opacity-0', 'translate-y-8');
-                nameElement.classList.add('opacity-100', 'translate-y-0');
+                nameElement.classList.remove('opacity-0', '-translate-x-8');
+                nameElement.classList.add('opacity-100', 'translate-x-0');
             } else {
-                // --- INACTIVE CARDS ---
                 card.style.transform = 'scale(0.9)';
                 card.style.opacity = '0.5';
-                // MODIFIED: Add grayscale filter
                 card.classList.add('grayscale');
-
-                nameElement.classList.remove('opacity-100', 'translate-y-0');
-                nameElement.classList.add('opacity-0', 'translate-y-8');
+                nameElement.classList.remove('opacity-100', 'translate-x-0');
+                nameElement.classList.add('opacity-0', '-translate-x-8');
             }
         });
     }
 
-    // --- The rest of the script remains the same ---
+    // --- Setup logic for each carousel ---
     document.querySelectorAll('.character-group').forEach(group => {
-        const groupId = group.id;
-        const total = group.querySelectorAll('.character-card').length;
-        if (total === 0) return;
+        const slider = group.querySelector('.slider-container');
+        const originalCards = Array.from(group.querySelectorAll('.character-card'));
+        const totalRealCards = originalCards.length;
+        if (totalRealCards === 0) return;
 
-        setTimeout(() => updateCarousel(groupId, true), 100);
+        // Assign a real index to each original card for later identification
+        originalCards.forEach((card, i) => card.dataset.realIndex = i);
 
+        // Cloning for seamless effect
+        const clonesStart = originalCards.slice(-CLONE_COUNT).map(c => c.cloneNode(true));
+        const clonesEnd = originalCards.slice(0, CLONE_COUNT).map(c => c.cloneNode(true));
+        
+        slider.append(...clonesEnd);
+        slider.prepend(...clonesStart);
+
+        const allCards = Array.from(slider.querySelectorAll('.character-card'));
+
+        carouselState[group.id] = {
+            currentIndex: CLONE_COUNT, // Start at the first "real" item
+            totalRealCards: totalRealCards,
+            cards: allCards,
+            isTransitioning: false
+        };
+
+        setTimeout(() => updateCarousel(group, true), 100);
+
+        // --- Event Listeners for seamless looping ---
         group.querySelector('.nav-left')?.addEventListener('click', () => {
-            let currentIndex = carouselState[groupId].currentIndex;
-            carouselState[groupId].currentIndex = (currentIndex - 1 + total) % total;
-            updateCarousel(groupId);
+            const state = carouselState[group.id];
+            if (state.isTransitioning) return;
+            state.currentIndex--;
+            updateCarousel(group);
+            state.isTransitioning = true;
         });
 
         group.querySelector('.nav-right')?.addEventListener('click', () => {
-            let currentIndex = carouselState[groupId].currentIndex;
-            carouselState[groupId].currentIndex = (currentIndex + 1) % total;
-            updateCarousel(groupId);
+            const state = carouselState[group.id];
+            if (state.isTransitioning) return;
+            state.currentIndex++;
+            updateCarousel(group);
+            state.isTransitioning = true;
+        });
+
+        // The magic happens here: check for clones after transition ends
+        slider.addEventListener('transitionend', () => {
+            const state = carouselState[group.id];
+            state.isTransitioning = false;
+            
+            // If we are on a clone at the end, jump to the first real item
+            if (state.currentIndex >= state.totalRealCards + CLONE_COUNT) {
+                state.currentIndex = CLONE_COUNT;
+                updateCarousel(group, true);
+            }
+            // If we are on a clone at the start, jump to the last real item
+            if (state.currentIndex < CLONE_COUNT) {
+                state.currentIndex = state.totalRealCards + CLONE_COUNT - 1;
+                updateCarousel(group, true);
+            }
         });
     });
 
+    // School selection logic (unchanged)
     const schoolSelectors = document.querySelectorAll('.school-button');
     let activeGroupId = document.querySelector('.character-group:not(.opacity-0)')?.id;
 
@@ -203,15 +249,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const newGroup = document.getElementById(newGroupId);
             if (newGroup) {
-                updateCarousel(newGroupId, true);
+                // We don't need to re-init, just show and update
                 newGroup.classList.remove('opacity-0', 'pointer-events-none');
+                updateCarousel(newGroup, true);
                 activeGroupId = newGroupId;
             }
         });
     });
     
     window.addEventListener('resize', () => {
-        if(activeGroupId) updateCarousel(activeGroupId, true);
+        if(activeGroupId) updateCarousel(document.getElementById(activeGroupId), true);
     });
 });
 </script>
