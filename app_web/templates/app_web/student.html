@@ -78,23 +78,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const carouselStage = document.getElementById('carousel-stage');
     const loadingSpinner = document.getElementById('loading-spinner');
     
-    // This variable tracks the ID string of the currently visible group. It is our "source of truth".
     let activeGroupId = null;
-    // This holds the ID for our sidebar synchronization animation loop.
     let animationFrameId = null;
-    // This client-side cache stores student data to prevent redundant API calls.
     const schoolDataCache = {};
-    // This prevents the user from spam-clicking schools while one is already loading.
     let isLoading = false;
-    // This holds the state (currentIndex, etc.) for each dynamically created carousel.
     const carouselState = {};
-    // Number of cards to clone on each side for the seamless loop effect.
     const CLONE_COUNT = 3;
 
     // --- =============================================================== ---
     // --- SECTION 2: CORE CAROUSEL & ANIMATION LOGIC                      ---
     // --- =============================================================== ---
 
+    // --- =============================================================== ---
+    // --- SECTION 2: CORE CAROUSEL & ANIMATION LOGIC                      ---
+    // --- =============================================================== ---
+    
     /**
      * The main function that controls the carousel's appearance and position.
      * This is the same trusted logic from your original code.
@@ -224,8 +222,11 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `).join('');
 
+        // --- MODIFICATION ---
+        // The new carousel is now created with 'opacity-0' so it's invisible by default.
+        // A 'transition-opacity' class is added to allow it to fade in smoothly.
         return `
-            <div id="school-group-${schoolId}" class="character-group absolute inset-0">
+            <div id="school-group-${schoolId}" class="character-group absolute inset-0 opacity-0 transition-opacity duration-500 ease-in-out">
                 <div class="slider-container absolute top-0 left-0 w-full h-full flex items-center">${studentCardsHTML}</div>
                 <button class="nav-arrow nav-left absolute left-6 top-1/2 -translate-y-1/2 bg-black/40 p-3 rounded-full hover:bg-sky-500/50 transition-colors z-40">
                     <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
@@ -238,16 +239,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Fetches student data from the API (or cache), then builds and initializes the carousel.
+     * Fetches student data, then builds and initializes the carousel with a smooth fade-in.
      */
     async function loadSchoolData(schoolId) {
         if (isLoading) return;
         isLoading = true;
-        
+
+        // Step 1: Fade out the CURRENT carousel (if one exists).
         const currentGroup = activeGroupId ? document.getElementById(activeGroupId) : null;
-        if (currentGroup) currentGroup.style.opacity = 0;
+        if (currentGroup) {
+            currentGroup.classList.add('opacity-0');
+        }
+        
+        // Step 2: Show the loading spinner.
         loadingSpinner.style.display = 'flex';
         
+        // A short delay to allow the fade-out animation to be visible.
+        // Optional but good for UX: wait for fade-out to be visible before fetching.
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Step 3: Fetch data (from cache or server).
         let students = [];
         if (schoolDataCache[schoolId]) {
             students = schoolDataCache[schoolId];
@@ -263,16 +274,30 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
+        // Step 4: Build and inject the new, INVISIBLE carousel into the stage.
         const carouselHTML = buildCarouselHTML(schoolId, students);
         carouselStage.innerHTML = carouselHTML;
         
+        // Step 5: Get a reference to the new group and initialize its logic while it's still invisible.
         const newGroup = document.getElementById(`school-group-${schoolId}`);
         if (newGroup && students && students.length > 0) {
+            // This initializes the carousel (sets up clones, state, etc.) while it is still invisible.
             initializeCarousel(newGroup);
         }
         
         activeGroupId = `school-group-${schoolId}`;
-        loadingSpinner.style.display = 'none';
+        loadingSpinner.style.display = 'none'; // Hide spinner.
+        
+        // --- THE FIX ---
+        // Step 6: Use a tiny timeout. This forces the browser to process the initial 'opacity-0'
+        // state BEFORE it tries to apply the final 'opacity-100' state, which guarantees
+        // the CSS transition will fire correctly.
+        setTimeout(() => {
+            if (newGroup) {
+                newGroup.classList.remove('opacity-0');
+            }
+        }, 50); // A small delay like 20ms is enough.
+        
         isLoading = false;
     }
     
