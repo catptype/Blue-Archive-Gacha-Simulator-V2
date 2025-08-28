@@ -1,0 +1,11 @@
+{% load static %}
+
+<!-- Sits at the back (z-0) and covers the entire screen. -->
+<div class="absolute inset-0 z-0">
+
+    <!-- The background image is made subtle with opacity and a blur filter. -->
+    <img src="{% static 'images/web/background.png' %}" alt="Background" class="object-cover w-full h-full opacity-30 filter blur-sm">
+
+    <!-- A gradient overlay ensures a smooth fade to black at the bottom. -->
+    <div class="absolute inset-0 bg-gradient-to-t from-black via-black/0 to-transparent"></div>
+</div>

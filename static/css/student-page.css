@@ -1,0 +1,29 @@
+/* ========================================================================== */
+/* Sidebar and Grid Layout Styles                                             */
+/* ========================================================================== */
+
+/* Controls the expansion of the left column's container. */
+#left-column:hover .school-name {
+    opacity: 1;
+    max-width: 200px; /* The target width for the school name text. */
+}
+
+/* Controls the glow effect on the school logos (PNG transparency). */
+.school-button img {
+    filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.8));
+}
+.school-button:hover img {
+    transform: scale(1.1); /* Slightly enlarge the logo on hover for feedback. */
+}
+
+/* Main grid layout definition. */
+#main-grid {
+    display: grid;
+    grid-template-columns: 6rem 1fr; /* Initial state: A 6rem fixed-width left column, and the right column takes the remaining space (1 fraction). */
+    transition: grid-template-columns 300ms ease-in-out; /* This transition animates the change in grid-template-columns over 300ms. */
+}
+
+/* The expanded state for the grid. This is triggered by adding the 'sidebar-expanded' class via JavaScript. */
+#main-grid.sidebar-expanded {
+    grid-template-columns: 16rem 1fr; /* The left column expands to 16rem, and the right column automatically shrinks to fill the remaining space. */
+}
