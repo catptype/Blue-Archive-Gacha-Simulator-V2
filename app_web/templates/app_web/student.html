@@ -110,23 +110,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let activeGroupId = document.querySelector('.character-group:not(.opacity-0)')?.id;
     
-    // --- 1. ROBUST SIDEBAR EXPANSION (SIMPLIFIED) ---
-    function recenterActiveCarousel() {
+    // A variable to hold the ID of our animation loop
+    let animationFrameId = null;
+    
+    // --- 1. PERFECTLY SYNCHRONIZED SIDEBAR EXPANSION ---
+    function recenterActiveCarouselInstantly() {
         if (activeGroupId) {
-            setTimeout(() => {
-                updateCarousel(document.getElementById(activeGroupId), true);
-            }, 300);
+            const activeGroupElement = document.getElementById(activeGroupId);
+            if (activeGroupElement) {
+                // We always call with 'true' for an instant, frame-by-frame update.
+                updateCarousel(activeGroupElement, true);
+            }
         }
+    }
+
+    function startAnimationLoop() {
+        // Cancel any previous loop to prevent conflicts
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+        const animationDuration = 300; // Must match the CSS transition duration
+        let startTime = null;
+
+        const loop = (currentTime) => {
+            if (!startTime) startTime = currentTime;
+            const elapsedTime = currentTime - startTime;
+
+            recenterActiveCarouselInstantly();
+
+            if (elapsedTime < animationDuration) {
+                // If the animation is not finished, request the next frame
+                animationFrameId = requestAnimationFrame(loop);
+            } else {
+                 // Final check to ensure it lands perfectly
+                 recenterActiveCarouselInstantly();
+            }
+        };
+
+        // Start the loop
+        animationFrameId = requestAnimationFrame(loop);
     }
 
     leftColumn.addEventListener('mouseenter', () => {
         mainGrid.classList.add('sidebar-expanded');
-        recenterActiveCarousel();
+        startAnimationLoop();
     });
 
     leftColumn.addEventListener('mouseleave', () => {
         mainGrid.classList.remove('sidebar-expanded');
-        recenterActiveCarousel();
+        startAnimationLoop();
     });
 
     // --- 2. ADVANCED SEAMLESS CAROUSEL LOGIC ---
@@ -137,7 +168,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const slider = group.querySelector('.slider-container');
         const state = carouselState[group.id];
 
-        slider.style.transitionDuration = instant ? '0ms' : '500ms';
+        slider.style.transitionDuration = instant ? '0ms' : '300ms';
+        slider.style.transitionTimingFunction = instant ? '' : 'ease-in-out';
         
         const containerWidth = group.offsetWidth;
         const cardWidth = state.cards[0].offsetWidth;
