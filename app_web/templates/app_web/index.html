@@ -7,49 +7,42 @@
 {% endblock %}
 
 {% block body %}
-<style>
-  strong {
-      color: #5fdbff;
-      text-shadow: 
-          -1px -1px 0 black,  
-          1px -1px 0 black,
-          -1px  1px 0 black,
-          1px  1px 0 black;
-  }
-</style>
-
-<!--
-  Key Adaptation Choices:
-  - Background: A full-page background image is used to create an immersive feel. A dark overlay ensures text readability.
-  - Dark Theme: `bg-black` or dark gradients are used. Text is primarily light (`text-slate-200`, `text-white`).
-  - Frosted Glass Panels: `bg-slate-900/50` and `backdrop-blur-lg` are used on the content containers to create the modern, semi-transparent look.
-  - Accent Borders: `border-cyan-400` or similar vibrant colors are used to add highlights and visual separation, mimicking the reference site's UI.
-  - Typography: Font sizes, weights (`font-bold`, `font-light`), and colors are adjusted for a more dramatic and modern feel.
-  - Spacing & Layout: More generous padding (`p-6` or `p-8`) is used inside containers for a premium, uncluttered look.
+<!-- 
+  This is the main page wrapper.
+  - 'relative' anchors all absolutely positioned children.
+  - 'pt-20' prevents the content from being hidden under the fixed navbar.
 -->
-
 <div class="relative min-h-screen w-full bg-black antialiased pt-20">
-  <!-- Background Image / Video -->
-  <div class="absolute inset-0 z-0">
-    <!-- 
-      You can replace this with your own high-quality background.
-      The opacity and filter ensure the text on top remains readable.
-    -->
-    <img src="{% static 'images/web/background.png' %}" alt="Background" class="object-cover w-full h-full opacity-30 filter blur-sm">
-    <div class="absolute inset-0 bg-gradient-to-t from-black via-black/0 to-transparent"></div>
-  </div>
+  
+  <!-- =============================================================== -->
+  <!-- PAGE BACKGROUND                                                 -->
+  <!-- =============================================================== -->
+  
+  {% include 'app_web/components/background.html' %}
 
-  <!-- Main Content Container (z-10 places it above the background) -->
+  <!-- =============================================================== -->
+  <!-- MAIN CONTENT CONTAINER                                          -->
+  <!-- =============================================================== -->
+  
+  <!-- Centers the content on the page and places it above the background (z-10). -->
   <div class="relative z-10 w-full max-w-6xl mx-auto px-4 py-8">
     
     <!-- Outer Flex Container -->
     <div class="flex flex-col gap-4">
 
-      <!-- Upper Row -->
+      <!-- =============================================================== -->
+      <!-- UPPER ROW: SPLIT INTO LEFT & RIGHT                              -->
+      <!-- =============================================================== -->
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
         
-        <!-- Left Column (Spanning 3 of 5 columns on large screens) -->
+        <!-- =============================================================== -->
+        <!-- LEFT COLUMN: WELCOME & FEATURES                                 -->
+        <!-- =============================================================== -->
+        
+        <!-- This panel spans 3 of 5 columns on desktop screens (lg:). -->
         <div class="lg:col-span-3 flex flex-col p-6 bg-slate-900/50 backdrop-blur-lg border border-slate-700 rounded-lg shadow-2xl">
+          
+          <!-- Header section with profile icon and welcome text. -->
           <div class="flex items-center mb-6 gap-4">
             <div class="relative flex-shrink-0 w-24 h-24 overflow-hidden rounded-full border-2 border-cyan-400/50">
               <img class="absolute top-0 left-0 object-cover w-full h-full" src="{% static 'images/web/arona.png' %}" alt="Arona">
@@ -57,11 +50,15 @@
             <h1 class="text-4xl font-bold text-white tracking-wide">Welcome, Sensei!</h1>
           </div>
 
+          <!-- Introduction paragraph. -->
           <p class="text-lg text-slate-300 font-light">
             An unofficial web application, serving as a Gacha Simulator for the mobile game Blue Archive, developed by Nexon Games and published by Yostar (Japan) and Nexon (Global). Experience the gacha, test your luck, and have fun without spending any Pyroxene.
           </p>
           
+          <!-- Features section header. -->
           <h2 class="mt-8 mb-3 text-2xl font-semibold text-white border-b-2 border-cyan-400/30 pb-2">Features</h2>
+          
+          <!-- List of application features. -->
           <ul class="space-y-2 text-slate-300">
             <li class="flex items-start gap-3">
               <svg class="w-5 h-5 mt-1 text-cyan-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -86,18 +83,23 @@
           </ul>
         </div>
 
-        <!-- Right Column (hero section) -->
+        <!-- =============================================================== -->
+        <!-- RIGHT COLUMN: HERO VIDEO PANEL                                  -->
+        <!-- =============================================================== -->
+        
+        <!-- This panel spans the remaining 2 of 5 columns on desktop screens. -->
         <div class="relative lg:col-span-2 w-full min-h-[300px] lg:min-h-0 overflow-hidden bg-slate-900 border border-slate-700 rounded-lg shadow-2xl">
-          <!-- Video Background -->
+          
+          <!-- Background Video: Sits at the back of this panel (z-0). -->
           <video autoplay muted loop class="absolute top-0 left-0 w-full h-full object-cover z-0">
             <source src="{% static 'video/gacha.mov' %}" type="video/mp4">
             Your browser does not support the video tag.
           </video>
           
-          <!-- Gradient Overlay for Text Readability -->
+          <!-- Gradient Overlay: Sits on top of the video (z-10) to ensure the text is readable. -->
           <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent z-10"></div>
           
-          <!-- Centered Caption -->
+          <!-- Centered Text: Sits on top of the gradient (z-20) for maximum visibility. -->
           <div class="absolute inset-0 flex items-center justify-center z-20">
             <h2 
               class="text-6xl font-black text-white uppercase tracking-widest" 
@@ -107,11 +109,13 @@
             </h2>
           </div>
         </div>
-        <!-- End of Right Column -->
 
       </div>
 
-      <!-- Below Row -->
+      <!-- =============================================================== -->
+      <!-- FOOTER ROW: CREDITS & LINKS                                     -->
+      <!-- =============================================================== -->
+       
       <div class="p-4 text-center bg-black/50 backdrop-blur-lg border border-slate-800 rounded-lg">
         <p class="text-sm text-slate-400">
           Developed by <a href="https://github.com/catptype/" class="font-medium text-cyan-400 hover:text-cyan-300 hover:underline">Catptype</a>. This website is not affiliated with Nexon, Nexon Games, or Yostar.

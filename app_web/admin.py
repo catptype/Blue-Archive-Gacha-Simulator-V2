@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.template.loader import render_to_string
 
-from .models import Student, School, Version
+from .models import Student, School, Version, GachaBanner, GachaPreset
 
 def create_image_display(image_type, description):
     """
@@ -42,26 +42,6 @@ class RarityFilter(admin.SimpleListFilter):
         value = self.value()
         if value:
             return queryset.filter(student_rarity=value)
-
-class SchoolAdminForm(forms.ModelForm):
-    class Meta:
-        model = School
-        fields = '__all__'
-
-@admin.register(School)
-class SchoolAdmin(admin.ModelAdmin):
-    form = SchoolAdminForm
-    list_display = ['school_id', 'school_name', 'school_logo']
-    ordering = ['school_name'] 
-
-    def school_logo(self, obj:School):
-        context = { 
-            'school_id': obj.pk,
-            'school_name': obj.name,
-        }
-        print(context)
-        return render_to_string('admin/school-logo.html', context)
-
 
 class StudentAdminForm(forms.ModelForm):
     rarity = forms.TypedChoiceField(
@@ -101,6 +81,28 @@ class StudentAdminForm(forms.ModelForm):
         model = Student
         fields = '__all__'
 
+@admin.register(School)
+class SchoolAdmin(admin.ModelAdmin):
+    list_display = ['school_id', 'school_name', 'school_logo']
+    ordering = ['school_name'] 
+
+    def school_logo(self, obj:School):
+        context = { 
+            'school_id': obj.pk,
+            'school_name': obj.name,
+        }
+        print(context)
+        return render_to_string('admin/school-logo.html', context)
+
+@admin.register(Version)
+class VersionAdmin(admin.ModelAdmin):
+    list_display = [
+        'version_id',
+        'version_name'
+    ]
+    list_per_page = 10
+    ordering = ['version_id']
+
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
     form = StudentAdminForm
@@ -132,3 +134,26 @@ class StudentAdmin(admin.ModelAdmin):
         edit_url = reverse(f'admin:{app}_{model}_change',  args=[obj.id])
         context = { 'edit_url': edit_url }
         return render_to_string('admin/edit-button.html', context)
+
+@admin.register(GachaPreset)
+class GachaPresetAdmin(admin.ModelAdmin):
+    list_display = [
+        'preset_id', 
+        'preset_name', 
+        'preset_pickup_rate', 
+        'preset_r3_rate', 
+        'preset_r2_rate', 
+        'preset_r1_rate', 
+    ]
+    list_per_page = 10
+    ordering = ['preset_id']
+
+@admin.register(GachaBanner)
+class GachaBannerAdmin(admin.ModelAdmin):
+    list_display = [
+        'banner_id',
+        'banner_name',
+        'preset_id',
+    ]
+    list_per_page = 10
+    ordering = ['banner_id']

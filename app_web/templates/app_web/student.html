@@ -2,222 +2,73 @@
 {% load static %}
 
 {% block css %}
-<!-- <link rel="stylesheet" type="text/css" href="{% static 'css/student-style.css' %}"> -->
+<link rel="stylesheet" type="text/css" href="{% static 'css/student-page.css' %}">
 {% endblock %}
 
 {% block title %}Student list{% endblock %} 
 
 {% block body %}
-<style>
-    /* 
-    MODIFIED: Left column now expands on hover, revealing the full school name.
-    This provides a larger, more readable target for the user.
-    */
-    /* #left-column {
-        transition: width 300ms ease-in-out;
-    } */
-    #left-column:hover {
-        width: 16rem; /* 256px */
-    }
-    #left-column:hover .school-name {
-        opacity: 1;
-        max-width: 200px; /* Reveal width */
-    }
-    /*
-    NEW: Glow effect for the school logo PNGs.
-    We use a filter: drop-shadow which respects the transparent areas of the PNG.
-    This is applied when the parent button is active or hovered.
-    */
-    .school-button img {
-        filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.8)); /* A vibrant sky-blue glow */
-    }
-    .school-button:hover img {
-        transform: scale(1.1); /* Slightly enlarge the logo for emphasis */
-    }
-
-</style>
-
+<!--
+  This page implements an interactive, two-column character browser.
+  The left column is an expanding filter menu.
+  The right column is a seamless, infinitely looping character carousel.
+-->
 <div class="relative min-h-screen w-full bg-black antialiased text-white overflow-hidden">
     
-    <!-- FIXED BACKGROUND -->
-    <div class="fixed inset-0 z-0">
-        <img src="{% static 'images/web/background.png' %}" alt="Background" class="object-cover w-full h-full opacity-30 filter blur-sm">
-        <div class="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
-    </div>
+    <!-- =============================================================== -->
+    <!-- PAGE BACKGROUND                                                 -->
+    <!-- =============================================================== -->
+    
+    {% include 'app_web/components/background.html' %}
 
-    <!-- MAIN CONTENT GRID -->
-    <div class="absolute top-20 left-0 right-0 grid grid-cols-12" style="height: calc(100vh - 5rem);">
-    <!-- <div class="relative z-10 grid grid-cols-12 h-screen"> -->
+    <!-- =============================================================== -->
+    <!-- MAIN CONTAIN GRID                                               -->
+    <!-- =============================================================== -->
+    
+    <!-- This grid is positioned below the navbar and fills the remaining screen space. -->
+    <div id="main-grid" class="absolute top-20 left-0 right-0" style="height: calc(100vh - 5rem);">
 
         <!-- =============================================================== -->
-        <!-- LEFT COLUMN: SCHOOL SELECTION (FIXED)                           -->
+        <!-- LEFT COLUMN: SCHOOL SELECTION                                   -->
         <!-- =============================================================== -->
-        <div id="left-column" class="relative z-50 col-span-1 w-24 bg-black/60 backdrop-blur-sm border-r border-gray-800 p-3 flex flex-col gap-y-3 transition-all duration-300 ease-in-out overflow-hidden">
-            {% for data in schools_with_students %}
+        
+        <!-- This sidebar acts as the filter menu and expands on hover. -->
+        <div id="left-column" class="relative z-51 bg-black/60 backdrop-blur-sm border-r border-gray-800 p-3 flex flex-col gap-y-3 transition-all duration-300 ease-in-out overflow-y-auto">
+            {% for school in schools %}
                 <button
-                    class="school-button w-full p-2 rounded-lg flex items-center transition-colors duration-300 ease-in-out bg-gray-600/80 hover:bg-sky-600/70
-                           {% if forloop.first %}active ring-2 ring-sky-400{% endif %}"
-                    data-school-id="{{ data.school.school_id }}">
+                    class="school-button w-full p-2 rounded-lg flex items-center transition-colors duration-300 ease-in-out bg-gray-600/80 hover:bg-sky-600/70 {% if forloop.first %}active ring-2 ring-sky-400{% endif %}"
+                    data-school-id="{{ school.school_id }}">
                     
-                    <img src="{% url 'serve_school_image' school_id=data.school.school_id %}" alt="{{ data.school.school_name }} Logo" class="h-12 w-12 pl-1 object-contain flex-shrink-0 transition-all duration-300">
+                    <img src="{% url 'serve_school_image' school_id=school.school_id %}" alt="{{ school.school_name }} Logo" class="h-12 w-12 object-contain flex-shrink-0 transition-all duration-300">
                     
                     <span class="school-name ml-3 font-bold text-lg whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out opacity-0 max-w-0">
-                        {{ data.school.school_name }}
+                        {{ school.school_name }}
                     </span>
                 </button>
             {% endfor %}
         </div>
 
         <!-- =============================================================== -->
-        <!-- RIGHT COLUMN: CHARACTER DISPLAY (OVERHAULED)                    -->
+        <!-- RIGHT COLUMN: CHARACTER DISPLAY                                 -->
         <!-- =============================================================== -->
-        <div class="col-span-11 h-full relative overflow-hidden">
-            {% for data in schools_with_students %}
-            <div id="school-group-{{ data.school.school_id }}"
-                 class="character-group absolute inset-0 transition-opacity duration-500 ease-in-out {% if not forloop.first %}opacity-0 pointer-events-none{% endif %}">
-
-                <div class="slider-container absolute top-0 left-0 w-full h-full flex items-center transition-transform duration-500 ease-in-out">
-                    {% for student in data.students %}
-                    <!-- MODIFIED: Card width is now a FIXED size for consistency -->
-                    <div class="character-card flex-shrink-0 w-[300px] h-[85%] mx-4 transition-all duration-500 ease-in-out">
-                         <div class="relative w-full h-full group">
-                            <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}"
-                                 alt="{{ student.student_name }}"
-                                 class="w-full h-full object-cover rounded-lg">
-                             
-                             <div class="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black/70 to-transparent rounded-b-lg"></div>
-
-                             <!-- MODIFIED: Container for the rotated text -->
-                             <div class="character-name absolute bottom-[20px] left-[100px] opacity-0 transition-all duration-500 ease-in-out transform -translate-x-8">
-                                 <!-- MODIFIED: Text is rotated, with fixed size and new origin -->
-                                 <h2 class="text-5xl font-black text-white uppercase tracking-widest origin-bottom-left transform -rotate-90" 
-                                     style="text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.7);">
-                                     {{ student.student_name }}
-                                 </h2>
-                             </div>
-                         </div>
-                    </div>
-                    {% endfor %}
+        
+        <div id="right-column" class="h-full relative overflow-hidden">
+            <!-- A single container where carousels will be injected. -->
+            <div id="carousel-stage" class="w-full h-full">
+                <!-- A loading spinner that shows by default -->
+                <div id="loading-spinner" class="w-full h-full flex items-center justify-center">
+                    <svg class="animate-spin -ml-1 mr-3 h-10 w-10 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
                 </div>
-
-                <!-- Navigation -->
-                <button class="nav-arrow nav-left absolute left-4 top-1/2 -translate-y-1/2 bg-black/40 p-3 rounded-full hover:bg-sky-500/50 transition-colors z-40">
-                    <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-                </button>
-                <button class="nav-arrow nav-right absolute right-4 top-1/2 -translate-y-1/2 bg-black/40 p-3 rounded-full hover:bg-sky-500/50 transition-colors z-40">
-                    <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                </button>
             </div>
-            {% endfor %}
         </div>
+
     </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const carouselState = {};
-
-    function updateCarousel(groupId, instant = false) {
-        const group = document.getElementById(groupId);
-        if (!group) return;
-
-        const slider = group.querySelector('.slider-container');
-        const cards = group.querySelectorAll('.character-card');
-        const total = cards.length;
-        if (total === 0) return;
-
-        if (!carouselState[groupId]) carouselState[groupId] = { currentIndex: 0 };
-        let currentIndex = carouselState[groupId].currentIndex;
-
-        const containerWidth = group.offsetWidth;
-        const cardWidth = cards[0].offsetWidth;
-        const margin = parseInt(window.getComputedStyle(cards[0]).marginRight) * 2;
-        const cardAndMarginWidth = cardWidth + margin;
-        
-        const offsetToCenter = (containerWidth / 2) - (cardAndMarginWidth / 2);
-        const newX = offsetToCenter - (currentIndex * cardAndMarginWidth);
-        
-        slider.style.transitionDuration = instant ? '0ms' : '500ms';
-        slider.style.transform = `translateX(${newX}px)`;
-
-        cards.forEach((card, i) => {
-            const nameElement = card.querySelector('.character-name');
-            if (i === currentIndex) {
-                // --- ACTIVE CARD ---
-                // MODIFIED: Increased scale for a "wider" effect
-                card.style.transform = 'scale(1.15)'; 
-                card.style.opacity = '1';
-                // MODIFIED: Remove grayscale filter
-                card.classList.remove('grayscale');
-
-                nameElement.classList.remove('opacity-0', 'translate-y-8');
-                nameElement.classList.add('opacity-100', 'translate-y-0');
-            } else {
-                // --- INACTIVE CARDS ---
-                card.style.transform = 'scale(0.9)';
-                card.style.opacity = '0.5';
-                // MODIFIED: Add grayscale filter
-                card.classList.add('grayscale');
-
-                nameElement.classList.remove('opacity-100', 'translate-y-0');
-                nameElement.classList.add('opacity-0', 'translate-y-8');
-            }
-        });
-    }
-
-    // --- The rest of the script remains the same ---
-    document.querySelectorAll('.character-group').forEach(group => {
-        const groupId = group.id;
-        const total = group.querySelectorAll('.character-card').length;
-        if (total === 0) return;
-
-        setTimeout(() => updateCarousel(groupId, true), 100);
-
-        group.querySelector('.nav-left')?.addEventListener('click', () => {
-            let currentIndex = carouselState[groupId].currentIndex;
-            carouselState[groupId].currentIndex = (currentIndex - 1 + total) % total;
-            updateCarousel(groupId);
-        });
-
-        group.querySelector('.nav-right')?.addEventListener('click', () => {
-            let currentIndex = carouselState[groupId].currentIndex;
-            carouselState[groupId].currentIndex = (currentIndex + 1) % total;
-            updateCarousel(groupId);
-        });
-    });
-
-    const schoolSelectors = document.querySelectorAll('.school-button');
-    let activeGroupId = document.querySelector('.character-group:not(.opacity-0)')?.id;
-
-    schoolSelectors.forEach(button => {
-        button.addEventListener('click', () => {
-            const schoolId = button.dataset.schoolId;
-            const newGroupId = `school-group-${schoolId}`;
-            if (newGroupId === activeGroupId) return;
-
-            schoolSelectors.forEach(btn => btn.classList.remove('active', 'ring-2', 'ring-sky-400'));
-            button.classList.add('active', 'ring-2', 'ring-sky-400');
-            
-            const oldGroup = document.getElementById(activeGroupId);
-            if (oldGroup) oldGroup.classList.add('opacity-0', 'pointer-events-none');
-
-            const newGroup = document.getElementById(newGroupId);
-            if (newGroup) {
-                updateCarousel(newGroupId, true);
-                newGroup.classList.remove('opacity-0', 'pointer-events-none');
-                activeGroupId = newGroupId;
-            }
-        });
-    });
-    
-    window.addEventListener('resize', () => {
-        if(activeGroupId) updateCarousel(activeGroupId, true);
-    });
-});
-</script>
 {% endblock %}
 
 {% block js %}
-<!-- <script defer src="{% static 'js/students.js' %}"></script> -->
- 
+<script defer src="{% static 'js/student-page.js' %}"></script>
 {% endblock %}

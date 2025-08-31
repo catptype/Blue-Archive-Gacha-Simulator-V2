@@ -1,6 +1,8 @@
 import hashlib
+from decimal import Decimal
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.db.models import CheckConstraint, Q
 
 class Version(models.Model):
     version_id = models.AutoField(primary_key=True, auto_created=True, editable=False, verbose_name='ID')
@@ -145,3 +147,113 @@ class Student(models.Model):
             models.Index(fields=['student_rarity']),
             models.Index(fields=['school_id']),
         ]
+
+class GachaPreset(models.Model):
+    preset_id = models.AutoField(primary_key=True, auto_created=True, editable=False, verbose_name='ID')
+    preset_name = models.CharField(max_length=100, unique=True, null=False, blank=False, verbose_name='Name')
+    preset_pickup_rate = models.DecimalField(max_digits=4, decimal_places=1, null=False, blank=False, verbose_name='Pickup ★★★ Rate')
+    preset_r3_rate = models.DecimalField(max_digits=4, decimal_places=1, null=False, blank=False, verbose_name='Total ★★★ Rate')
+    preset_r2_rate = models.DecimalField(max_digits=4, decimal_places=1, null=False, blank=False, verbose_name='Total ★★ Rate')
+    preset_r1_rate = models.DecimalField(max_digits=4, decimal_places=1, null=False, blank=False, verbose_name='Total ★ Rate')
+
+    def __str__(self):
+        return self.preset_name
+    
+    def clean(self):
+        """
+        Custom validation for gacha rate integrity.
+        
+        This method now enforces two critical rules:
+        1. The total sum of all rarities (R3 + R2 + R1) must equal 100%.
+        2. The pickup rate must be less than or equal to the total 3-star rate.
+        """
+        
+        # --- Rule 1: Validate the total sum of rates ---
+        total_rate = self.preset_r3_rate + self.preset_r2_rate + self.preset_r1_rate
+        if total_rate != Decimal('100.0'):
+            raise ValidationError(
+                f"The sum of the main rates (Total ★★★ + ★★ + ★) must be exactly 100.0%. "
+                f"The current sum is {total_rate}%."
+            )
+
+        # --- Rule 2: Validate the pickup rate against the 3-star rate ---
+        if self.preset_pickup_rate > self.preset_r3_rate:
+            raise ValidationError(
+                f"The 'Pickup ★★★ Rate' ({self.preset_pickup_rate}%) cannot be greater than the "
+                f"'Total ★★★ Rate' ({self.preset_r3_rate}%)."
+            )
+
+        # --- Optional Rule 3: Validate for negative numbers ---
+        # Although DecimalField has a default min_value of None, it's good practice to be explicit.
+        if self.preset_pickup_rate < 0 or self.preset_r3_rate < 0 or self.preset_r2_rate < 0 or self.preset_r1_rate < 0:
+            raise ValidationError("Rate values cannot be negative.")
+    
+    @property
+    def pickup_rate(self) -> float:
+        return float(self.preset_pickup_rate)
+    
+    @property
+    def r3_rate(self) -> float:
+        return float(self.preset_r3_rate)
+    
+    @property
+    def r2_rate(self) -> float:
+        return float(self.preset_r2_rate)
+    
+    @property
+    def r1_rate(self) -> float:
+        return float(self.preset_r1_rate)
+    
+    class Meta:
+        db_table = 'gacha_preset_table'
+
+class GachaBanner(models.Model):
+    banner_id = models.AutoField(primary_key=True, auto_created=True, editable=False, verbose_name='ID')
+    banner_name = models.CharField(max_length=100, unique=True, null=False, blank=False, verbose_name='Name')
+    preset_id = models.ForeignKey(GachaPreset, null=True, blank=True, on_delete=models.PROTECT)
+
+    banner_pickup = models.ManyToManyField(
+        Student, 
+        blank=True, 
+        related_name='pickup_in_banners',
+        verbose_name='Pickup Students'
+    )
+    
+    banner_exclude = models.ManyToManyField(
+        Student,
+        blank=True,
+        related_name='excluded_from_banners',
+        verbose_name='Excluded Regular Students',
+        help_text='Students who will NOT appear in the regular pool for this banner.'
+    )
+
+    def __str__(self):
+        return self.banner_name
+    
+    def clean(self):
+        """
+        Custom validation to ensure a student is not in both pickup and exclusions.
+        """
+        # This check is crucial because ManyToMany relationships are only saved AFTER
+        # the main model instance is created. This validation will only run on updates.
+        if not self.pk:
+            return # Don't run on initial creation.
+
+        # Get the set of IDs for each field for efficient comparison.
+        pickup_students_ids = set(self.banner_pickup.values_list('student_id', flat=True))
+        excluded_students_ids = set(self.banner_exclude.values_list('student_id', flat=True))
+
+        # Find the intersection of the two sets.
+        intersection = pickup_students_ids.intersection(excluded_students_ids)
+
+        if intersection:
+            # Get the names of the conflicting students for a user-friendly error message.
+            conflicting_students = Student.objects.filter(student_id__in=intersection)
+            student_names = ", ".join(student.student_name for student in conflicting_students)
+            raise ValidationError(
+                f"A student cannot be in both the Pickup and Exclusions list. "
+                f"Conflicting students: {student_names}."
+            )
+    
+    class Meta:
+        db_table = 'gacha_banner_table'
