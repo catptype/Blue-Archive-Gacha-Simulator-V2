@@ -6,7 +6,7 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('student', views.student, name='student'),
 
-    path('', views.home, name='gacha'),
+    path('gacha', views.gacha, name='gacha'),
     path('', views.home, name='login'),
     path('', views.home, name='logout'),
     path('', views.home, name='dashboard'),

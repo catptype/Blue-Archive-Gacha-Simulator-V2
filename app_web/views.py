@@ -1,18 +1,16 @@
+import itertools
+import json
 import tempfile
+
+from django.core.cache import cache
+from django.contrib.staticfiles import finders
 from django.http import JsonResponse, HttpRequest, HttpResponse, FileResponse, HttpResponseNotFound
 from django.shortcuts import render
-from .models import School, Student, Version
-from django.contrib.staticfiles import finders
-from django.core.cache import cache
-from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_headers
-from django.db.models import Min
-from django.utils.safestring import mark_safe
-import json
-import itertools
 from django.urls import reverse
-CACHE_IMAGE_TIMEOUT = 300 # 5 minutes 
 
+from .models import School, Student, Version, GachaBanner
+
+CACHE_IMAGE_TIMEOUT = 300 # 5 minutes 
 
 def _process_students_for_template(students_queryset):
     """Helper function to group students and prepare their data for the template."""
@@ -55,6 +53,16 @@ def student(request:HttpRequest) -> HttpResponse:
     context = { 'schools': schools }
     return render(request, 'app_web/student.html', context)
 
+def gacha(request:HttpRequest) -> HttpResponse:
+    banners = GachaBanner.objects.select_related('preset_id').prefetch_related(
+        'banner_pickup',
+        'banner_pickup__asset_id' # Pre-fetch the asset to get the artwork/portrait
+    ).all().order_by('banner_id')
+
+    context = {
+        'banners': banners
+    }
+    return render(request, 'app_web/gacha.html', context)
 
 def student_HEAVY(request:HttpRequest) -> HttpResponse:
     """
