@@ -15,88 +15,68 @@
     
     {% include 'app_web/components/background.html' %}
 
-    <!-- Main Content Area, positioned below the navbar -->
-    <div class="absolute top-20 left-0 right-0 flex flex-col" style="height: calc(100vh - 5rem);">
+    <!-- Main Content Grid -->
+    <div class="absolute top-20 left-0 right-0 grid grid-cols-1 lg:grid-cols-5 gap-6 p-6" style="height: calc(100vh - 5rem);">
 
         <!-- =============================================================== -->
-        <!-- SECTION 1: BANNER DETAIL VIEW (TOP 75% of the screen)           -->
+        <!-- LEFT COLUMN (2/5 width): HERO PREVIEW SECTION                   -->
         <!-- =============================================================== -->
-        <div id="detail-view" class="relative w-full h-3/4">
-            <!-- Background Image for the selected banner -->
-            <div class="absolute inset-0 z-0">
-                <img id="detail-bg-image" src="" class="w-full h-full object-cover object-top opacity-0 transition-opacity duration-500">
-                <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
-            </div>
-
-            <!-- Content for the selected banner -->
-            <div class="relative z-10 w-full h-full flex flex-col justify-between p-8">
-                <!-- Top Section: Name & Rates -->
-                <div>
-                    <h1 id="detail-banner-name" class="text-6xl font-black uppercase tracking-widest opacity-0 transition-all duration-500 transform -translate-y-4" style="text-shadow: 2px 2px 10px rgba(0,0,0,0.7);"></h1>
-                    <div id="detail-rates-box" class="mt-4 p-4 max-w-sm bg-black/50 backdrop-blur-sm rounded-lg border border-slate-700 opacity-0 transition-all duration-500 transform translate-y-4"></div>
-                </div>
-
-                <!-- Bottom Section: Pickups & Pull Button -->
-                <div class="w-full">
-                    <h3 class="text-lg font-bold text-cyan-300 mb-2">PICKUP STUDENTS</h3>
-                    <div class="flex items-center justify-between">
-                        <div id="detail-pickup-students" class="flex gap-2"></div>
-                        <div class="flex flex-col items-center gap-2">
-                            <button class="px-12 py-4 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-2xl font-bold transition-colors">PULL x10</button>
-                            <span class="text-sm text-slate-400">Requires 1200 Pyroxene</span>
-                        </div>
-                    </div>
-                </div>
+        <div id="hero-section" class="relative lg:col-span-2 w-full h-full bg-slate-900 border border-slate-700 rounded-lg shadow-2xl overflow-hidden">
+            <!-- This image is the main preview and is updated by JavaScript. -->
+            <img id="hero-image" src="" alt="Banner Preview" class="absolute top-0 left-0 w-full h-full object-cover z-0 transition-opacity duration-500 opacity-0">
+            
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent z-10"></div>
+            
+            <div id="hero-banner-name" class="absolute bottom-0 left-0 p-6 z-20 text-6xl font-black text-white uppercase tracking-widest opacity-0 transition-all duration-500 transform translate-y-4" style="text-shadow: 2px 2px 10px rgba(0,0,0,0.7);">
+                <!-- The selected banner's name will be injected here by JavaScript. -->
             </div>
         </div>
 
         <!-- =============================================================== -->
-        <!-- SECTION 2: BANNER CAROUSEL VIEW (BOTTOM 25% of the screen)      -->
+        <!-- RIGHT COLUMN (3/5 width): INTERACTION SECTION                   -->
         <!-- =============================================================== -->
-        <div id="carousel-view" class="relative w-full h-1/4 bg-black/30 backdrop-blur-sm border-t border-slate-700">
-            <div id="banner-carousel" class="relative w-full h-full overflow-hidden">
-                
-                <!-- The slider container will be populated by JS -->
+        <div class="lg:col-span-3 w-full h-full flex flex-col gap-6">
+            
+            <!-- Upper Row: Banner Carousel -->
+            <div id="banner-carousel" class="relative w-full h-3/5 bg-black/30 backdrop-blur-sm border border-slate-700 rounded-lg overflow-hidden">
                 <div class="slider-container absolute top-0 left-0 w-full h-full flex items-center">
                     {% for banner in banners %}
-                    <!-- 
-                      Each card holds all the necessary data for the detail view in its `data-*` attributes.
-                      This makes the JavaScript much cleaner and faster.
+                    <!--
+                      Each banner card holds all necessary data in its `data-*` attributes.
+                      This makes the JavaScript fast and clean, as it doesn't need to make new requests.
                     -->
-                    <div class="banner-card flex-shrink-0 h-[85%] mx-2 transition-all duration-500 ease-in-out rounded-lg overflow-hidden cursor-pointer"
+                    <div class="banner-card flex-shrink-0 h-[90%] mx-2 transition-all duration-500 ease-in-out rounded-lg overflow-hidden cursor-pointer"
                          data-index="{{ forloop.counter0 }}"
                          data-name="{{ banner.banner_name }}"
-                         data-bg-image-url="{% with first_pickup=banner.banner_pickup.first %}{% if first_pickup.asset_id %}{% url 'serve_student_image' student_id=first_pickup.student_id image_type='artwork' %}{% endif %}{% endwith %}"
+                         data-hero-image-url="{% with first_pickup=banner.banner_pickup.first %}{% if first_pickup.asset_id %}{% url 'serve_student_image' student_id=first_pickup.student_id image_type='artwork' %}{% endif %}{% endwith %}"
                     >
-                        <!-- Store complex HTML content in hidden divs to be copied later -->
-                        <div class="hidden" data-rates-html>
+                        <!-- Store the complex HTML for the 'Details' modal in hidden divs. -->
+                        <div class="hidden" data-details-html>
+                            <h2 class="text-2xl font-bold mb-4 text-cyan-300">Rates ({{ banner.preset_id.preset_name }})</h2>
                             {% if banner.preset_id %}
-                                <h2 class="text-xl font-bold mb-2 text-cyan-300">Rates</h2>
-                                <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-slate-200">
+                                <div class="grid grid-cols-2 gap-x-6 gap-y-2 text-slate-200 mb-6">
                                     <span>Total ★★★:</span> <span class="font-semibold">{{ banner.preset_id.preset_r3_rate|floatformat:1 }}%</span>
                                     <span>Pickup ★★★:</span> <span class="font-semibold">{{ banner.preset_id.preset_pickup_rate|floatformat:1 }}%</span>
                                     <span>Total ★★:</span> <span class="font-semibold">{{ banner.preset_id.preset_r2_rate|floatformat:1 }}%</span>
                                     <span>Total ★:</span> <span class="font-semibold">{{ banner.preset_id.preset_r1_rate|floatformat:1 }}%</span>
                                 </div>
                             {% endif %}
-                        </div>
-                        <div class="hidden" data-pickups-html>
-                            {% for student in banner.banner_pickup.all %}
-                            <div class="w-20 h-20 bg-slate-800 rounded-lg border-2 border-slate-600 overflow-hidden">
-                                {% if student.asset_id %}
-                                <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" class="w-full h-full object-cover" title="{{ student.student_name }}">
-                                {% endif %}
+                            <h3 class="text-xl font-bold mb-3 text-cyan-300">Pickup Students</h3>
+                            <div class="flex flex-wrap gap-2">
+                                {% for student in banner.banner_pickup.all %}
+                                <div class="w-16 h-16 bg-slate-800 rounded-lg border border-slate-600 overflow-hidden" title="{{ student.student_name }}">
+                                    <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}">
+                                </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
                         </div>
 
-                        <!-- The visible part of the card -->
+                        <!-- This is the visible image for the carousel card. -->
                         <img src="{% with first_pickup=banner.banner_pickup.first %}{% if first_pickup.asset_id %}{% url 'serve_student_image' student_id=first_pickup.student_id image_type='artwork' %}{% endif %}{% endwith %}" 
                              class="w-full h-full object-cover">
                     </div>
                     {% endfor %}
                 </div>
-
                 <!-- Navigation -->
                 <button class="nav-arrow nav-left absolute left-6 top-1/2 -translate-y-1/2 bg-black/40 p-3 rounded-full hover:bg-sky-500/50 transition-colors z-40">
                     <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
@@ -105,93 +85,113 @@
                     <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
                 </button>
             </div>
+
+            <!-- 2.2 Lower Row: Action Panel -->
+            <div class="w-full h-2/5 bg-black/30 backdrop-blur-sm border border-slate-700 rounded-lg p-6 flex items-center justify-between">
+                
+                <!-- 2.2.1 Details & Pity Counter -->
+                <div class="flex flex-col gap-4">
+                    <button id="details-button" class="px-6 py-3 text-lg font-semibold border-2 border-slate-500 hover:border-cyan-400 hover:text-cyan-400 rounded-lg transition-colors">
+                        Banner Details
+                    </button>
+                    <!-- 2.2.3 Pity Counter -->
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-white">150<span class="text-2xl font-normal text-slate-400"> / 200</span></div>
+                        <div class="text-sm text-slate-400 tracking-widest">PITY PULLS</div>
+                    </div>
+                </div>
+
+                <!-- 2.2.2 Pull Buttons -->
+                <div class="flex items-center gap-4">
+                    <div class="flex flex-col items-center gap-1">
+                        <button class="px-8 py-3 bg-slate-600 hover:bg-slate-500 rounded-lg text-xl font-bold transition-colors">
+                            PULL x1
+                        </button>
+                        <span class="text-xs text-slate-400">120 Pyroxene</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-1">
+                        <button class="px-12 py-4 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-2xl font-bold transition-colors">
+                            PULL x10
+                        </button>
+                        <span class="text-sm text-slate-400">1200 Pyroxene</span>
+                    </div>
+                </div>
+
+            </div>
         </div>
     </div>
 
 </div>
 
 <script>
-// This is the same robust, seamless carousel logic from the student page,
-// adapted for the banner carousel.
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Get references to all the elements we need to manipulate ---
-    const detailBgImage = document.getElementById('detail-bg-image');
-    const detailBannerName = document.getElementById('detail-banner-name');
-    const detailRatesBox = document.getElementById('detail-rates-box');
-    const detailPickupStudents = document.getElementById('detail-pickup-students');
+    // --- Get references to the dynamic elements ---
+    const heroImage = document.getElementById('hero-image');
+    const heroBannerName = document.getElementById('hero-banner-name');
+    const detailsButton = document.getElementById('details-button');
 
     const carousel = document.getElementById('banner-carousel');
     let activeBannerIndex = 0;
 
     /**
-     * This function is the core of the dynamic content. It takes an index,
-     * finds the corresponding banner card, and updates the detail view.
+     * Updates the hero section on the left with the selected banner's data.
      */
-    function updateDetailView(bannerIndex) {
+    function updateHeroView(bannerIndex) {
         const bannerCard = carousel.querySelector(`.banner-card[data-index='${bannerIndex}']`);
         if (!bannerCard) return;
 
-        // --- Start the fade-out animation ---
-        [detailBgImage, detailBannerName, detailRatesBox].forEach(el => el.classList.add('opacity-0'));
-        detailBannerName.classList.add('-translate-y-4');
-        detailRatesBox.classList.add('translate-y-4');
+        // --- Fade out the current hero content ---
+        heroBannerName.classList.add('opacity-0', 'translate-y-4');
+        heroImage.classList.add('opacity-0');
 
-        // Wait for the fade-out to finish before updating the content.
         setTimeout(() => {
             // --- Read data from the card's data-* attributes ---
             const name = bannerCard.dataset.name;
-            const bgUrl = bannerCard.dataset.bgImageUrl;
-            const ratesHTML = bannerCard.querySelector('[data-rates-html]').innerHTML;
-            const pickupsHTML = bannerCard.querySelector('[data-pickups-html]').innerHTML;
-
-            // --- Update the content of the detail view ---
-            detailBannerName.textContent = name;
-            detailBgImage.src = bgUrl || ''; // Use empty string if no URL
-            detailRatesBox.innerHTML = ratesHTML;
-            detailPickupStudents.innerHTML = pickupsHTML;
+            const imageUrl = bannerCard.dataset.heroImageUrl;
+            
+            // --- Update the content of the hero view ---
+            heroBannerName.textContent = name;
+            heroImage.src = imageUrl || ''; // Use empty string if no URL
 
             // --- Start the fade-in animation ---
-            [detailBgImage, detailBannerName, detailRatesBox].forEach(el => el.classList.remove('opacity-0'));
-            detailBannerName.classList.remove('-translate-y-4');
-            detailRatesBox.classList.remove('translate-y-4');
-        }, 300); // This delay should match the transition duration
+            heroBannerName.classList.remove('opacity-0', 'translate-y-4');
+            heroImage.classList.remove('opacity-0');
+        }, 500); // This delay should match the transition duration
     }
     
-    // --- The trusted seamless carousel logic from the student page ---
+    // The seamless carousel logic from the student page is used here.
+    // It is self-contained and does not need to be modified.
+    // It controls the banner carousel in the bottom-right.
     const carouselState = {};
-    const CLONE_COUNT = 5;
-
-    function updateCarousel(group, instant = false) { /* ... same logic as student page ... */ }
-
+    const CLONE_COUNT = 3;
+    function updateCarousel(group, instant = false) { /* ... same as student page ... */ }
     (function initializeCarousel() {
-        const group = carousel; // We only have one group on this page
+        const group = carousel;
         const slider = group.querySelector('.slider-container');
         const originalCards = Array.from(group.querySelectorAll('.banner-card'));
-        if (originalCards.length <= 1) {
-             // Hide arrows if not needed
-        }
+        if (originalCards.length === 0) return;
 
-        // --- Attach click listener to each card to update the detail view ---
         originalCards.forEach(card => {
             card.addEventListener('click', () => {
                 const newIndex = parseInt(card.dataset.index);
+                if (activeBannerIndex === newIndex) return; // Don't re-animate if clicking the active card
+                
                 activeBannerIndex = newIndex;
-                updateDetailView(newIndex);
-                // We also need to re-center the carousel on the clicked card
+                updateHeroView(newIndex);
+                
                 const state = carouselState[group.id];
-                // Find the actual current index in the cloned array
-                state.currentIndex = state.cards.findIndex(c => c.dataset.index == newIndex && !c.classList.contains('clone'));
+                const cardInState = state.cards.find(c => c.dataset.index == newIndex && !c.classList.contains('clone'));
+                state.currentIndex = state.cards.indexOf(cardInState);
                 updateCarousel(group);
             });
         });
-
-        // The rest of the seamless loop logic (cloning, state, arrow listeners, transitionend)
+        
+        // ... The rest of the seamless loop logic (cloning, state, arrow listeners, etc.)
         // is identical to the student page and goes here.
     })();
 
     // --- Initial Load ---
-    // Show the first banner's details when the page loads.
-    updateDetailView(0);
+    updateHeroView(0);
 });
 </script>
 {% endblock %}

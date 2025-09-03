@@ -72,6 +72,45 @@ class Command(BaseCommand):
                 preset_id=preset_obj,
             )
 
+    def unpack_banner(self, dif):
+        json_file_list = DirectoryProcessor.get_only_files(dir, ['.json'])
+        data_count = len(json_file_list)
+        if data_count == 0:
+            self.stdout.write(self.style.WARNING('No JSON files found to unpack.'))
+            return
+
+        self.stdout.write(self.style.NOTICE(f'Second pass: Unpacking {data_count} student records...'))
+        prog_bar = TextProgressBar(data_count)
+
+        for json_file in json_file_list:
+            try:
+                with open(json_file) as file:
+                    data = json.load(file)
+            
+                banner_name = data['name']
+                banner_preset = data['preset']
+                banner_image = Converter.base64_to_byte(data['image_base64'])
+
+                preset_cache = {}
+                preset_obj = preset_cache.get(banner_preset, None)
+                if preset_obj is None:
+                    preset_obj, _ = GachaPreset.objects.get_or_create(preset_name=banner_preset)
+                    preset_cache[banner_preset] = preset_obj # Cache
+
+                banner_obj, created = GachaBanner.objects.get_or_create(
+                    banner_name=banner_name,
+                    banner_image=banner_image,
+                    preset_id = preset_obj
+                )
+            
+            except Exception as e:
+                banner_name_for_error = data.get('name', 'N/A')
+                self.stdout.write(self.style.ERROR(f"\nAn unexpected error occurred for banner data '{banner_name_for_error}': {e}"))
+            
+            prog_bar.add_step()
+        
+        self.stdout.write(self.style.SUCCESS(f'\nUnpack student data COMPLETE'))
+
     def unpack_school(self, dir):
 
         json_file = os.path.join(dir, 'school.json')

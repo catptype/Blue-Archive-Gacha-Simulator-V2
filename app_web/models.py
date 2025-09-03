@@ -209,6 +209,7 @@ class GachaPreset(models.Model):
 
 class GachaBanner(models.Model):
     banner_id = models.AutoField(primary_key=True, auto_created=True, editable=False, verbose_name='ID')
+    banner_image = models.BinaryField(null=True, blank=True, verbose_name='Image')
     banner_name = models.CharField(max_length=100, unique=True, null=False, blank=False, verbose_name='Name')
     preset_id = models.ForeignKey(GachaPreset, null=True, blank=True, on_delete=models.PROTECT)
 
@@ -254,6 +255,10 @@ class GachaBanner(models.Model):
                 f"A student cannot be in both the Pickup and Exclusions list. "
                 f"Conflicting students: {student_names}."
             )
+        
+    @property
+    def name(self) -> str:
+        return self.banner_name
     
     class Meta:
         db_table = 'gacha_banner_table'

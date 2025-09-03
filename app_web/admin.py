@@ -152,8 +152,18 @@ class GachaPresetAdmin(admin.ModelAdmin):
 class GachaBannerAdmin(admin.ModelAdmin):
     list_display = [
         'banner_id',
+        'banner_image_custom',
         'banner_name',
         'preset_id',
     ]
+
+    @admin.display(description='Image')
+    def banner_image_custom(self, obj:GachaBanner):
+        context = {
+            'banner_id': obj.pk,
+            'banner_name': obj.name
+        }
+        return render_to_string('admin/banner-image.html', context)
+
     list_per_page = 10
     ordering = ['banner_id']
