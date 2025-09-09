@@ -1,11 +1,12 @@
 import itertools
 import json
 import tempfile
-
+from decimal import Decimal
 from django.core.cache import cache
 from django.contrib.staticfiles import finders
 from django.http import JsonResponse, HttpRequest, HttpResponse, FileResponse, HttpResponseNotFound
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
+from django.db.models import Q
 from django.urls import reverse
 
 from .models import School, Student, Version, GachaBanner
@@ -53,16 +54,74 @@ def student(request:HttpRequest) -> HttpResponse:
     context = { 'schools': schools }
     return render(request, 'app_web/student.html', context)
 
-def gacha(request:HttpRequest) -> HttpResponse:
-    banners = GachaBanner.objects.select_related('preset_id').prefetch_related(
-        'banner_pickup',
-        'banner_pickup__asset_id' # Pre-fetch the asset to get the artwork/portrait
-    ).all().order_by('banner_id')
-
+def gacha(request):
+    """
+    Renders the main gacha page, fetching all banners for the carousel.
+    """
+    # We don't need to prefetch here, as the initial page only needs banner info.
+    # Details will be loaded on demand.
+    banners = GachaBanner.objects.all().order_by('banner_id')
     context = {
         'banners': banners
     }
     return render(request, 'app_web/gacha.html', context)
+
+def banner_details(request, banner_id):
+    """
+    Fetches and prepares all data for the banner details modal, including
+    pre-calculating all necessary rates for display.
+    """
+    banner = get_object_or_404(
+        GachaBanner.objects.select_related('preset_id').prefetch_related('banner_pickup__asset_id', 'banner_exclude'), 
+        pk=banner_id
+    )
+    
+    # --- Prepare Student Groups ---
+    pickup_students = banner.banner_pickup.all()
+    
+    pickup_ids = banner.banner_pickup.values_list('pk', flat=True)
+    exclude_ids = banner.banner_exclude.values_list('pk', flat=True)
+    all_forbidden_ids = list(pickup_ids) + list(exclude_ids)
+    
+    # Pre-filter the regular students by rarity for easier templating.
+    r3_regulars = Student.objects.filter(student_rarity=3).exclude(pk__in=all_forbidden_ids).prefetch_related('asset_id')
+    r2_regulars = Student.objects.filter(student_rarity=2).exclude(pk__in=all_forbidden_ids).prefetch_related('asset_id')
+    r1_regulars = Student.objects.filter(student_rarity=1).exclude(pk__in=all_forbidden_ids).prefetch_related('asset_id')
+    
+    # --- Prepare Rate Calculations ---
+    # These will be passed to the template to avoid complex logic there.
+    rates = {}
+    if banner.preset_id:
+        preset = banner.preset_id
+        
+        # Category rates
+        rates['pickup_r3_rate'] = preset.preset_pickup_rate
+        rates['non_pickup_r3_rate'] = preset.preset_r3_rate - preset.preset_pickup_rate
+        rates['r2_rate'] = preset.preset_r2_rate
+        rates['r1_rate'] = preset.preset_r1_rate
+
+        # Individual student rates (handle division by zero)
+        pickup_count = pickup_students.count()
+        rates['pickup_student_rate'] = (rates['pickup_r3_rate'] / pickup_count) if pickup_count > 0 else Decimal('0.0')
+        
+        r3_reg_count = r3_regulars.count()
+        rates['r3_regular_student_rate'] = (rates['non_pickup_r3_rate'] / r3_reg_count) if r3_reg_count > 0 else Decimal('0.0')
+        
+        r2_reg_count = r2_regulars.count()
+        rates['r2_regular_student_rate'] = (rates['r2_rate'] / r2_reg_count) if r2_reg_count > 0 else Decimal('0.0')
+        
+        r1_reg_count = r1_regulars.count()
+        rates['r1_regular_student_rate'] = (rates['r1_rate'] / r1_reg_count) if r1_reg_count > 0 else Decimal('0.0')
+
+    context = {
+        'banner': banner,
+        'pickup_students': pickup_students,
+        'r3_regulars': r3_regulars,
+        'r2_regulars': r2_regulars,
+        'r1_regulars': r1_regulars,
+        'rates': rates
+    }
+    return render(request, 'app_web/components/banner-details.html', context)
 
 def student_HEAVY(request:HttpRequest) -> HttpResponse:
     """
@@ -158,6 +217,34 @@ def serve_school_image(request:HttpRequest, school_id:int):
 
     response = FileResponse(temp_file, content_type='image/png')
     response['Content-Disposition'] = f'inline; filename="{school_name}.png"'
+
+    return response
+
+def serve_banner_image(request:HttpRequest, banner_id:int):
+
+    try:
+        banner_obj = GachaBanner.objects.get(banner_id=banner_id)
+        banner_name = banner_obj.name
+        banner_bytes = banner_obj.image
+
+        if banner_bytes is None:
+            raise GachaBanner.DoesNotExist
+        
+    except GachaBanner.DoesNotExist:
+        # Find the SVG file in the static folder
+        svg_path = finders.find("icon/website/portrait_404.png")  # Replace with your SVG's path in static
+        if not svg_path:
+            return HttpResponseNotFound("SVG not found in static files.")
+        
+        return FileResponse(open(svg_path, "rb"), content_type="image/png")
+    
+    # Create a temporary file
+    temp_file = tempfile.NamedTemporaryFile(delete=False)
+    temp_file.write(banner_bytes)
+    temp_file.seek(0)
+
+    response = FileResponse(temp_file, content_type='image/png')
+    response['Content-Disposition'] = f'inline; filename="{banner_name}.png"'
 
     return response
 

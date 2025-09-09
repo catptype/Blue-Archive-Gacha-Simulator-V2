@@ -260,5 +260,9 @@ class GachaBanner(models.Model):
     def name(self) -> str:
         return self.banner_name
     
+    @property
+    def image(self) -> bytes:
+        return self.banner_image
+    
     class Meta:
         db_table = 'gacha_banner_table'

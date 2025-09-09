@@ -15,6 +15,7 @@ class Command(BaseCommand):
         ROOT_DIR = os.path.join(settings.BASE_DIR, 'app_web', 'management', 'data', 'json')
 
         preset_dir = os.path.join(ROOT_DIR, 'presets')        
+        banner_dir = os.path.join(ROOT_DIR, 'banners')        
         school_dir = os.path.join(ROOT_DIR, 'schools')
         student_dir = os.path.join(ROOT_DIR, 'students')
 
@@ -22,7 +23,7 @@ class Command(BaseCommand):
 
         # self.unpack_gacha_preset(gacha_preset_json)
         self.unpack_preset(preset_dir)
-        self.init_standard_banner()
+        self.unpack_banner(banner_dir)
         self.unpack_school(school_dir)
         self.unpack_student(student_dir)
 
@@ -62,17 +63,81 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f'\nUnpack gacha preset data total {data_count}'))
 
-    def init_standard_banner(self):
-        try:
-            banner_obj:GachaBanner = GachaBanner.objects.get(banner_name="Standard")
-        except ObjectDoesNotExist:
-            preset_obj = GachaPreset.objects.get(preset_name="Standard")
-            GachaBanner.objects.create(
-                banner_name="Standard",
-                preset_id=preset_obj,
-            )
+    def unpack_banner(self, dir):
+        """
+        Unpacks all banner data from a directory of JSON files in a single, efficient pass.
+        
+        This function ensures the "Standard" banner is processed first, followed by
+        all other banners sorted alphabetically. It also caches presets to minimize
+        database queries.
+        """
+        json_file_list = DirectoryProcessor.get_only_files(dir, ['.json'])
+        if not json_file_list:
+            self.stdout.write(self.style.WARNING('No banner JSON files found to unpack.'))
+            return
 
-    def unpack_banner(self, dif):
+        # --- Step 1: Sort the file list to process "Standard.json" first ---
+        # We use a custom sort key. The tuple (0, path) will always sort before (1, path).
+        sorted_files = sorted(
+            json_file_list,
+            key=lambda path: (0, path) if "Standard.json" in path else (1, path)
+        )
+
+        # --- Step 2: Cache all GachaPreset objects to avoid lookups in the loop ---
+        # This is a huge performance optimization.
+        self.stdout.write(self.style.NOTICE('Caching gacha presets...'))
+        presets_cache = {preset.preset_name: preset for preset in GachaPreset.objects.all()}
+        
+        # --- Step 3: Process all files in a single, unified loop ---
+        self.stdout.write(self.style.NOTICE(f'Unpacking {len(sorted_files)} banners...'))
+        prog_bar = TextProgressBar(len(sorted_files))
+        created_count = 0
+        updated_count = 0
+
+        for json_file in sorted_files:
+            try:
+                with open(json_file) as file:
+                    data = json.load(file)
+
+                banner_name = data["name"]
+                preset_name = data["preset"]
+                image_bytes = Converter.base64_to_byte(data['image_base64'])
+
+                # Get the preset object from our fast in-memory cache.
+                preset_obj = presets_cache.get(preset_name)
+                if not preset_obj:
+                    self.stdout.write(self.style.ERROR(f"\nPreset '{preset_name}' not found for banner '{banner_name}'. Skipping."))
+                    prog_bar.add_step()
+                    continue
+                
+                # Use get_or_create for a clean, atomic operation.
+                # It finds an existing banner or creates a new one in a single step.
+                banner_obj, created = GachaBanner.objects.get_or_create(
+                    banner_name=banner_name,
+                    defaults={
+                        'preset_id': preset_obj,
+                        'banner_image': image_bytes  # Assuming you have this field
+                    }
+                )
+
+                if created:
+                    created_count += 1
+                else:
+                    # Optional: If you want to update existing banners, you can add logic here.
+                    # For example: banner_obj.banner_image = image_bytes; banner_obj.save()
+                    updated_count += 1
+            
+            except Exception as e:
+                # A general catch-all for JSON errors or other issues.
+                banner_name_for_error = data.get("name", json_file)
+                self.stdout.write(self.style.ERROR(f"\nFailed to process banner '{banner_name_for_error}': {e}"))
+            
+            prog_bar.add_step()
+
+        self.stdout.write(self.style.SUCCESS(f'\nBanner unpacking complete.'))
+        self.stdout.write(self.style.SUCCESS(f'Summary: {created_count} created, {updated_count} found/updated.'))
+        
+    def unpack_banner(self, dir):
         json_file_list = DirectoryProcessor.get_only_files(dir, ['.json'])
         data_count = len(json_file_list)
         if data_count == 0:
