@@ -7,13 +7,13 @@ from .models import Student, Version, ImageAsset, GachaBanner
 
 @receiver(post_delete, sender=Student)
 def delete_asset_after_student(sender, instance:Student, using, **kwargs):
-    asset_id = getattr(instance, "asset_id", None) # Same as instance.asset_id
+    asset_id = instance.asset_id
     if not asset_id:
         return
 
     def _cleanup():
         # With OneToOne, there can't be another Student on this ImageAsset.
-        ImageAsset.objects.using(using).filter(asset_id=asset_id).delete()
+        ImageAsset.objects.using(using).filter(asset_id=asset_id.id).delete()
 
     transaction.on_commit(_cleanup)
 
@@ -55,20 +55,26 @@ def update_standard_banner_exclusions(sender, instance:Student, **kwargs):
 @receiver(pre_delete, sender=Student)
 def delete_student_from_banners(sender, instance:Student, **kwargs):
     """
-    Before a student is deleted, cleanly remove them from all M2M relationships
-    on the "Standard" banner to prevent dangling references.
+    Before a Student instance is deleted, this signal removes the student
+    from ALL GachaBanner relationships (`banner_pickup` and `banner_exclude`)
+    to ensure data integrity.
     """
     try:
-        # Here, a simple get() is acceptable, but wrapping it in a try/except
-        # block makes it robust. If the banner doesn't exist, there's nothing to do.
-        banner_obj = GachaBanner.objects.get(banner_name="Standard")
-        
-        # The .remove() calls are idempotent and safe.
-        banner_obj.banner_exclude.remove(instance)
-        banner_obj.banner_pickup.remove(instance)
+        # --- THE FIX: Use the reverse relationship ---
+        # Because you defined `related_name='pickup_in_banners'` on the ManyToManyField,
+        # you can access all banners a student is a pickup in via `instance.pickup_in_banners`.
+        # The .clear() method removes all associations for this student from that relationship.
+        # This is highly efficient and performs a single database query.
+        instance.pickup_in_banners.clear() 
 
-    except GachaBanner.DoesNotExist:
-        pass
+        # The same logic applies to the exclusion list.
+        instance.excluded_from_banners.clear()
 
     except Exception as e:
-        print(f"Error in delete_student_from_banners signal for student {instance.pk}: {e}")
+        # It's good practice to log errors in signals to avoid crashing the deletion process.
+        print(f"Error in remove_student_from_all_banners signal for student {instance.pk}: {e}")
+
+@receiver(post_save, sender=Student)
+def add_student_to_banners(sender, instance:Student, **kwargs):
+    pass
+
