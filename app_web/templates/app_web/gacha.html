@@ -44,12 +44,28 @@
                          data-name="{{ banner.banner_name }}"
                          data-hero-image-url=""
                     >
-                        <img src="{% url 'serve_banner_image' banner_id=banner.banner_id %}" class="w-full h-full object-contain">
+                        <!-- <img src="{% url 'serve_banner_image' banner_id=banner.banner_id %}" class="w-full h-full object-contain"> -->
+                        <!-- MODIFIED: Wrapped the image in a div for easier grayscale control -->
+                        <div class="card-image-wrapper w-full h-full">
+                            <img src="{% url 'serve_banner_image' banner_id=banner.banner_id %}" class="w-full h-full object-contain">
+                        </div>
                     </div>
                     {% endfor %}
                     <!-- Navigation Arrows -->
-                    <button class="nav-arrow nav-left absolute left-4 top-1/2 -translate-y-1/2 bg-black/40 p-3 rounded-full hover:bg-sky-500/50 transition-colors z-20">&lt;</button>
-                    <button class="nav-arrow nav-right absolute right-4 top-1/2 -translate-y-1/2 bg-black/40 p-3 rounded-full hover:bg-sky-500/50 transition-colors z-20">&gt;</button>
+                    <button class="nav-arrow nav-left absolute left-6 bottom-0 bg-black/40 p-3 rounded-full hover:bg-sky-500/50 transition-colors z-40">
+                        <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <button class="nav-arrow nav-right absolute right-6 bottom-0 bg-black/40 p-3 rounded-full hover:bg-sky-500/50 transition-colors z-40">
+                        <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                    </button>
+
+                    <!-- NEW: Index Indicator Dots -->
+                    <div id="indicator-dots" class="absolute bottom-0 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+                        {% for banner in banners %}
+                        <div class="indicator-dot w-2 h-2 bg-white/30 rounded-full transition-all duration-300" data-index="{{ forloop.counter0 }}"></div>
+                        {% endfor %}
+                    </div>
+                
                 </div>
 
                 <!-- Lower Row (3/5 height): Action Panel -->
@@ -96,6 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const cards = Array.from(carousel.querySelectorAll('.banner-card'));
     const totalCards = cards.length;
     let currentIndex = 0;
+
+    // NEW: Get reference to the indicator dots
+    const indicatorDots = Array.from(carousel.querySelectorAll('.indicator-dot'));
 
     // --- Modal Logic ---
     const detailsButton = document.getElementById('details-button');
@@ -148,19 +167,51 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateCarousel() {
+        // --- THE RESPONSIVE FIX ---
+        // 1. Define the breakpoint. 1024px is the default for Tailwind's 'lg'.
+        const DESKTOP_BREAKPOINT = 1024;
+        const isDesktop = window.innerWidth >= DESKTOP_BREAKPOINT;
+
+        // 2. Choose different layout values based on the screen size.
+        // On desktop, we want a wider gap. On mobile, a much smaller gap.
+        const gapMultiplier = isDesktop ? 65 : 30;
+        // On mobile, the inactive cards should be smaller to look less crowded.
+        const inactiveScale = isDesktop ? 0.7 : 0.6;
+
         cards.forEach((card, i) => {
             const offset = i - currentIndex;
             const loopedOffset = (offset + totalCards + Math.floor(totalCards / 2)) % totalCards - Math.floor(totalCards / 2);
 
-            const scale = loopedOffset === 0 ? 1.2 : 0.7;
-            const translateX = loopedOffset * 65; // % distance between cards
-            const opacity = Math.abs(loopedOffset) > 1 ? 0 : 1; // Show max 3 cards
+            const scale = loopedOffset === 0 ? 1.0 : inactiveScale;
+            // 3. Use the new adaptive gapMultiplier.
+            const translateX = loopedOffset * gapMultiplier;
+            const opacity = Math.abs(loopedOffset) > 1 ? 0 : 1;
             const zIndex = totalCards - Math.abs(loopedOffset);
 
             card.style.transform = `translateY(-50%) translateX(calc(-50% + ${translateX}%)) scale(${scale})`;
             card.style.opacity = opacity;
             card.style.zIndex = zIndex;
+
+            // Grayscale Logic (unchanged)
+            const imageWrapper = card.querySelector('.card-image-wrapper');
+            if (loopedOffset === 0) {
+                imageWrapper.classList.remove('grayscale');
+            } else {
+                imageWrapper.classList.add('grayscale');
+            }
         });
+
+        // Indicator Dots Logic (unchanged)
+        indicatorDots.forEach((dot, i) => {
+            if (i === currentIndex) {
+                dot.classList.add('bg-white');
+                dot.classList.remove('bg-white/30');
+            } else {
+                dot.classList.remove('bg-white');
+                dot.classList.add('bg-white/30');
+            }
+        });
+
         updateHeroView();
     }
 
