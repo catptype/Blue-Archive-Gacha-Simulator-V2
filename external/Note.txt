@@ -1,0 +1,3 @@
+Logo 
+Transform 80% 
+Outer glow white 10pixel

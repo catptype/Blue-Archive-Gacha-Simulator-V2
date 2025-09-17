@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const offset = i - currentIndex;
             const loopedOffset = (offset + totalCards + Math.floor(totalCards / 2)) % totalCards - Math.floor(totalCards / 2);
 
-            const scale = loopedOffset === 0 ? 1.3 : 0.7;
+            const scale = loopedOffset === 0 ? 1.2 : 0.7;
             const translateX = loopedOffset * 65; // % distance between cards
             const opacity = Math.abs(loopedOffset) > 1 ? 0 : 1; // Show max 3 cards
             const zIndex = totalCards - Math.abs(loopedOffset);
