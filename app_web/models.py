@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.db.models import CheckConstraint, Q
+from django.contrib.auth import get_user_model
 
 class Version(models.Model):
     version_id = models.AutoField(primary_key=True, auto_created=True, editable=False, verbose_name='ID')
@@ -295,3 +296,32 @@ class GachaBanner(models.Model):
     
     class Meta:
         db_table = 'gacha_banner_table'
+
+class GachaTransaction(models.Model):
+    transaction_id = models.AutoField(primary_key=True, auto_created=True, editable=False, verbose_name='ID')
+    transaction_user = models.ForeignKey(get_user_model(), on_delete=models.PROTECT, verbose_name='User')
+    transaction_banner = models.ForeignKey(GachaBanner, on_delete=models.PROTECT, verbose_name='Banner')
+    transaction_student = models.ForeignKey(Student, on_delete=models.PROTECT, verbose_name='Student')
+    transaction_datetime = models.DateTimeField(auto_now_add=True, verbose_name='Create On')
+
+    def __str__(self):
+        return f'{self.transaction_user} {self.banner} {self.student}'
+
+    def formatted_datetime(self):
+        return self.transaction_datetime.strftime('%Y-%m-%d %H:%M:%S')
+
+    @property
+    def banner(self):
+        return self.transaction_banner.name
+
+    @property
+    def student(self):
+        return self.transaction_student.name
+    
+    class Meta:
+        db_table = 'gacha_transaction_table'
+        indexes = [
+            models.Index(fields=['transaction_user']),
+            models.Index(fields=['transaction_banner']),
+            models.Index(fields=['transaction_student']),
+        ]
