@@ -23,9 +23,9 @@ class Command(BaseCommand):
 
         # self.unpack_gacha_preset(gacha_preset_json)
         self.unpack_preset(preset_dir)
-        self.unpack_banner(banner_dir)
         self.unpack_school(school_dir)
         self.unpack_student(student_dir)
+        self.unpack_banner(banner_dir)
 
         self.stdout.write(self.style.SUCCESS('Data unpack complete'))
 
@@ -65,28 +65,24 @@ class Command(BaseCommand):
 
     def unpack_banner(self, dir):
         """
-        Unpacks all banner data from a directory of JSON files in a single, efficient pass.
-        
-        This function ensures the "Standard" banner is processed first, followed by
-        all other banners sorted alphabetically. It also caches presets to minimize
-        database queries.
+        Unpacks all banner data from a directory of JSON files, including the new
+        version and limited student rules.
         """
         json_file_list = DirectoryProcessor.get_only_files(dir, ['.json'])
         if not json_file_list:
             self.stdout.write(self.style.WARNING('No banner JSON files found to unpack.'))
             return
 
-        # --- Step 1: Sort the file list to process "Standard.json" first ---
-        # We use a custom sort key. The tuple (0, path) will always sort before (1, path).
+        # --- Step 1: Sort files to ensure "Standard.json" is always processed first ---
         sorted_files = sorted(
             json_file_list,
             key=lambda path: (0, path) if "Standard.json" in path else (1, path)
         )
 
-        # --- Step 2: Cache all GachaPreset objects to avoid lookups in the loop ---
-        # This is a huge performance optimization.
-        self.stdout.write(self.style.NOTICE('Caching gacha presets...'))
+        # --- Step 2: Cache all GachaPresets and Versions for high performance ---
+        self.stdout.write(self.style.NOTICE('Caching gacha presets and versions...'))
         presets_cache = {preset.preset_name: preset for preset in GachaPreset.objects.all()}
+        versions_cache = {version.version_name: version for version in Version.objects.all()}
         
         # --- Step 3: Process all files in a single, unified loop ---
         self.stdout.write(self.style.NOTICE(f'Unpacking {len(sorted_files)} banners...'))
@@ -99,36 +95,61 @@ class Command(BaseCommand):
                 with open(json_file) as file:
                     data = json.load(file)
 
+                # --- Extract all data from the JSON file ---
                 banner_name = data["name"]
                 preset_name = data["preset"]
+                version_names = data["version"]  # This is now a list of strings
+                include_limited = data["limited"] # This is a boolean
                 image_bytes = Converter.base64_to_byte(data['image_base64'])
 
-                # Get the preset object from our fast in-memory cache.
+                # --- Get the preset object from our fast in-memory cache ---
                 preset_obj = presets_cache.get(preset_name)
                 if not preset_obj:
                     self.stdout.write(self.style.ERROR(f"\nPreset '{preset_name}' not found for banner '{banner_name}'. Skipping."))
                     prog_bar.add_step()
                     continue
                 
-                # Use get_or_create for a clean, atomic operation.
-                # It finds an existing banner or creates a new one in a single step.
-                banner_obj, created = GachaBanner.objects.get_or_create(
+                # --- Create or update the main GachaBanner object ---
+                # The ManyToManyField is handled separately after this.
+                banner_obj, created = GachaBanner.objects.update_or_create(
                     banner_name=banner_name,
                     defaults={
                         'preset_id': preset_obj,
-                        'banner_image': image_bytes  # Assuming you have this field
+                        'banner_image': image_bytes,
+                        'banner_include_limited': include_limited # Set the new boolean field
                     }
                 )
 
+                # --- THE CRITICAL NEW LOGIC FOR THE MANY-TO-MANY FIELD ---
+                # 1. Look up the Version objects from our cache based on the names.
+                version_objects_to_set = []
+                for v_name in version_names:
+                    version_obj = versions_cache.get(v_name)
+                    if version_obj:
+                        version_objects_to_set.append(version_obj)
+                    else:
+                        self.stdout.write(self.style.WARNING(f"\nWarning: Version '{v_name}' for banner '{banner_name}' not found in database. It will be skipped."))
+
+                # 2. Use the .set() method. This is the recommended way to update a
+                # ManyToMany relationship. It clears all existing versions from the banner
+                # and replaces them with the new list in a single, efficient operation.
+                if version_objects_to_set:
+                    banner_obj.banner_include_version.set(version_objects_to_set)
+                else:
+                    # Handle the case where no valid versions were found.
+                    self.stdout.write(self.style.ERROR(f"\nError: No valid versions found for banner '{banner_name}'. The 'include versions' list will be empty."))
+                    banner_obj.banner_include_version.clear()
+
+                # --- Update counters ---
                 if created:
                     created_count += 1
                 else:
-                    # Optional: If you want to update existing banners, you can add logic here.
-                    # For example: banner_obj.banner_image = image_bytes; banner_obj.save()
                     updated_count += 1
             
+            except KeyError as e:
+                # Handle cases where a key is missing from the JSON file.
+                self.stdout.write(self.style.ERROR(f"\nJSON file {json_file} is missing required key: {e}"))
             except Exception as e:
-                # A general catch-all for JSON errors or other issues.
                 banner_name_for_error = data.get("name", json_file)
                 self.stdout.write(self.style.ERROR(f"\nFailed to process banner '{banner_name_for_error}': {e}"))
             

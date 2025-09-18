@@ -213,6 +213,19 @@ class GachaBanner(models.Model):
     banner_name = models.CharField(max_length=100, unique=True, null=False, blank=False, verbose_name='Name')
     preset_id = models.ForeignKey(GachaPreset, null=True, blank=True, on_delete=models.PROTECT)
 
+    banner_include_version = models.ManyToManyField(
+        Version,
+        blank=False, # A banner MUST include at least one version.
+        verbose_name='Included Student Versions',
+        help_text='Which student versions (e.g., Original, Summer) are in this banner\'s regular pool.'
+    )
+    
+    banner_include_limited = models.BooleanField(
+        default=False,
+        verbose_name='Include Limited Students',
+        help_text='If checked, limited-time students that match the versions above will be included.'
+    )
+
     banner_pickup = models.ManyToManyField(
         Student, 
         blank=True, 
@@ -233,28 +246,44 @@ class GachaBanner(models.Model):
     
     def clean(self):
         """
-        Custom validation to ensure a student is not in both pickup and exclusions.
+        Custom validation that collects ALL errors and displays them at once.
         """
-        # This check is crucial because ManyToMany relationships are only saved AFTER
-        # the main model instance is created. This validation will only run on updates.
+        # This guard clause is essential for ManyToMany relationships.
         if not self.pk:
-            return # Don't run on initial creation.
+            return
 
-        # Get the set of IDs for each field for efficient comparison.
-        pickup_students_ids = set(self.banner_pickup.values_list('student_id', flat=True))
-        excluded_students_ids = set(self.banner_exclude.values_list('student_id', flat=True))
+        # This list will hold all the error messages we find.
+        errors = []
 
-        # Find the intersection of the two sets.
-        intersection = pickup_students_ids.intersection(excluded_students_ids)
+        # --- Rule 1: A banner must include at least one version ---
+        # We pre-fetch here to avoid extra DB queries later.
+        included_versions = self.banner_include_version.all()
+        if not included_versions.exists():
+            errors.append("A banner must include at least one student version.")
+        
+        # --- Rule 2: Check if any pickup students are invalid for this banner's rules ---
+        invalid_pickups = []
+        for student in self.banner_pickup.all():
+            # student:Student # Uncomment this line to see highlight IDE
+            is_version_ok = student.version in included_versions
+            is_limited_ok = self.banner_include_limited or not student.is_limited
 
-        if intersection:
-            # Get the names of the conflicting students for a user-friendly error message.
-            conflicting_students = Student.objects.filter(student_id__in=intersection)
-            student_names = ", ".join(student.student_name for student in conflicting_students)
-            raise ValidationError(
-                f"A student cannot be in both the Pickup and Exclusions list. "
-                f"Conflicting students: {student_names}."
+            if not (is_version_ok and is_limited_ok):
+                invalid_pickups.append(f"{student.name} ({student.version})")
+        
+        if invalid_pickups:
+            # Add a detailed error message to our list.
+            error_message = (
+                "Invalid pickup students: The following students do not match this banner's "
+                f"inclusion rules (version or limited status): {', '.join(invalid_pickups)}"
             )
+            errors.append(error_message)
+
+        # --- Final Step: If we found any errors, raise them all at once ---
+        if errors:
+            # Raising a ValidationError with a list of strings will render them
+            # as a bulleted list in the Django Admin.
+            raise ValidationError(errors)
         
     @property
     def name(self) -> str:

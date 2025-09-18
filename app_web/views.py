@@ -68,28 +68,34 @@ def gacha(request):
 
 def banner_details(request, banner_id):
     """
-    Fetches and prepares all data for the banner details modal, including
-    pre-calculating all necessary rates for display.
+    Fetches and prepares all data for the banner details modal using the
+    NEW inclusion-based logic.
     """
     banner = get_object_or_404(
-        GachaBanner.objects.select_related('preset_id').prefetch_related('banner_pickup__asset_id', 'banner_exclude'), 
+        GachaBanner.objects.select_related('preset_id').prefetch_related('banner_pickup__asset_id', 'banner_include_version'), 
         pk=banner_id
     )
     
-    # --- Prepare Student Groups ---
+    # --- Step 1: Get the included versions and pickup students ---
+    included_versions = banner.banner_include_version.all()
     pickup_students = banner.banner_pickup.all()
     
-    pickup_ids = banner.banner_pickup.values_list('pk', flat=True)
-    exclude_ids = banner.banner_exclude.values_list('pk', flat=True)
-    all_forbidden_ids = list(pickup_ids) + list(exclude_ids)
+    # --- Step 2: Build the base pool of all possible students ---
+    base_pool = Student.objects.filter(version_id__in=included_versions)
     
-    # Pre-filter the regular students by rarity for easier templating.
-    r3_regulars = Student.objects.filter(student_rarity=3).exclude(pk__in=all_forbidden_ids).prefetch_related('asset_id')
-    r2_regulars = Student.objects.filter(student_rarity=2).exclude(pk__in=all_forbidden_ids).prefetch_related('asset_id')
-    r1_regulars = Student.objects.filter(student_rarity=1).exclude(pk__in=all_forbidden_ids).prefetch_related('asset_id')
+    # --- Step 3: Apply the "limited" filter if necessary ---
+    if not banner.banner_include_limited:
+        base_pool = base_pool.exclude(student_is_limited=True)
+        
+    # --- Step 4: Exclude the pickup students to get the final "regular" pool ---
+    regular_pool = base_pool.exclude(pk__in=pickup_students.values_list('pk', flat=True))
+
+    # --- Step 5: Categorize the regular pool by rarity ---
+    r3_regulars = regular_pool.filter(student_rarity=3).prefetch_related('asset_id')
+    r2_regulars = regular_pool.filter(student_rarity=2).prefetch_related('asset_id')
+    r1_regulars = regular_pool.filter(student_rarity=1).prefetch_related('asset_id')
     
-    # --- Prepare Rate Calculations ---
-    # These will be passed to the template to avoid complex logic there.
+    # --- Step 6: Prepare the rate calculations (same logic as before, but with new pools) ---
     rates = {}
     if banner.preset_id:
         preset = banner.preset_id
@@ -121,6 +127,7 @@ def banner_details(request, banner_id):
         'r1_regulars': r1_regulars,
         'rates': rates
     }
+
     return render(request, 'app_web/components/banner-details.html', context)
 
 def student_HEAVY(request:HttpRequest) -> HttpResponse:

@@ -157,6 +157,9 @@ class GachaBannerAdmin(admin.ModelAdmin):
         'preset_id',
     ]
 
+    # Use filter_horizontal for a much better user experience with ManyToManyFields.
+    filter_horizontal = ('banner_pickup', 'banner_include_version', 'banner_exclude')
+
     @admin.display(description='Image')
     def banner_image_custom(self, obj:GachaBanner):
         context = {

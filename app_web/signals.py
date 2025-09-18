@@ -38,20 +38,3 @@ def remove_student_from_all_banners(sender, instance:Student, **kwargs):
     except Exception as e:
         # It's good practice to log errors in signals to avoid crashing the deletion process.
         print(f"Error in remove_student_from_all_banners signal for student {instance.pk}: {e}")
-
-@receiver(post_save, sender=Student)
-def add_original_student_to_all_banners(sender, instance:Student, **kwargs):
-    """
-    """
-    try:
-        # --- Check if the student meets the criteria for universal availability ---
-        all_banners = GachaBanner.objects.all()
-        is_standard_regular = (instance.version == 'Original') and (not instance.is_limited)
-
-        if is_standard_regular:
-            instance.excluded_from_banners.clear()
-        else:
-            instance.excluded_from_banners.add(*all_banners)
-
-    except Exception as e:
-        print(f"Error in add_original_student_to_all_banners signal for student {instance.pk}: {e}")

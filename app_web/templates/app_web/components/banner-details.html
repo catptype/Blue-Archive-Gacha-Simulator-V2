@@ -1,29 +1,46 @@
 <!-- app_web/components/banner_details_modal.html -->
 
 <div class="flex flex-col h-full">
-    <!-- Modal Header -->
+    <!-- =============================================================== -->
+    <!-- MODAL HEADER                                                    -->
+    <!-- =============================================================== -->
     <div class="flex-shrink-0 p-4 border-b border-slate-600">
         <h2 class="text-2xl font-bold text-cyan-300">Banner Details: {{ banner.banner_name }}</h2>
-        {% if banner.preset_id %}<p class="text-sm text-slate-400">Rate Preset: {{ banner.preset_id.preset_name }}</p>{% endif %}
+        
+        <!-- Display the rate preset, if one is assigned. -->
+        {% if banner.preset_id %}
+            <p class="text-sm text-slate-400">Rate Preset: {{ banner.preset_id.preset_name }}</p>
+        {% endif %}
+
+        <!-- NEW: Display the banner's inclusion rules for clarity. -->
+        <div class="mt-2 text-xs text-slate-500">
+            <span>Includes Versions: 
+                {% for version in banner.banner_include_version.all %}
+                    <span class="font-semibold">{{ version.version_name }}</span>{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </span>
+            <span class="ml-4">|</span>
+            <span class="ml-4">Includes Limited Students: 
+                <span class="font-semibold">{% if banner.banner_include_limited %}Yes{% else %}No{% endif %}</span>
+            </span>
+        </div>
     </div>
 
-    <!-- Scrollable Modal Content -->
+    <!-- =============================================================== -->
+    <!-- SCROLLABLE MODAL CONTENT                                        -->
+    <!-- =============================================================== -->
     <div class="flex-grow p-4 overflow-y-auto">
         
-        <!-- =============================================================== -->
-        <!-- PICKUP STUDENTS                                                 -->
-        <!-- =============================================================== -->
+        <!-- Pickup Students Section (This section is unchanged) -->
         <div class="mb-6">
             <div class="flex items-center justify-between mb-2">
-                <h3 class="text-xl font-semibold">Pickup Students</h3>
+                <h3 class="text-xl font-semibold">Pickup ★★★ Students</h3>
                 <span class="text-sm font-mono text-slate-400">({{ rates.pickup_r3_rate|floatformat:2 }}%)</span>
             </div>
             <div class="flex flex-wrap gap-2">
                 {% for student in pickup_students %}
-                <!-- Student Portrait with Tooltip -->
                 <div class="group relative w-16 h-16 bg-slate-900 rounded-lg border border-cyan-400/50 overflow-hidden" title="{{ student.student_name }}">
                     {% if student.asset_id %}<img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}">{% endif %}
-                    <!-- Tooltip that appears on hover -->
                     <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-black rounded-md text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                         {{ rates.pickup_student_rate|floatformat:4 }}%
                     </div>
@@ -32,12 +49,10 @@
             </div>
         </div>
 
-        <!-- =============================================================== -->
-        <!-- NON-PICKUP ★★★                                                -->
-        <!-- =============================================================== -->
+        <!-- MODIFIED: Renamed sections to be more accurate ("Available Pool" instead of "Non-Pickup"). -->
         <div class="mb-6">
             <div class="flex items-center justify-between mb-2">
-                <h3 class="text-xl font-semibold">Non-Pickup ★★★</h3>
+                <h3 class="text-xl font-semibold">Available ★★★ Students</h3>
                 <span class="text-sm font-mono text-slate-400">({{ rates.non_pickup_r3_rate|floatformat:2 }}%)</span>
             </div>
             <div class="flex flex-wrap gap-2">
@@ -52,12 +67,9 @@
             </div>
         </div>
 
-        <!-- =============================================================== -->
-        <!-- NON-PICKUP ★★                                                 -->
-        <!-- =============================================================== -->
         <div class="mb-6">
             <div class="flex items-center justify-between mb-2">
-                <h3 class="text-xl font-semibold">Non-Pickup ★★</h3>
+                <h3 class="text-xl font-semibold">Available ★★ Students</h3>
                 <span class="text-sm font-mono text-slate-400">({{ rates.r2_rate|floatformat:2 }}%)</span>
             </div>
             <div class="flex flex-wrap gap-2">
@@ -72,12 +84,9 @@
             </div>
         </div>
 
-        <!-- =============================================================== -->
-        <!-- NON-PICKUP ★                                                  -->
-        <!-- =============================================================== -->
         <div>
             <div class="flex items-center justify-between mb-2">
-                <h3 class="text-xl font-semibold">Non-Pickup ★</h3>
+                <h3 class="text-xl font-semibold">Available ★ Students</h3>
                 <span class="text-sm font-mono text-slate-400">({{ rates.r1_rate|floatformat:2 }}%)</span>
             </div>
             <div class="flex flex-wrap gap-2">
