@@ -135,6 +135,50 @@ document.addEventListener('DOMContentLoaded', () => {
             const bannerId = activeCard.dataset.bannerId;
             const response = await fetch(`/banner-details/${bannerId}/`);
             if (!response.ok) throw new Error('Failed to load details');
+            
+            const htmlString = await response.text();
+            
+            // --- THE FIX ---
+            // 1. Create a temporary, disconnected DOM element to parse the response.
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlString;
+
+            // 2. Extract the HTML content and the script content using their new IDs.
+            const htmlContent = tempDiv.querySelector('#modal-html-content');
+            const scriptContent = tempDiv.querySelector('#modal-js-script');
+
+            // 3. Inject the HTML into the modal.
+            if (htmlContent) {
+                modalContent.innerHTML = htmlContent.innerHTML;
+            } else {
+                throw new Error('Modal content is missing from the response.');
+            }
+
+            // 4. IMPORTANT: Execute the script's content.
+            // We use eval() here, which is safe because we trust the source (our own server).
+            // This is the standard pattern for this exact problem.
+            if (scriptContent) {
+                eval(scriptContent.textContent);
+            }
+
+        } catch (error) {
+            modalContent.innerHTML = `<p class="text-center text-red-400">${error.message}</p>`;
+        }
+    }
+
+
+    async function showDetailsModal_OLD() {
+        const activeCard = carousel.querySelector(`.banner-card[data-index='${currentIndex}']`);
+        if (!activeCard) return;
+
+        modalWrapper.classList.remove('hidden');
+        setTimeout(() => modalPanel.classList.remove('scale-95', 'opacity-0'), 10);
+        modalContent.innerHTML = `<div class="w-full h-full flex items-center justify-center"><svg class="animate-spin h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg></div>`;
+
+        try {
+            const bannerId = activeCard.dataset.bannerId;
+            const response = await fetch(`/banner-details/${bannerId}/`);
+            if (!response.ok) throw new Error('Failed to load details');
             modalContent.innerHTML = await response.text();
         } catch (error) {
             modalContent.innerHTML = `<p class="text-center text-red-400">${error.message}</p>`;
@@ -234,6 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Initial Load ---
     updateCarousel();
+
 });
 </script>
 {% endblock %}

@@ -1,124 +1,236 @@
 <!-- app_web/components/banner_details_modal.html -->
-
-<div class="flex flex-col h-full">
-    <!-- Modal Header (unchanged) -->
-    <div class="flex-shrink-0 p-4 border-b border-slate-600">
-        <h2 class="text-2xl font-bold text-cyan-300">Banner Details: {{ banner.banner_name }}</h2>
-        {% if banner.preset_id %}<p class="text-sm text-slate-400">Rate Preset: {{ banner.preset_id.preset_name }}</p>{% endif %}
-        <div class="mt-2 text-xs text-slate-500">
-            <span>Includes Versions: 
-                {% for version in banner.banner_include_version.all %}
-                    <span class="font-semibold">{{ version.version_name }}</span>{% if not forloop.last %}, {% endif %}
-                {% endfor %}
-            </span>
-            <span class="ml-4">|</span>
-            <span class="ml-4">Includes Limited Students: 
-                <span class="font-semibold">{% if banner.banner_include_limited %}Yes{% else %}No{% endif %}</span>
-            </span>
-        </div>
-    </div>
-
-    <!-- Scrollable Modal Content -->
-    <div class="flex-grow p-4 overflow-y-auto">
-        
-        <p class="text-center text-xs text-slate-400 italic mb-4">
-            Hover over a student's portrait to see their individual rate.
-        </p>
-        
-        <!-- =============================================================== -->
-        <!-- PICKUP STUDENTS                                                 -->
-        <!-- =============================================================== -->
-        {% if rates.pickup_r3_rate > 0 %}
-        <div class="mb-6">
-            <div class="flex items-center justify-between mb-2">
-                <h3 class="text-xl font-semibold">Pickup Students</h3>
-                <span class="text-sm font-mono text-slate-400">({{ rates.pickup_r3_rate|floatformat:2 }}%)</span>
+<div id="modal-html-content">
+    <div class="flex flex-col h-full">
+        <!-- Modal Header (unchanged) -->
+        <div class="flex-shrink-0 p-4 border-b border-slate-600">
+            <h2 class="text-2xl font-bold text-cyan-300">Banner Details: {{ banner.banner_name }}</h2>
+            {% if banner.preset_id %}<p class="text-sm text-slate-400">Rate Preset: {{ banner.preset_id.preset_name }}</p>{% endif %}
+            <div class="mt-2 text-xs text-slate-500">
+                <span>Includes Versions: 
+                    {% for version in banner.banner_include_version.all %}
+                        <span class="font-semibold">{{ version.version_name }}</span>{% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                </span>
+                <span class="ml-4">|</span>
+                <span class="ml-4">Includes Limited Students: 
+                    <span class="font-semibold">{% if banner.banner_include_limited %}Yes{% else %}No{% endif %}</span>
+                </span>
             </div>
-            <!-- MODIFIED: The parent container is now a named group: "group/list" -->
-            <div class="flex flex-wrap gap-2 group/list">
-                {% for student in pickup_students %}
-                <!-- MODIFIED: This is now a named subgroup: "group/item". The hover effects are now precisely scoped. -->
-                <div class="group/item relative w-16 h-16 transition-all duration-300 group-hover/list:opacity-50 group-hover/list:grayscale hover:!opacity-100 hover:!grayscale-0">
-                    <div class="w-full h-full bg-slate-900 rounded-lg border border-cyan-400/50 overflow-hidden transition-all duration-200 hover:border-cyan-300 hover:scale-120">
-                        {% if student.asset_id %}<img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}">{% endif %}
-                    </div>
-                    <!-- MODIFIED: The tooltip now ONLY appears on "group-hover/item", not the list. -->
-                    <div class="absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/80 rounded-md text-xs text-white opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                        {{ rates.pickup_student_rate|floatformat:4 }}%
-                    </div>
+        </div>
+
+        <!-- NEW: View Switcher Buttons -->
+        <div class="flex-shrink-0 flex items-center border border-slate-600 rounded-lg">
+            <button id="view-as-grid-btn" class="px-3 py-1 bg-slate-700 text-white" title="Grid View">
+                <!-- Grid Icon SVG -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+            </button>
+            <button id="view-as-list-btn" class="px-3 py-1 bg-transparent text-slate-400" title="List View">
+                <!-- List Icon SVG -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
+            </button>
+        </div>
+
+        <!-- Scrollable Modal Content -->
+        <div class="flex-grow p-4 overflow-y-auto">
+            
+            <p class="text-center text-xs text-slate-400 italic mb-4">
+                Hover over a student's portrait to see their individual rate.
+            </p>
+            
+            <!-- =============================================================== -->
+            <!-- PICKUP STUDENTS                                                 -->
+            <!-- =============================================================== -->
+            {% if rates.pickup_r3_rate > 0 %}
+            <div class="mb-6">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-xl font-semibold">Pickup Students</h3>
+                    <span class="text-md font-mono text-slate-400">({{ rates.pickup_r3_rate|floatformat:2 }}%)</span>
                 </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
 
-        <!-- The same modifications are applied to all other student pool sections below -->
-
-        <!-- =============================================================== -->
-        <!-- AVAILABLE ★★★ POOL                                            -->
-        <!-- =============================================================== -->
-        <div class="mb-6">
-            <div class="flex items-center justify-between mb-2">
-                <h3 class="text-xl font-semibold">Available ★★★ Pool</h3>
-                <span class="text-sm font-mono text-slate-400">({{ rates.non_pickup_r3_rate|floatformat:2 }}%)</span>
-            </div>
-            <div class="flex flex-wrap gap-2 group/list">
-                {% for student in r3_regulars %}
-                <div class="group/item relative w-16 h-16 transition-all duration-300 group-hover/list:opacity-50 group-hover/list:grayscale hover:!opacity-100 hover:!grayscale-0">
-                    <div class="w-full h-full bg-slate-800 rounded-lg border border-slate-700 overflow-hidden transition-all duration-200 hover:border-slate-500 hover:scale-120">
-                        {% if student.asset_id %}<img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}">{% endif %}
+                <!-- Grid View -->
+                <div class="student-grid-view flex flex-wrap gap-2 group/list">
+                    {% for student in pickup_students %}
+                    <!-- MODIFIED: This is now a named subgroup: "group/item". The hover effects are now precisely scoped. -->
+                    <div class="group/item relative w-16 h-16 transition-all duration-300 group-hover/list:opacity-50 group-hover/list:grayscale hover:!opacity-100 hover:!grayscale-0">
+                        <div class="w-full h-full bg-slate-900 rounded-lg border border-cyan-400/50 overflow-hidden transition-all duration-200 hover:border-cyan-300 hover:scale-120">
+                            {% if student.asset_id %}<img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}">{% endif %}
+                        </div>
+                        <!-- MODIFIED: The tooltip now ONLY appears on "group-hover/item", not the list. -->
+                        <div class="absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/80 rounded-md text-xs text-white opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                            {{ rates.pickup_student_rate|floatformat:4 }}%
+                        </div>
                     </div>
-                    <div class="absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/80 rounded-md text-xs text-white opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                        {{ rates.r3_regular_student_rate|floatformat:4 }}%
-                    </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
-            </div>
-        </div>
 
-        <!-- =============================================================== -->
-        <!-- AVAILABLE ★★ POOL                                             -->
-        <!-- =============================================================== -->
-        <div class="mb-6">
-            <div class="flex items-center justify-between mb-2">
-                <h3 class="text-xl font-semibold">Available ★★ Pool</h3>
-                <span class="text-sm font-mono text-slate-400">({{ rates.r2_rate|floatformat:2 }}%)</span>
-            </div>
-            <div class="flex flex-wrap gap-2 group/list">
-                {% for student in r2_regulars %}
-                <div class="group/item relative w-16 h-16 transition-all duration-300 group-hover/list:opacity-50 group-hover/list:grayscale hover:!opacity-100 hover:!grayscale-0">
-                    <div class="w-full h-full bg-slate-800 rounded-lg border border-slate-700 overflow-hidden transition-all duration-200 hover:border-slate-500 hover:scale-120">
-                        {% if student.asset_id %}<img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}">{% endif %}
+                <!-- List View (Initially hidden) -->
+                <div class="student-list-view hidden flex flex-col gap-1">
+                    {% for student in pickup_students %}
+                    <div class="flex items-center justify-between p-2 rounded-lg hover:bg-slate-700/50">
+                        <div class="flex items-center gap-3">
+                            <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" class="w-16 h-16 rounded-md object-cover">
+                            <span class="font-semibold text-lg">{{ student.student_name }}</span>
+                        </div>
+                        <span class="font-mono text-sm text-slate-400">{{ rates.pickup_student_rate|floatformat:4 }}%</span>
                     </div>
-                    <div class="absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/80 rounded-md text-xs text-white opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                        {{ rates.r2_regular_student_rate|floatformat:4 }}%
-                    </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
-            </div>
-        </div>
 
-        <!-- =============================================================== -->
-        <!-- AVAILABLE ★ POOL                                              -->
-        <!-- =============================================================== -->
-        <div>
-            <div class="flex items-center justify-between mb-2">
-                <h3 class="text-xl font-semibold">Available ★ Pool</h3>
-                <span class="text-sm font-mono text-slate-400">({{ rates.r1_rate|floatformat:2 }}%)</span>
             </div>
-            <div class="flex flex-wrap gap-2 group/list">
-                {% for student in r1_regulars %}
-                <div class="group/item relative w-16 h-16 transition-all duration-300 group-hover/list:opacity-50 group-hover/list:grayscale hover:!opacity-100 hover:!grayscale-0">
-                    <div class="w-full h-full bg-slate-800 rounded-lg border border-slate-700 overflow-hidden transition-all duration-200 hover:border-slate-500 hover:scale-120">
-                        {% if student.asset_id %}<img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}">{% endif %}
-                    </div>
-                    <div class="absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/80 rounded-md text-xs text-white opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                        {{ rates.r1_regular_student_rate|floatformat:4 }}%
-                    </div>
+            {% endif %}
+
+            <!-- The same modifications are applied to all other student pool sections below -->
+
+            <!-- =============================================================== -->
+            <!-- AVAILABLE ★★★ POOL                                            -->
+            <!-- =============================================================== -->
+            <div class="mb-6">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-xl font-semibold">Available ★★★ Pool</h3>
+                    <span class="text-md font-mono text-slate-400">({{ rates.non_pickup_r3_rate|floatformat:2 }}%)</span>
                 </div>
-                {% endfor %}
-            </div>
-        </div>
 
+                <!-- Grid View -->
+                <div class="student-grid-view flex flex-wrap gap-2 group/list">
+                    {% for student in r3_regulars %}
+                    <div class="group/item relative w-16 h-16 transition-all duration-300 group-hover/list:opacity-50 group-hover/list:grayscale hover:!opacity-100 hover:!grayscale-0">
+                        <div class="w-full h-full bg-slate-800 rounded-lg border border-slate-700 overflow-hidden transition-all duration-200 hover:border-slate-500 hover:scale-120">
+                            {% if student.asset_id %}<img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}">{% endif %}
+                        </div>
+                        <div class="absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/80 rounded-md text-xs text-white opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                            {{ rates.r3_regular_student_rate|floatformat:4 }}%
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- List View (Initially hidden) -->
+                <div class="student-list-view hidden flex flex-col gap-1">
+                    {% for student in r3_regulars %}
+                    <div class="flex items-center justify-between p-2 rounded-lg hover:bg-slate-700/50">
+                        <div class="flex items-center gap-3">
+                            <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" class="w-16 h-16 rounded-md object-cover">
+                            <span class="font-semibold text-lg">{{ student.student_name }}</span>
+                        </div>
+                        <span class="font-mono text-md text-slate-400">{{ rates.r3_regular_student_rate|floatformat:4 }}%</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- =============================================================== -->
+            <!-- AVAILABLE ★★ POOL                                             -->
+            <!-- =============================================================== -->
+            <div class="mb-6">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-xl font-semibold">Available ★★ Pool</h3>
+                    <span class="text-md font-mono text-slate-400">({{ rates.r2_rate|floatformat:2 }}%)</span>
+                </div>
+
+                <!-- Grid View -->
+                <div class="student-grid-view flex flex-wrap gap-2 group/list">
+                    {% for student in r2_regulars %}
+                    <div class="group/item relative w-16 h-16 transition-all duration-300 group-hover/list:opacity-50 group-hover/list:grayscale hover:!opacity-100 hover:!grayscale-0">
+                        <div class="w-full h-full bg-slate-800 rounded-lg border border-slate-700 overflow-hidden transition-all duration-200 hover:border-slate-500 hover:scale-120">
+                            {% if student.asset_id %}<img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}">{% endif %}
+                        </div>
+                        <div class="absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/80 rounded-md text-xs text-white opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                            {{ rates.r2_regular_student_rate|floatformat:4 }}%
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- List View (Initially hidden) -->
+                <div class="student-list-view hidden flex flex-col gap-1">
+                    {% for student in r2_regulars %}
+                    <div class="flex items-center justify-between p-2 rounded-lg hover:bg-slate-700/50">
+                        <div class="flex items-center gap-3">
+                            <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" class="w-16 h-16 rounded-md object-cover">
+                            <span class="font-semibold text-lg">{{ student.student_name }}</span>
+                        </div>
+                        <span class="font-mono text-md text-slate-400">{{ rates.r2_regular_student_rate|floatformat:4 }}%</span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+            </div>
+
+            <!-- =============================================================== -->
+            <!-- AVAILABLE ★ POOL                                              -->
+            <!-- =============================================================== -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-xl font-semibold">Available ★ Pool</h3>
+                    <span class="text-md font-mono text-slate-400">({{ rates.r1_rate|floatformat:2 }}%)</span>
+                </div>
+
+                <!-- Grid View -->
+                <div class="student-grid-view flex flex-wrap gap-2 group/list">
+                    {% for student in r1_regulars %}
+                    <div class="group/item relative w-16 h-16 transition-all duration-300 group-hover/list:opacity-50 group-hover/list:grayscale hover:!opacity-100 hover:!grayscale-0">
+                        <div class="w-full h-full bg-slate-800 rounded-lg border border-slate-700 overflow-hidden transition-all duration-200 hover:border-slate-500 hover:scale-120">
+                            {% if student.asset_id %}<img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}">{% endif %}
+                        </div>
+                        <div class="absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/80 rounded-md text-xs text-white opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                            {{ rates.r1_regular_student_rate|floatformat:4 }}%
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- List View (Initially hidden) -->
+                <div class="student-list-view hidden flex flex-col gap-1">
+                    {% for student in r1_regulars %}
+                    <div class="flex items-center justify-between p-2 rounded-lg hover:bg-slate-700/50">
+                        <div class="flex items-center gap-3">
+                            <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" class="w-16 h-16 rounded-md object-cover">
+                            <span class="font-semibold text-lg">{{ student.student_name }}</span>
+                        </div>
+                        <span class="font-mono text-md text-slate-400">{{ rates.r1_regular_student_rate|floatformat:4 }}%</span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+            </div>
+
+        </div>
     </div>
 </div>
+
+<!-- NEW: Self-contained script for this component -->
+<script id="modal-js-script">
+    (function() {
+        // Get references to elements INSIDE this newly loaded modal content.
+        const gridBtn = document.getElementById('view-as-grid-btn');
+        const listBtn = document.getElementById('view-as-list-btn');
+        const gridViews = document.querySelectorAll('.student-grid-view');
+        const listViews = document.querySelectorAll('.student-list-view');
+
+        if (!gridBtn) return; // Safety check in case elements aren't found
+
+        function setView(viewType) {
+            if (viewType === 'grid') {
+                gridBtn.classList.add('bg-slate-700', 'text-white');
+                gridBtn.classList.remove('bg-transparent', 'text-slate-400');
+                listBtn.classList.add('bg-transparent', 'text-slate-400');
+                listBtn.classList.remove('bg-slate-700', 'text-white');
+
+                gridViews.forEach(el => el.classList.remove('hidden'));
+                listViews.forEach(el => el.classList.add('hidden'));
+            } else { // 'list'
+                listBtn.classList.add('bg-slate-700', 'text-white');
+                listBtn.classList.remove('bg-transparent', 'text-slate-400');
+                gridBtn.classList.add('bg-transparent', 'text-slate-400');
+                gridBtn.classList.remove('bg-slate-700', 'text-white');
+
+                listViews.forEach(el => el.classList.remove('hidden'));
+                gridViews.forEach(el => el.classList.add('hidden'));
+            }
+        }
+
+        gridBtn.addEventListener('click', () => setView('grid'));
+        listBtn.addEventListener('click', () => setView('list'));
+        
+    })();
+</script>
