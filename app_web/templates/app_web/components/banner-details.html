@@ -56,7 +56,7 @@
                             {% if student.asset_id %}<img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}">{% endif %}
                         </div>
                         <!-- MODIFIED: The tooltip now ONLY appears on "group-hover/item", not the list. -->
-                        <div class="absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/80 rounded-md text-xs text-white opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                        <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/80 rounded-md text-xs text-white opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                             {{ rates.pickup_student_rate|floatformat:4 }}%
                         </div>
                     </div>
@@ -97,7 +97,7 @@
                         <div class="w-full h-full bg-slate-800 rounded-lg border border-slate-700 overflow-hidden transition-all duration-200 hover:border-slate-500 hover:scale-120">
                             {% if student.asset_id %}<img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}">{% endif %}
                         </div>
-                        <div class="absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/80 rounded-md text-xs text-white opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                        <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/80 rounded-md text-xs text-white opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                             {{ rates.r3_regular_student_rate|floatformat:4 }}%
                         </div>
                     </div>
@@ -134,7 +134,7 @@
                         <div class="w-full h-full bg-slate-800 rounded-lg border border-slate-700 overflow-hidden transition-all duration-200 hover:border-slate-500 hover:scale-120">
                             {% if student.asset_id %}<img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}">{% endif %}
                         </div>
-                        <div class="absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/80 rounded-md text-xs text-white opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                        <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/80 rounded-md text-xs text-white opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                             {{ rates.r2_regular_student_rate|floatformat:4 }}%
                         </div>
                     </div>
@@ -172,7 +172,7 @@
                         <div class="w-full h-full bg-slate-800 rounded-lg border border-slate-700 overflow-hidden transition-all duration-200 hover:border-slate-500 hover:scale-120">
                             {% if student.asset_id %}<img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}">{% endif %}
                         </div>
-                        <div class="absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/80 rounded-md text-xs text-white opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                        <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/80 rounded-md text-xs text-white opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                             {{ rates.r1_regular_student_rate|floatformat:4 }}%
                         </div>
                     </div>
