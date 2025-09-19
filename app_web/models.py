@@ -291,6 +291,45 @@ class GachaBanner(models.Model):
         return self.banner_name
     
     @property
+    def pickup_students(self):
+        return self.banner_pickup.all()
+    
+    @property
+    def _base_pool(self):
+        pool = Student.objects.filter(version_id__in=self.banner_include_version.all())
+        if not self.banner_include_limited:
+            pool = pool.exclude(student_is_limited=True)
+        return pool
+    
+    @property
+    def r3_students(self):
+        return self._base_pool.filter(student_rarity=3).exclude(pk__in=self.pickup_students.values_list('pk', flat=True))
+
+    @property
+    def r2_students(self):
+        return self._base_pool.filter(student_rarity=2)
+
+    @property
+    def r1_students(self):
+        return self._base_pool.filter(student_rarity=1)
+    
+    @property
+    def pickup_r3_rate(self):
+        return self.preset_id.pickup_rate
+    
+    @property
+    def non_pickup_r3_rate(self):
+        return self.preset_id.r3_rate - self.preset_id.pickup_rate
+    
+    @property
+    def r2_rate(self):
+        return self.preset_id.r2_rate
+    
+    @property
+    def r1_rate(self):
+        return self.preset_id.r1_rate
+
+    @property
     def image(self) -> bytes:
         return self.banner_image
     
@@ -300,28 +339,38 @@ class GachaBanner(models.Model):
 class GachaTransaction(models.Model):
     transaction_id = models.AutoField(primary_key=True, auto_created=True, editable=False, verbose_name='ID')
     transaction_user = models.ForeignKey(get_user_model(), on_delete=models.PROTECT, verbose_name='User')
-    transaction_banner = models.ForeignKey(GachaBanner, on_delete=models.PROTECT, verbose_name='Banner')
-    transaction_student = models.ForeignKey(Student, on_delete=models.PROTECT, verbose_name='Student')
-    transaction_datetime = models.DateTimeField(auto_now_add=True, verbose_name='Create On')
+    banner_id = models.ForeignKey(GachaBanner, on_delete=models.PROTECT, verbose_name='Banner')
+    student_id = models.ForeignKey(Student, on_delete=models.PROTECT, verbose_name='Student')
+    transaction_create_on = models.DateTimeField(auto_now_add=True, editable=False, verbose_name='Create On')
 
     def __str__(self):
         return f'{self.transaction_user} {self.banner} {self.student}'
 
-    def formatted_datetime(self):
-        return self.transaction_datetime.strftime('%Y-%m-%d %H:%M:%S')
-
     @property
     def banner(self):
-        return self.transaction_banner.name
+        return self.banner_id.name
 
     @property
     def student(self):
-        return self.transaction_student.name
+        return self.student_id.name
+    
+    @property
+    def create_on(self):
+        return self.transaction_create_on.strftime('%Y-%m-%d %H:%M:%S')
     
     class Meta:
         db_table = 'gacha_transaction_table'
+
+        # Define indexes.
         indexes = [
             models.Index(fields=['transaction_user']),
-            models.Index(fields=['transaction_banner']),
-            models.Index(fields=['transaction_student']),
+            models.Index(fields=['banner_id']),
+            models.Index(fields=['student_id']),
         ]
+
+        # It's good practice to set a more readable name for the admin.
+        verbose_name = "Gacha Transaction"
+        verbose_name_plural = "Gacha Transactions"
+
+        # Ordering by newest first is common for transaction logs.
+        ordering = ['-transaction_create_on']

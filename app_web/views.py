@@ -76,49 +76,30 @@ def banner_details(request, banner_id):
         pk=banner_id
     )
     
-    # --- Step 1: Get the included versions and pickup students ---
-    included_versions = banner.banner_include_version.all()
-    pickup_students = banner.banner_pickup.all()
-    
-    # --- Step 2: Build the base pool of all possible students ---
-    base_pool = Student.objects.filter(version_id__in=included_versions)
-    
-    # --- Step 3: Apply the "limited" filter if necessary ---
-    if not banner.banner_include_limited:
-        base_pool = base_pool.exclude(student_is_limited=True)
-        
-    # --- Step 4: Exclude the pickup students to get the final "regular" pool ---
-    regular_pool = base_pool.exclude(pk__in=pickup_students.values_list('pk', flat=True))
-
-    # --- Step 5: Categorize the regular pool by rarity ---
-    r3_regulars = regular_pool.filter(student_rarity=3).prefetch_related('asset_id')
-    r2_regulars = regular_pool.filter(student_rarity=2).prefetch_related('asset_id')
-    r1_regulars = regular_pool.filter(student_rarity=1).prefetch_related('asset_id')
+    # --- Step 1: Get all available students
+    pickup_students = banner.pickup_students
+    r3_regulars = banner.r3_students.prefetch_related('asset_id')
+    r2_regulars = banner.r2_students.prefetch_related('asset_id')
+    r1_regulars = banner.r1_students.prefetch_related('asset_id')
     
     # --- Step 6: Prepare the rate calculations (same logic as before, but with new pools) ---
     rates = {}
     if banner.preset_id:
-        preset = banner.preset_id
-        
-        # Category rates
-        rates['pickup_r3_rate'] = preset.preset_pickup_rate
-        rates['non_pickup_r3_rate'] = preset.preset_r3_rate - preset.preset_pickup_rate
-        rates['r2_rate'] = preset.preset_r2_rate
-        rates['r1_rate'] = preset.preset_r1_rate
 
-        # Individual student rates (handle division by zero)
-        pickup_count = pickup_students.count()
-        rates['pickup_student_rate'] = (rates['pickup_r3_rate'] / pickup_count) if pickup_count > 0 else Decimal('0.0')
+        rates.update({
+            # Category rates are pulled directly from model properties.
+            'pickup_r3_rate': banner.pickup_r3_rate,
+            'non_pickup_r3_rate': banner.non_pickup_r3_rate,
+            'r2_rate': banner.r2_rate,
+            'r1_rate': banner.r1_rate,
+            
+            # Individual student rates are calculated here.
+            'pickup_student_rate': (banner.pickup_r3_rate / pickup_students.count()) if pickup_students.exists() else Decimal('0.0'),
+            'r3_regular_student_rate': (banner.non_pickup_r3_rate / r3_regulars.count()) if r3_regulars.exists() else Decimal('0.0'),
+            'r2_regular_student_rate': (banner.r2_rate / r2_regulars.count()) if r2_regulars.exists() else Decimal('0.0'),
+            'r1_regular_student_rate': (banner.r1_rate / r1_regulars.count()) if r1_regulars.exists() else Decimal('0.0'),
+        })
         
-        r3_reg_count = r3_regulars.count()
-        rates['r3_regular_student_rate'] = (rates['non_pickup_r3_rate'] / r3_reg_count) if r3_reg_count > 0 else Decimal('0.0')
-        
-        r2_reg_count = r2_regulars.count()
-        rates['r2_regular_student_rate'] = (rates['r2_rate'] / r2_reg_count) if r2_reg_count > 0 else Decimal('0.0')
-        
-        r1_reg_count = r1_regulars.count()
-        rates['r1_regular_student_rate'] = (rates['r1_rate'] / r1_reg_count) if r1_reg_count > 0 else Decimal('0.0')
-
     context = {
         'banner': banner,
         'pickup_students': pickup_students,
