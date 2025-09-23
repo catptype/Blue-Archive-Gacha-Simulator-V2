@@ -1,0 +1,32 @@
+{% extends 'app_web/components/base.html' %} 
+{% load static %}
+
+{% block css %}
+{% endblock %}
+
+{% block title %}Debug{% endblock %} 
+
+{% block body %}
+<div class="relative min-h-screen w-full bg-black antialiased text-white overflow-hidden">
+    
+    <!-- =============================================================== -->
+    <!-- PAGE BACKGROUND                                                 -->
+    <!-- =============================================================== -->
+    
+    {% include 'app_web/components/background.html' %}
+
+    <!-- Main Content Container (Adds margins) -->
+    <div class="w-full max-w-screen mx-auto px-4 lg:px-6 pt-20">
+
+        <div class="flex-1">
+
+        {% for student in students %}
+            {% include 'app_web/components/student-card.html' with student=student %}
+        {% endfor %}
+        </div>
+
+    </div>
+
+
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TCG Business Card</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Utility classes for rarity borders */
+    .rarity-1 { border-color: #9ca3af; }   /* Gray = Common */
+    .rarity-2 { border-color: #3b82f6; }   /* Blue = Rare */
+    .rarity-3 { border-color: #facc15; }   /* Gold = Legendary */
+  </style>
+</head>
+<body class="flex items-center justify-center min-h-screen bg-gray-900">
+
+  <!-- Example Card -->
+  <div class="w-72 h-[420px] bg-gradient-to-b from-white to-gray-100 rounded-2xl shadow-2xl border-4 rarity-3 overflow-hidden flex flex-col">
+    
+    <!-- Image (70%) -->
+    <div class="flex-[7] bg-gray-200 flex items-center justify-center">
+      <img src="https://placehold.co/250x300" alt="Portrait" class="h-full w-auto object-cover">
+    </div>
+
+    <!-- Info (30%) -->
+    <div class="flex-[3] bg-white flex flex-col justify-between px-4 py-3">
+      <!-- Name -->
+      <h2 class="text-xl font-bold text-gray-800">Aoba Highlander</h2>
+      
+      <!-- Group -->
+      <p class="text-sm text-gray-600 italic">Team: Highland Squad</p>
+
+      <!-- Rarity -->
+      <div class="flex justify-end">
+        <span class="text-sm font-semibold px-3 py-1 rounded-full bg-gray-800 text-white">
+          ★★★ Legendary
+        </span>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

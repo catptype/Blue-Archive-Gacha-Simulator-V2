@@ -9,6 +9,7 @@ from django.shortcuts import render, get_object_or_404
 from django.db.models import Q
 from django.urls import reverse
 
+from .util.GachaEngine import GachaEngine
 from .models import School, Student, Version, GachaBanner
 
 CACHE_IMAGE_TIMEOUT = 300 # 5 minutes 
@@ -53,6 +54,16 @@ def student(request:HttpRequest) -> HttpResponse:
     schools = School.objects.all().order_by('school_name')
     context = { 'schools': schools }
     return render(request, 'app_web/student.html', context)
+
+def student_card(request:HttpRequest, student_id:int) -> HttpResponse:
+    """
+    Renders the initial "shell" of the student page, containing only the list of schools.
+    All student data will be loaded dynamically via API calls.
+    """
+    students = Student.objects.filter(student_id=student_id)
+    context = { 'students': students }
+    return render(request, 'app_web/debug.html', context)
+
 
 def gacha(request):
     """
@@ -176,6 +187,32 @@ def get_students_by_school(request: HttpRequest, school_id: int) -> JsonResponse
     ]
 
     return JsonResponse({'students': students_data})
+
+def draw_one_gacha(request: HttpRequest, banner_id: int) -> JsonResponse:
+    
+    banner = GachaBanner.objects.get(banner_id=banner_id)
+    engine = GachaEngine(banner)
+
+    results = engine.draw_1()
+
+    data_response = {
+        "results": results
+    }
+    
+    return JsonResponse(data_response, status=200)
+
+def draw_ten_gacha(request: HttpRequest, banner_id: int) -> JsonResponse:
+    
+    banner = GachaBanner.objects.get(banner_id=banner_id)
+    engine = GachaEngine(banner)
+
+    results = engine.draw_10()
+
+    data_response = {
+        "results": results
+    }
+    
+    return JsonResponse(data_response, status=200)
 
 #######################################
 #####   REQUEST -> FILERESPONSE   #####
