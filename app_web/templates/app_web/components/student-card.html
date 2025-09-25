@@ -1,137 +1,61 @@
 {% load static %}
 
 <!-- app_web/components/student_card.html -->
-<div class="w-64 aspect-[5/7] rounded-lg shadow-2xl flex flex-col p-2
-    {% if student.student_rarity == 3 %}bg-yellow-400/80
-    {% elif student.student_rarity == 2 %}bg-purple-400/80
-    {% else %}bg-blue-400/80{% endif %}">
-
-    <!-- 
-      The "File" Container
-      - This is the main inner element, representing the file.
-      - It has a white background and is also a flex container.
-    -->
-    <div class="relative w-full h-full bg-white rounded-md overflow-hidden flex flex-col">
-        
-        <!-- =============================================================== -->
-        <!-- 1. FOLDER TAB (School & Version)                                -->
-        <!-- =============================================================== -->
-        <!--
-          This element sits on top of the "file" but is visually connected to the "folder".
-          It's positioned absolutely relative to the file container.
-        -->
-        <div class="absolute -top-1 left-2 w-auto h-8 px-4 rounded-t-lg flex items-center justify-between gap-4 z-10
-            {% if student.student_rarity == 3 %}bg-yellow-400/80
-            {% elif student.student_rarity == 2 %}bg-purple-400/80
-            {% else %}bg-blue-400/80{% endif %}">
-            
-            <!-- School Logo -->
-            <div class="flex items-center gap-1.5">
-                <img src="{% url 'serve_school_image' school_id=student.school_id.school_id %}" alt="" class="w-5 h-5 bg-white rounded-full p-0.5">
-                <span class="text-xs font-bold text-slate-900">{{ student.school_id.school_name }}</span>
-            </div>
-            
-            
-        </div>
-
-        <!-- =============================================================== -->
-        <!-- 2. IMAGE SECTION (70% height)                                   -->
-        <!-- =============================================================== -->
-        <!-- 
-          - 'flex-[7]' gives this section 70% of the available vertical space.
-          - 'mt-6' pushes the image down to make space for the folder tab.
-        -->
-        <div class="flex-[7] mt-6 px-2 pb-2">
-            <div class="relative w-full h-full bg-slate-200 overflow-hidden">
-                {% if student.asset_id %}
-                <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" 
-                     alt="{{ student.student_name }}" 
-                     class="w-full h-full object-cover">
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- =============================================================== -->
-        <!-- 3. INFO SECTION (30% height)                                    -->
-        <!-- =============================================================== -->
-        <!-- 'flex-[3]' gives this section the remaining 30% of the vertical space. -->
-        <div class="flex-[3] flex flex-col justify-between px-3 py-2 bg-gray-100">
-            <!-- Student Name -->
-            <h2 class="text-xl font-bold text-gray-800 truncate" title="{{ student.student_name }}">
-                {{ student.student_name }}
-                <!-- Version Text -->
-            {% if student.version != 'Original' %}
-                <span class="text-xs italic text-slate-800">({{ student.version }})</span>
-            {% endif %}
-            </h2>
-            
-            <!-- Rarity Display (Pill) -->
-            <div class="flex justify-end">
-                <div class="flex items-center gap-1 px-3 py-1 rounded-full
-                    {% if student.student_rarity == 3 %}bg-yellow-500 text-white
-                    {% elif student.student_rarity == 2 %}bg-purple-500 text-white
-                    {% else %}bg-blue-500 text-white{% endif %}">
-                    
-                    {% for i in "x"|rjust:student.student_rarity %}
-                        <img src="{% static 'images/web/star_yellow.png' %}" alt="star" class="w-4 h-4">
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-<div class="relative w-64 aspect-[3/5] rounded-lg shadow-2xl border-6
+<div class="relative w-64 aspect-[3/5] rounded-lg shadow-2xl border-4
     {% if student.student_rarity == 3 %}border-yellow-400/80
     {% elif student.student_rarity == 2 %}border-purple-400/80
     {% else %}border-blue-400/80{% endif %}">
 
     <!-- 
-      The "File" Container
-      - Sits inside the "Folder" to create the border effect.
+      The "File" Container - Sits inside the "Folder" border.
     -->
     <div class="relative w-full h-full bg-white rounded-sm overflow-hidden flex flex-col">
         
         <!-- =============================================================== -->
-        <!-- 1. FOLDER TAB (School)                                          -->
+        <!-- 1. IMAGE SECTION (Takes up most of the card space)              -->
         <!-- =============================================================== -->
-        <!-- MODIFIED: This is now a self-contained element with a border to look like a tab. -->
-        <div class="absolute top-0 left-3 h-8 px-3 rounded-b-md flex items-center gap-2 z-20 border-x-2 border-b-2
-            {% if student.student_rarity == 3 %}bg-yellow-200 border-yellow-400/80
-            {% elif student.student_rarity == 2 %}bg-purple-200 border-purple-400/80
-            {% else %}bg-blue-200 border-blue-400/80{% endif %}">
-            
-            <img src="{% url 'serve_school_image' school_id=student.school_id.school_id %}" alt="" class="w-5 h-5 bg-white rounded-full p-0.5">
-            <span class="text-xs font-bold text-slate-900">{{ student.school_id.school_name }}</span>
-        </div>
-
-        <!-- =============================================================== -->
-        <!-- 2. IMAGE SECTION (70% height)                                   -->
-        <!-- =================================S============================== -->
-        <div class="flex-[7] bg-slate-200 p-2">
-            <!-- MODIFIED: Added a border and a subtle inset shadow for depth. -->
-            <div class="relative w-full h-full bg-slate-700 border border-slate-400 shadow-inner">
+        <!-- MODIFIED: Image is now the main background for the top ~80% of the card -->
+        <div class="relative flex-[8] bg-slate-200">
+            <!-- This wrapper adds the border and the custom corner cuts. -->
+            <div class="absolute inset-[12px] border-3 border-slate-300 overflow-hidden" 
+                 style="clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);">
+                
                 {% if student.asset_id %}
                 <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" 
                      alt="{{ student.student_name }}" 
                      class="w-full h-full object-cover">
                 {% endif %}
             </div>
+            
+            <!-- =============================================================== -->
+            <!-- 2. FOLDER TAB (Overlapping the image)                           -->
+            <!-- =============================================================== -->
+            <!-- MODIFIED: The tab is now a child of the image section and positioned relative to it. -->
+            <div class="absolute top-0 left-3 h-8 px-3 rounded-b-md flex items-center gap-2 z-20 border-x-2 border-b-2
+                {% if student.student_rarity == 3 %}bg-yellow-200 border-yellow-400/80
+                {% elif student.student_rarity == 2 %}bg-purple-200 border-purple-400/80
+                {% else %}bg-blue-200 border-blue-400/80{% endif %}">
+                
+                <img src="{% url 'serve_school_image' school_id=student.school_id.school_id %}" alt="" class="w-5 h-5 bg-white rounded-full p-0.5">
+                <span class="text-xs font-bold text-slate-900">{{ student.school_id.school_name }}</span>
+            </div>
         </div>
 
         <!-- =============================================================== -->
-        <!-- 3. INFO SECTION (30% height)                                    -->
+        <!-- 3. INFO SECTION (Compact bottom panel)                          -->
         <!-- =============================================================== -->
-        <div class="flex-[3] flex flex-col justify-between px-3 py-2 bg-gray-100 border-t-2 border-gray-300">
+        <!-- MODIFIED: Height is now smaller 'flex-[2]'. The layout is simpler. -->
+        <div class="flex-[2] flex flex-col justify-between px-3 py-2 bg-gray-100 border-t-2 border-gray-300">
+            
             <!-- Student Name & Version -->
-            <h2 class="text-xl font-bold text-gray-800 truncate" title="{{ student.student_name }}">
-                {{ student.student_name }}
-                <!-- MODIFIED: Version is now correctly placed here. -->
+            <div>
+                <h2 class="text-lg font-bold text-gray-800 truncate" title="{{ student.student_name }}">
+                    {{ student.student_name }}
+                </h2>
                 {% if student.version != 'Original' %}
-                    <span class="font-normal text-base">({{ student.version }})</span>
+                    <p class="text-xs text-slate-500 -mt-1">({{ student.version }})</p>
                 {% endif %}
-            </h2>
+            </div>
             
             <!-- Rarity Display (Pill) -->
             <div class="flex justify-end">
@@ -144,97 +68,6 @@
                     {% for i in "x"|rjust:student.student_rarity %}
                         <img src="{% static 'images/web/star_yellow.png' %}" alt="star" class="w-4 h-4">
                     {% endfor %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-<div class="relative w-64 aspect-[3/5] rounded-lg shadow-2xl border-4
-    {% if student.student_rarity == 3 %}border-yellow-400/80
-    {% elif student.student_rarity == 2 %}border-purple-400/80
-    {% else %}border-blue-400/80{% endif %}">
-
-    <div class="relative w-full h-full bg-white rounded-sm overflow-hidden flex flex-col">
-        
-        <!-- =============================================================== -->
-        <!-- 1. FOLDER TAB (School)                                          -->
-        <!-- =============================================================== -->
-        <div class="absolute top-0 left-3 h-8 px-3 rounded-b-md flex items-center gap-2 z-20 border-x-2 border-b-2
-            {% if student.student_rarity == 3 %}bg-yellow-200 border-yellow-400/80
-            {% elif student.student_rarity == 2 %}bg-purple-200 border-purple-400/80
-            {% else %}bg-blue-200 border-blue-400/80{% endif %}">
-            
-            <img src="{% url 'serve_school_image' school_id=student.school_id.school_id %}" alt="" class="w-5 h-5 bg-white rounded-full p-0.5">
-            <span class="text-xs font-bold text-slate-900">{{ student.school_id.school_name }}</span>
-        </div>
-
-        <!-- =============================================================== -->
-        <!-- 2. IMAGE SECTION                                                -->
-        <!-- =============================================================== -->
-        <div class="flex-[7] bg-slate-200 p-2 pt-8">
-            <!-- NEW: This wrapper adds the border and the custom corner cuts. -->
-            <div class="relative w-full h-full bg-slate-700 border-2 border-slate-500 overflow-hidden" 
-                 style="clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);">
-                
-                {% if student.asset_id %}
-                <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" 
-                     alt="{{ student.student_name }}" 
-                     class="w-full h-full object-cover">
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- =============================================================== -->
-        <!-- 3. INFO SECTION                                                 -->
-        <!-- =============================================================== -->
-        <!-- MODIFIED: Added 'relative' to be an anchor for the new stats panel. -->
-        <div class="relative flex-[3] flex flex-col justify-start px-3 py-2 bg-gray-100 border-t-2 border-gray-300">
-            <!-- Student Name & Version -->
-            <h2 class="text-xl font-bold text-gray-800 truncate" title="{{ student.student_name }}">
-                {{ student.student_name }}
-                {% if student.version.version_name != 'Original' %}
-                    <span class="font-normal text-base">({{ student.version.version_name }})</span>
-                {% endif %}
-            </h2>
-            
-            <!-- Rarity Display is now positioned absolutely at the top-right of this section -->
-            <div class="absolute top-2 right-2 h-7 w-28 flex items-center justify-center gap-1 rounded-full
-                {% if student.student_rarity == 3 %}bg-yellow-500 text-white
-                {% elif student.student_rarity == 2 %}bg-purple-500 text-white
-                {% else %}bg-blue-500 text-white{% endif %}">
-                
-                {% for i in "x"|rjust:student.student_rarity %}
-                    <img src="{% static 'images/icons/star_white.png' %}" alt="star" class="w-4 h-4">
-                {% endfor %}
-            </div>
-
-            <!-- NEW: Stats Panel, positioned absolutely at the bottom of this section. -->
-            <div class="absolute bottom-2 left-3 right-3 flex justify-between text-center">
-                <!-- Stat Block 1: Role -->
-                <div>
-                    <p class="text-xs text-slate-500 font-semibold">ROLE</p>
-                    <p class="font-bold text-slate-800">
-                        Striker
-                        {# {{ student.student_role }} #}
-                    </p>
-                </div>
-                <!-- Stat Block 2: ATK -->
-                <div>
-                    <p class="text-xs text-slate-500 font-semibold">ATK</p>
-                    <p class="font-bold text-slate-800">
-                        1250
-                        {# {{ student.student_attack }} #}
-                    </p>
-                </div>
-                <!-- Stat Block 3: DEF -->
-                <div>
-                    <p class="text-xs text-slate-500 font-semibold">DEF</p>
-                    <p class="font-bold text-slate-800">
-                        800
-                        {# {{ student.student_defense }} #}
-                    </p>
                 </div>
             </div>
         </div>
