@@ -2,7 +2,7 @@
   "name": "Misaki",
   "version": "Swimsuit",
   "school": "Arius",
-  "rarity": null,
+  "rarity": 3,
   "is_limited": false,
   "release": "2025/09/03",
   "base64": {
