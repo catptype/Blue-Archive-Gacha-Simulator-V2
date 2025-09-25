@@ -72,10 +72,10 @@
             
             <!-- Rarity Display (Pill) -->
             <div class="flex justify-end">
-                <div class="h-7 w-28 flex items-center justify-center gap-1 rounded-full
-                    {% if student.student_rarity == 3 %}bg-yellow-500 text-white
-                    {% elif student.student_rarity == 2 %}bg-purple-500 text-white
-                    {% else %}bg-blue-500 text-white{% endif %}">
+                <div class="h-7 w-24 flex-shrink-0 flex items-center justify-center gap-1 rounded-full shadow-inner-sm
+                    {% if student.student_rarity == 3 %}bg-yellow-500 border-2 border-yellow-300/50
+                    {% elif student.student_rarity == 2 %}bg-purple-500 border-2 border-purple-300/50
+                    {% else %}bg-blue-500 border-2 border-blue-300/50{% endif %}">
                     
                     {% for i in "x"|rjust:student.student_rarity %}
                         <img src="{% static 'images/web/star_yellow.png' %}" alt="star" class="w-4 h-4">
