@@ -1,86 +1,6 @@
 {% load static %}
 
 <!-- app_web/components/student_card.html -->
-
-<!--
-  This component renders a single student card.
-  It requires a 'student' object to be available in the context where it is included.
-
-  EXAMPLE USAGE in another template:
-  {% for student in pulled_students %}
-    {% include 'app_web/components/student_card.html' with student=student %}
-  {% endfor %}
--->
-
-<!-- 
-  Main Card Container
-  - 'relative' is the anchor for all absolutely positioned child elements.
-  - 'overflow-hidden' clips the main portrait image to the rounded corners.
-  - The border color is dynamically set based on the student's rarity.
--->
-<div class="relative w-64 aspect-[5/7] bg-gradient-to-b from-slate-800 to-slate-900 rounded-lg overflow-hidden shadow-2xl border border-slate-700">
-
-    <!-- =============================================================== -->
-    <!-- 1. HEADER: NAME & RARITY                                        -->
-    <!-- =============================================================== -->
-    <div class="absolute top-0 left-0 w-full p-2 bg-slate-900/50 backdrop-blur-sm z-10 flex items-center justify-between">
-        <h2 class="font-bold text-white text-xl">{{ student.student_name }}</h2>
-        <!-- Rarity Gem -->
-        <div class="w-8 h-8 rounded-full flex items-center justify-center
-            {% if student.student_rarity == 3 %}bg-yellow-400/80 border-2 border-yellow-300
-            {% elif student.student_rarity == 2 %}bg-purple-400/80 border-2 border-purple-300
-            {% else %}bg-blue-400/80 border-2 border-blue-300{% endif %}">
-            <img src="{% static 'images/web/star_yellow.png' %}" alt="star" class="w-5 h-5 drop-shadow-md">
-        </div>
-    </div>
-
-    <!-- =============================================================== -->
-    <!-- 2. MAIN ARTWORK (PORTRAIT)                                      -->
-    <!-- =============================================================== -->
-    <div class="absolute top-12 left-2 right-2 h-1/2 bg-slate-700 border-2 border-slate-600">
-        {% if student.asset_id %}
-        <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" 
-             alt="{{ student.student_name }}" 
-             class="w-full h-full object-cover">
-        {% endif %}
-    </div>
-
-    <!-- =============================================================== -->
-    <!-- 3. TYPE LINE: SCHOOL & VERSION                                  -->
-    <!-- =============================================================== -->
-    <!-- This bar sits below the main artwork. -->
-    <div class="absolute top-[62%] left-2 right-2 p-2 bg-slate-800 border-x-2 border-slate-600 flex items-center justify-between text-sm">
-        <div class="flex items-center gap-2">
-            <img src="{% url 'serve_school_image' school_id=student.school_id.school_id %}" alt="" class="w-6 h-6 bg-white rounded-full p-0.5">
-            <span class="font-semibold text-slate-300">{{ student.school_id.school_name }}</span>
-        </div>
-        <span class="italic text-slate-400">{{ student.version.version_name }}</span>
-    </div>
-
-    <!-- =============================================================== -->
-    <!-- 4. DESCRIPTION BOX (Placeholder for future skill text)          -->
-    <!-- =============================================================== -->
-    <!-- This is where you would put the `skill_description` field. -->
-    <div class="absolute bottom-2 left-2 right-2 h-1/4 p-2 bg-slate-700/50 rounded-b-md border-2 border-t-0 border-slate-600">
-        <p class="text-sm text-slate-200">
-            <!-- Example of how you would add a skill description later -->
-            {# {% if student.skill_description %} #}
-            {#    {{ student.skill_description }} #}
-            {# {% endif %} #}
-        </p>
-    </div>
-
-    <!-- Optional: Placeholder for future Attack/Defense stats -->
-    <!-- 
-    <div class="absolute bottom-2 left-2 text-xl font-bold">100</div>
-    <div class="absolute bottom-2 right-2 text-xl font-bold">100</div>
-    -->
-
-</div>
-
-
-
-
 <div class="w-64 aspect-[5/7] rounded-lg shadow-2xl flex flex-col p-2
     {% if student.student_rarity == 3 %}bg-yellow-400/80
     {% elif student.student_rarity == 2 %}bg-purple-400/80
@@ -155,6 +75,166 @@
                     {% for i in "x"|rjust:student.student_rarity %}
                         <img src="{% static 'images/web/star_yellow.png' %}" alt="star" class="w-4 h-4">
                     {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="relative w-64 aspect-[3/5] rounded-lg shadow-2xl border-6
+    {% if student.student_rarity == 3 %}border-yellow-400/80
+    {% elif student.student_rarity == 2 %}border-purple-400/80
+    {% else %}border-blue-400/80{% endif %}">
+
+    <!-- 
+      The "File" Container
+      - Sits inside the "Folder" to create the border effect.
+    -->
+    <div class="relative w-full h-full bg-white rounded-sm overflow-hidden flex flex-col">
+        
+        <!-- =============================================================== -->
+        <!-- 1. FOLDER TAB (School)                                          -->
+        <!-- =============================================================== -->
+        <!-- MODIFIED: This is now a self-contained element with a border to look like a tab. -->
+        <div class="absolute top-0 left-3 h-8 px-3 rounded-b-md flex items-center gap-2 z-20 border-x-2 border-b-2
+            {% if student.student_rarity == 3 %}bg-yellow-200 border-yellow-400/80
+            {% elif student.student_rarity == 2 %}bg-purple-200 border-purple-400/80
+            {% else %}bg-blue-200 border-blue-400/80{% endif %}">
+            
+            <img src="{% url 'serve_school_image' school_id=student.school_id.school_id %}" alt="" class="w-5 h-5 bg-white rounded-full p-0.5">
+            <span class="text-xs font-bold text-slate-900">{{ student.school_id.school_name }}</span>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- 2. IMAGE SECTION (70% height)                                   -->
+        <!-- =================================S============================== -->
+        <div class="flex-[7] bg-slate-200 p-2">
+            <!-- MODIFIED: Added a border and a subtle inset shadow for depth. -->
+            <div class="relative w-full h-full bg-slate-700 border border-slate-400 shadow-inner">
+                {% if student.asset_id %}
+                <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" 
+                     alt="{{ student.student_name }}" 
+                     class="w-full h-full object-cover">
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- 3. INFO SECTION (30% height)                                    -->
+        <!-- =============================================================== -->
+        <div class="flex-[3] flex flex-col justify-between px-3 py-2 bg-gray-100 border-t-2 border-gray-300">
+            <!-- Student Name & Version -->
+            <h2 class="text-xl font-bold text-gray-800 truncate" title="{{ student.student_name }}">
+                {{ student.student_name }}
+                <!-- MODIFIED: Version is now correctly placed here. -->
+                {% if student.version != 'Original' %}
+                    <span class="font-normal text-base">({{ student.version }})</span>
+                {% endif %}
+            </h2>
+            
+            <!-- Rarity Display (Pill) -->
+            <div class="flex justify-end">
+                <!-- MODIFIED: The pill now has a fixed height and width for consistency. -->
+                <div class="h-7 w-28 flex items-center justify-center gap-1 rounded-full
+                    {% if student.student_rarity == 3 %}bg-yellow-500 text-white
+                    {% elif student.student_rarity == 2 %}bg-purple-500 text-white
+                    {% else %}bg-blue-500 text-white{% endif %}">
+                    
+                    {% for i in "x"|rjust:student.student_rarity %}
+                        <img src="{% static 'images/web/star_yellow.png' %}" alt="star" class="w-4 h-4">
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="relative w-64 aspect-[3/5] rounded-lg shadow-2xl border-4
+    {% if student.student_rarity == 3 %}border-yellow-400/80
+    {% elif student.student_rarity == 2 %}border-purple-400/80
+    {% else %}border-blue-400/80{% endif %}">
+
+    <div class="relative w-full h-full bg-white rounded-sm overflow-hidden flex flex-col">
+        
+        <!-- =============================================================== -->
+        <!-- 1. FOLDER TAB (School)                                          -->
+        <!-- =============================================================== -->
+        <div class="absolute top-0 left-3 h-8 px-3 rounded-b-md flex items-center gap-2 z-20 border-x-2 border-b-2
+            {% if student.student_rarity == 3 %}bg-yellow-200 border-yellow-400/80
+            {% elif student.student_rarity == 2 %}bg-purple-200 border-purple-400/80
+            {% else %}bg-blue-200 border-blue-400/80{% endif %}">
+            
+            <img src="{% url 'serve_school_image' school_id=student.school_id.school_id %}" alt="" class="w-5 h-5 bg-white rounded-full p-0.5">
+            <span class="text-xs font-bold text-slate-900">{{ student.school_id.school_name }}</span>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- 2. IMAGE SECTION                                                -->
+        <!-- =============================================================== -->
+        <div class="flex-[7] bg-slate-200 p-2 pt-8">
+            <!-- NEW: This wrapper adds the border and the custom corner cuts. -->
+            <div class="relative w-full h-full bg-slate-700 border-2 border-slate-500 overflow-hidden" 
+                 style="clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);">
+                
+                {% if student.asset_id %}
+                <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" 
+                     alt="{{ student.student_name }}" 
+                     class="w-full h-full object-cover">
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- 3. INFO SECTION                                                 -->
+        <!-- =============================================================== -->
+        <!-- MODIFIED: Added 'relative' to be an anchor for the new stats panel. -->
+        <div class="relative flex-[3] flex flex-col justify-start px-3 py-2 bg-gray-100 border-t-2 border-gray-300">
+            <!-- Student Name & Version -->
+            <h2 class="text-xl font-bold text-gray-800 truncate" title="{{ student.student_name }}">
+                {{ student.student_name }}
+                {% if student.version.version_name != 'Original' %}
+                    <span class="font-normal text-base">({{ student.version.version_name }})</span>
+                {% endif %}
+            </h2>
+            
+            <!-- Rarity Display is now positioned absolutely at the top-right of this section -->
+            <div class="absolute top-2 right-2 h-7 w-28 flex items-center justify-center gap-1 rounded-full
+                {% if student.student_rarity == 3 %}bg-yellow-500 text-white
+                {% elif student.student_rarity == 2 %}bg-purple-500 text-white
+                {% else %}bg-blue-500 text-white{% endif %}">
+                
+                {% for i in "x"|rjust:student.student_rarity %}
+                    <img src="{% static 'images/icons/star_white.png' %}" alt="star" class="w-4 h-4">
+                {% endfor %}
+            </div>
+
+            <!-- NEW: Stats Panel, positioned absolutely at the bottom of this section. -->
+            <div class="absolute bottom-2 left-3 right-3 flex justify-between text-center">
+                <!-- Stat Block 1: Role -->
+                <div>
+                    <p class="text-xs text-slate-500 font-semibold">ROLE</p>
+                    <p class="font-bold text-slate-800">
+                        Striker
+                        {# {{ student.student_role }} #}
+                    </p>
+                </div>
+                <!-- Stat Block 2: ATK -->
+                <div>
+                    <p class="text-xs text-slate-500 font-semibold">ATK</p>
+                    <p class="font-bold text-slate-800">
+                        1250
+                        {# {{ student.student_attack }} #}
+                    </p>
+                </div>
+                <!-- Stat Block 3: DEF -->
+                <div>
+                    <p class="text-xs text-slate-500 font-semibold">DEF</p>
+                    <p class="font-bold text-slate-800">
+                        800
+                        {# {{ student.student_defense }} #}
+                    </p>
                 </div>
             </div>
         </div>
