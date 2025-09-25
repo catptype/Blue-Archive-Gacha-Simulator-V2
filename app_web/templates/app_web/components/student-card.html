@@ -14,7 +14,6 @@
         <!-- =============================================================== -->
         <!-- 1. IMAGE SECTION (Takes up most of the card space)              -->
         <!-- =============================================================== -->
-        <!-- MODIFIED: Image is now the main background for the top ~80% of the card -->
         <div class="relative flex-[8] bg-slate-200">
             <!-- This wrapper adds the border and the custom corner cuts. -->
             <div class="absolute inset-[12px] border-3 border-slate-300 overflow-hidden" 
@@ -30,7 +29,6 @@
             <!-- =============================================================== -->
             <!-- 2. FOLDER TAB (Overlapping the image)                           -->
             <!-- =============================================================== -->
-            <!-- MODIFIED: The tab is now a child of the image section and positioned relative to it. -->
             <div class="absolute top-0 left-3 h-8 px-3 rounded-b-md flex items-center gap-2 z-20 border-x-2 border-b-2
                 {% if student.student_rarity == 3 %}bg-yellow-200 border-yellow-400/80
                 {% elif student.student_rarity == 2 %}bg-purple-200 border-purple-400/80
@@ -44,9 +42,15 @@
         <!-- =============================================================== -->
         <!-- 3. INFO SECTION (Compact bottom panel)                          -->
         <!-- =============================================================== -->
-        <!-- MODIFIED: Height is now smaller 'flex-[2]'. The layout is simpler. -->
         <div class="flex-[2] flex flex-col justify-between px-3 py-2 bg-gray-100 border-t-2 border-gray-300">
             
+            <!-- NEW: Decorative Divider -->
+            <div class="h-2 rounded-full m-0
+                {% if student.student_rarity == 3 %}bg-gradient-to-r from-yellow-300 via-yellow-500 to-yellow-300
+                {% elif student.student_rarity == 2 %}bg-gradient-to-r from-purple-300 via-purple-500 to-purple-300
+                {% else %}bg-gradient-to-r from-blue-300 via-blue-500 to-blue-300{% endif %}">
+            </div>
+
             <!-- Student Name & Version -->
             <div>
                 <h2 class="text-lg font-bold text-gray-800 truncate" title="{{ student.student_name }}">
@@ -59,7 +63,6 @@
             
             <!-- Rarity Display (Pill) -->
             <div class="flex justify-end">
-                <!-- MODIFIED: The pill now has a fixed height and width for consistency. -->
                 <div class="h-7 w-28 flex items-center justify-center gap-1 rounded-full
                     {% if student.student_rarity == 3 %}bg-yellow-500 text-white
                     {% elif student.student_rarity == 2 %}bg-purple-500 text-white
