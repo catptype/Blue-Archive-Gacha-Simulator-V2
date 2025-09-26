@@ -70,6 +70,9 @@
                         <div class="flex items-center gap-3">
                             <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" class="w-16 h-16 rounded-md object-cover">
                             <span class="font-semibold text-lg">{{ student.student_name }}</span>
+                            {% if student.version != "Original" %}
+                                <span class="font-semibold text-sm text-slate-400">({{ student.version }})</span>
+                            {% endif %}
                         </div>
                         <span class="font-mono text-sm text-slate-400">{{ rates.pickup_student_rate|floatformat:4 }}%</span>
                     </div>
@@ -111,6 +114,9 @@
                         <div class="flex items-center gap-3">
                             <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" class="w-16 h-16 rounded-md object-cover">
                             <span class="font-semibold text-lg">{{ student.student_name }}</span>
+                            {% if student.version != "Original" %}
+                                <span class="font-semibold text-sm text-slate-400">({{ student.version }})</span>
+                            {% endif %}
                         </div>
                         <span class="font-mono text-md text-slate-400">{{ rates.r3_regular_student_rate|floatformat:4 }}%</span>
                     </div>
@@ -148,6 +154,9 @@
                         <div class="flex items-center gap-3">
                             <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" class="w-16 h-16 rounded-md object-cover">
                             <span class="font-semibold text-lg">{{ student.student_name }}</span>
+                            {% if student.version != "Original" %}
+                                <span class="font-semibold text-sm text-slate-400">({{ student.version }})</span>
+                            {% endif %}
                         </div>
                         <span class="font-mono text-md text-slate-400">{{ rates.r2_regular_student_rate|floatformat:4 }}%</span>
                     </div>
@@ -186,6 +195,9 @@
                         <div class="flex items-center gap-3">
                             <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" class="w-16 h-16 rounded-md object-cover">
                             <span class="font-semibold text-lg">{{ student.student_name }}</span>
+                            {% if student.version != "Original" %}
+                                <span class="font-semibold text-sm text-slate-400">({{ student.version }})</span>
+                            {% endif %}
                         </div>
                         <span class="font-mono text-md text-slate-400">{{ rates.r1_regular_student_rate|floatformat:4 }}%</span>
                     </div>

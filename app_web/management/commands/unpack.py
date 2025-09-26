@@ -100,6 +100,7 @@ class Command(BaseCommand):
                 preset_name = data["preset"]
                 version_names = data["version"]  # This is now a list of strings
                 include_limited = data["limited"] # This is a boolean
+                pickup_list = data["pickup"]
                 image_bytes = Converter.base64_to_byte(data['image_base64'])
 
                 # --- Get the preset object from our fast in-memory cache ---
@@ -139,6 +140,11 @@ class Command(BaseCommand):
                     # Handle the case where no valid versions were found.
                     self.stdout.write(self.style.ERROR(f"\nError: No valid versions found for banner '{banner_name}'. The 'include versions' list will be empty."))
                     banner_obj.banner_include_version.clear()
+
+                # 3. Add pickup students
+                for pickup in pickup_list:
+                    student_obj = Student.objects.get(student_name=pickup["name"], version_id__version_name=pickup["version"])
+                    banner_obj.banner_pickup.add(student_obj)
 
                 # --- Update counters ---
                 if created:
