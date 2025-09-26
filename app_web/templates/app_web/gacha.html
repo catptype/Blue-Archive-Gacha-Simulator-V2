@@ -79,11 +79,11 @@
                     </div>
                     <div class="flex items-center gap-4">
                         <div class="flex flex-col items-center gap-1">
-                            <button class="w-32 px-4 py-3 flex justify-center bg-slate-600 hover:bg-slate-500 rounded-lg text-xl font-bold transition-colors">PULL x1</button>
+                            <button id="one-pull-button" class="w-32 px-4 py-3 flex justify-center bg-slate-600 hover:bg-slate-500 rounded-lg text-xl font-bold transition-colors">PULL x1</button>
                             <span class="text-sm text-slate-400">120 Pyroxene</span>
                         </div>
                         <div class="flex flex-col items-center gap-1">
-                            <button class="w-32 px-4 py-3 flex justify-center bg-cyan-600 hover:bg-cyan-500 rounded-lg text-xl font-bold transition-colors">PULL x10</button>
+                            <button id="ten-pull-button" class="w-32 px-4 py-3 flex justify-center bg-cyan-600 hover:bg-cyan-500 rounded-lg text-xl font-bold transition-colors">PULL x10</button>
                             <span class="text-sm text-slate-400">1200 Pyroxene</span>
                         </div>
                     </div>
@@ -92,13 +92,30 @@
         </div>
     </div>
 
-    <!-- Details Modal (Initially hidden) -->
+    <!-- =============================================================== -->
+    <!-- GACHA DETAILS MODAL: (Initially hidden)                               -->
+    <!-- =============================================================== -->
     <div id="details-modal-wrapper" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div id="details-modal-panel" class="relative w-full max-w-4xl h-[80vh] bg-slate-800 border border-slate-600 rounded-lg shadow-2xl transform scale-95 opacity-0 transition-all duration-300">
             <button id="details-modal-close" class="absolute top-2 right-2 text-slate-400 hover:text-white z-10 text-4xl leading-none">&times;</button>
-            <div id="details-modal-content" class="w-full h-full"></div>
+            <div id="details-modal-content" class="w-full h-full">
+                <!-- Content will be injected here by JavaScript. -->
+            </div>
         </div>
     </div>
+
+    <!-- =============================================================== -->
+    <!-- GACHA RESULTS MODAL (Initially hidden)                     -->
+    <!-- =============================================================== -->
+    <div id="results-modal-wrapper" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div id="results-modal-panel" class="relative w-full max-w-7xl h-[80vh] bg-slate-800 border border-slate-600 rounded-lg shadow-2xl transform scale-95 opacity-0 transition-all duration-300">
+            <button id="results-modal-close" class="absolute top-2 right-2 text-slate-400 hover:text-white z-10 text-4xl leading-none">&times;</button>
+            <div id="results-modal-content" class="w-full h-full">
+                <!-- Content will be injected here by JavaScript. -->
+            </div>
+        </div>
+    </div>
+</div>
 
 </div>
 
@@ -113,15 +130,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalCards = cards.length;
     let currentIndex = 0;
 
-    // NEW: Get reference to the indicator dots
+    // Get reference to the indicator dots
     const indicatorDots = Array.from(carousel.querySelectorAll('.indicator-dot'));
 
-    // --- Modal Logic ---
+    // --- Gacha Details Modal Logic ---
     const detailsButton = document.getElementById('details-button');
     const modalWrapper = document.getElementById('details-modal-wrapper');
     const modalPanel = document.getElementById('details-modal-panel');
     const modalContent = document.getElementById('details-modal-content');
     const modalClose = document.getElementById('details-modal-close');
+
+    // --- Gacha Results Modal Logic
+    const pullOneButton = document.getElementById('one-pull-button');
+    const pullTenButton = document.getElementById('ten-pull-button');
+
+    const resultsModalWrapper = document.getElementById('results-modal-wrapper');
+    const resultsModalPanel = document.getElementById('results-modal-panel');
+    const resultsModalContent = document.getElementById('results-modal-content');
+    const resultsModalClose = document.getElementById('results-modal-close');
 
     async function showDetailsModal() {
         const activeCard = carousel.querySelector(`.banner-card[data-index='${currentIndex}']`);
@@ -166,25 +192,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-
-    async function showDetailsModal_OLD() {
-        const activeCard = carousel.querySelector(`.banner-card[data-index='${currentIndex}']`);
-        if (!activeCard) return;
-
-        modalWrapper.classList.remove('hidden');
-        setTimeout(() => modalPanel.classList.remove('scale-95', 'opacity-0'), 10);
-        modalContent.innerHTML = `<div class="w-full h-full flex items-center justify-center"><svg class="animate-spin h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg></div>`;
-
-        try {
-            const bannerId = activeCard.dataset.bannerId;
-            const response = await fetch(`/banner-details/${bannerId}/`);
-            if (!response.ok) throw new Error('Failed to load details');
-            modalContent.innerHTML = await response.text();
-        } catch (error) {
-            modalContent.innerHTML = `<p class="text-center text-red-400">${error.message}</p>`;
-        }
-    }
-
     function hideDetailsModal() {
         modalPanel.classList.add('scale-95', 'opacity-0');
         setTimeout(() => modalWrapper.classList.add('hidden'), 300);
@@ -193,6 +200,89 @@ document.addEventListener('DOMContentLoaded', () => {
     detailsButton.addEventListener('click', showDetailsModal);
     modalClose.addEventListener('click', hideDetailsModal);
     modalWrapper.addEventListener('click', (e) => { if (e.target === modalWrapper) hideDetailsModal(); });
+
+    async function pullGacha(pullAction) {
+
+        console.log("PULL GACHA", pullAction);
+
+        const activeCard = carousel.querySelector(`.banner-card[data-index='${currentIndex}']`);
+        if (!activeCard) {
+            console.error("No active banner card found.");
+            return;
+        }
+
+        // --- Step 1: Show the modal with a loading state ---
+        resultsModalContent.innerHTML = `<div class="w-full h-full flex items-center justify-center"><p class="text-2xl text-slate-300">Pulling...</p></div>`;
+        resultsModalWrapper.classList.remove('hidden');
+        setTimeout(() => resultsModalPanel.classList.remove('scale-95', 'opacity-0'), 10);
+        
+        try {
+            const bannerId = activeCard.dataset.bannerId;
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            console.log("csrfToken", csrfToken);
+            
+            // --- MODIFIED: Construct the URL dynamically based on the action ---
+            const pullApiUrl = `/api/gacha/${bannerId}/${pullAction}/`;
+            
+            // --- Step 2: Call the specific API endpoint ---
+            const pullResponse = await fetch(pullApiUrl, {
+                method: 'POST',
+                headers: { 
+                    'X-CSRFToken': csrfToken, 
+                    // The Content-Type is no longer needed because we are not sending a body.
+                },
+                // MODIFIED: The request payload (body) is now completely empty.
+                // The banner_id is in the URL, and the pull count is implied by the URL.
+            });
+
+            console.log("pullResponse", pullResponse);
+
+            
+            if (!pullResponse.ok) {
+                const errorText = await pullResponse.text();
+                throw new Error(`Gacha pull failed: ${errorText}`);
+            }
+
+            const pullData = await pullResponse.json();
+            console.log("pullData", pullData );
+            if (!pullData.success) throw new Error('Gacha pull failed on server.');
+
+            // --- Step 3: Call the rendering endpoint (unchanged) ---
+            const renderResponse = await fetch('/banner-result', {
+                method: 'POST',
+                headers: { 
+                    'X-CSRFToken': csrfToken, 
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify({ student_ids: pullData.results })
+            });
+            if (!renderResponse.ok) throw new Error('Failed to render gacha results.');
+            
+            const resultsHTML = await renderResponse.text();
+
+            // --- Step 4: Inject the final HTML into the modal ---
+            resultsModalContent.innerHTML = resultsHTML;
+
+        } catch (error) {
+            resultsModalContent.innerHTML = `<p class="text-center text-red-400 p-4">${error.message}</p>`;
+        }
+    }
+    function hideResultsModal() {
+        resultsModalPanel.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => resultsModalWrapper.classList.add('hidden'), 300);
+    }
+
+    // --- Attach event listeners ---
+    // Each button now calls the same function but passes a different, secure API endpoint.
+    if (pullOneButton) {
+        pullOneButton.addEventListener('click', () => pullGacha('draw_one'));
+    }
+    if (pullTenButton) {
+        pullTenButton.addEventListener('click', () => pullGacha('draw_ten'));
+    }
+    
+    resultsModalClose.addEventListener('click', hideResultsModal);
 
     // --- Main Carousel & Hero View Logic ---
     function updateHeroView() {

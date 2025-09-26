@@ -4,10 +4,11 @@ import tempfile
 from decimal import Decimal
 from django.core.cache import cache
 from django.contrib.staticfiles import finders
-from django.http import JsonResponse, HttpRequest, HttpResponse, FileResponse, HttpResponseNotFound
+from django.http import JsonResponse, HttpRequest, HttpResponse, FileResponse, HttpResponseNotFound, HttpResponseBadRequest
 from django.shortcuts import render, get_object_or_404
 from django.db.models import Q
 from django.urls import reverse
+from django.views.decorators.http import require_POST, require_GET
 
 from .util.GachaEngine import GachaEngine
 from .models import School, Student, Version, GachaBanner
@@ -42,10 +43,12 @@ def _process_students_for_template(students_queryset):
 #######################################
 #####        HTTPRESPONSE         #####
 #######################################
+@require_GET
 def home(request:HttpRequest) -> HttpResponse:
     context = {}
     return render(request, 'app_web/index.html', context)
 
+@require_GET
 def student(request:HttpRequest) -> HttpResponse:
     """
     Renders the initial "shell" of the student page, containing only the list of schools.
@@ -64,7 +67,7 @@ def student_card(request:HttpRequest, student_id:int) -> HttpResponse:
     context = { 'students': students }
     return render(request, 'app_web/debug.html', context)
 
-
+@require_GET
 def gacha(request):
     """
     Renders the main gacha page, fetching all banners for the carousel.
@@ -77,6 +80,7 @@ def gacha(request):
     }
     return render(request, 'app_web/gacha.html', context)
 
+@require_GET
 def banner_details(request, banner_id):
     """
     Fetches and prepares all data for the banner details modal using the
@@ -121,6 +125,41 @@ def banner_details(request, banner_id):
     }
 
     return render(request, 'app_web/components/banner-details.html', context)
+
+@require_POST
+def gacha_results(request: HttpRequest) -> HttpResponse:
+    """
+    Takes a list of student IDs from a POST request (preserving order and
+    duplicates) and renders the student cards for the results modal.
+    """
+    try:
+        # --- Step 1: Get the list of IDs. This is our "source of truth" for order and duplicates. ---
+        student_ids = json.loads(request.body).get('student_ids', [])
+        if not student_ids:
+            return HttpResponse("No student IDs provided.", status=400)
+        
+        # --- Step 2: Fetch all UNIQUE student objects we'll need in a single, efficient query. ---
+        # We get the unique set of IDs to avoid asking the database for the same student twice.
+        unique_student_ids = set(student_ids)
+        students_queryset = Student.objects.filter(pk__in=unique_student_ids)
+
+        # --- Step 3: Create an efficient lookup map (dictionary) for fast access. ---
+        # This maps each student's ID to its actual model object.
+        student_map = {student.pk: student for student in students_queryset}
+
+        # --- Step 4: Re-assemble the final list, preserving the original order and duplicates. ---
+        # We loop through our original 'student_ids' list. For each ID, we find the
+        # corresponding object in our map. This is extremely fast and gives us the
+        # final list in the correct order with all duplicates included.
+        pulled_students_in_order = [student_map[sid] for sid in student_ids if sid in student_map]
+
+        context = {
+            'pulled_students': pulled_students_in_order
+        }
+        return render(request, 'app_web/components/banner-result.html', context)
+
+    except (json.JSONDecodeError, TypeError):
+        return HttpResponseBadRequest("Invalid request body.")
 
 def student_HEAVY(request:HttpRequest) -> HttpResponse:
     """
@@ -195,7 +234,11 @@ def draw_one_gacha(request: HttpRequest, banner_id: int) -> JsonResponse:
 
     results = engine.draw_1()
 
+    # Take only id
+    results = [student["id"] for student in results]
+
     data_response = {
+        "success": True,
         "results": results
     }
     
@@ -208,7 +251,11 @@ def draw_ten_gacha(request: HttpRequest, banner_id: int) -> JsonResponse:
 
     results = engine.draw_10()
 
+    # Take only id
+    results = [student["id"] for student in results]
+
     data_response = {
+        "success": True,
         "results": results
     }
     

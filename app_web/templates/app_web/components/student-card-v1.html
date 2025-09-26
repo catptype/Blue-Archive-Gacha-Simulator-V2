@@ -51,30 +51,19 @@
         <!-- =============================================================== -->
         <!-- 3. INFO SECTION (Compact bottom panel)                          -->
         <!-- =============================================================== -->
-        <div class="flex-[2] flex flex-col justify-between px-3 pt-2 pb-4 bg-gray-100 border-t-2 border-gray-300">
+        <div class="flex-[2] flex flex-col justify-between px-3 py-2 bg-gray-100 border-t-2 border-gray-300">
             
-            <!-- NEW: The Decorative Divider is now the Rarity Display -->
-            <div class="relative h-7 mt-1 flex items-center justify-center">
-                <!-- Left "Wing" of the divider -->
-                <div class="absolute left-0 top-1/2 w-[28%] h-[2px] {% if student.student_rarity == 3 %}bg-yellow-400{% elif student.student_rarity == 2 %}bg-purple-400{% else %}bg-blue-400{% endif %}"></div>
-                
-                <!-- Centerpiece "Plaque" containing the stars -->
-                <div class="relative z-10 h-full w-20 flex-shrink-0 flex items-center justify-center gap-0 rounded-full shadow-inner-sm
-                    {% if student.student_rarity == 3 %}bg-yellow-500 border-2 border-yellow-300/50
-                    {% elif student.student_rarity == 2 %}bg-purple-500 border-2 border-purple-300/50
-                    {% else %}bg-blue-500 border-2 border-blue-300/50{% endif %}">
-                    
-                    {% for i in "x"|rjust:student.student_rarity %}
-                        <img src="{% static 'images/web/star_yellow.png' %}" alt="star" class="w-4 h-4">
-                    {% endfor %}
-                </div>
-
-                <!-- Right "Wing" of the divider -->
-                <div class="absolute right-0 top-1/2 w-[28%] h-[2px] {% if student.student_rarity == 3 %}bg-yellow-400{% elif student.student_rarity == 2 %}bg-purple-400{% else %}bg-blue-400{% endif %}"></div>
+            <!-- Decorative Divider -->
+            <div class="relative h-2 mb-2 flex items-center justify-center">
+                <!-- Centerpiece of the divider -->
+                <div class="w-2 h-2 rotate-45 border-2 {% if student.student_rarity == 3 %}border-yellow-500{% elif student.student_rarity == 2 %}border-purple-500{% else %}border-blue-500{% endif %}"></div>
+                <!-- Left and right lines of the divider -->
+                <div class="absolute left-0 top-1/2 w-[40%] h-[2px] {% if student.student_rarity == 3 %}bg-yellow-400{% elif student.student_rarity == 2 %}bg-purple-400{% else %}bg-blue-400{% endif %}"></div>
+                <div class="absolute right-0 top-1/2 w-[40%] h-[2px] {% if student.student_rarity == 3 %}bg-yellow-400{% elif student.student_rarity == 2 %}bg-purple-400{% else %}bg-blue-400{% endif %}"></div>
             </div>
 
             <!-- Student Name & Version -->
-            <div class="text-center">
+            <div>
                 <h2 class="text-lg font-bold text-gray-800 truncate" title="{{ student.student_name }}">
                     {{ student.student_name }}
                 </h2>
@@ -83,6 +72,18 @@
                 {% endif %}
             </div>
             
+            <!-- Rarity Display (Pill) -->
+            <div class="flex justify-end">
+                <div class="h-7 w-24 flex-shrink-0 flex items-center justify-center gap-1 rounded-full shadow-inner-sm
+                    {% if student.student_rarity == 3 %}bg-yellow-500 border-2 border-yellow-300/50
+                    {% elif student.student_rarity == 2 %}bg-purple-500 border-2 border-purple-300/50
+                    {% else %}bg-blue-500 border-2 border-blue-300/50{% endif %}">
+                    
+                    {% for i in "x"|rjust:student.student_rarity %}
+                        <img src="{% static 'images/web/star_yellow.png' %}" alt="star" class="w-4 h-4">
+                    {% endfor %}
+                </div>
+            </div>
         </div>
     </div>
 </div>

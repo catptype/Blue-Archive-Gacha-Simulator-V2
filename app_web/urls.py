@@ -8,6 +8,7 @@ urlpatterns = [
 
     path('gacha', views.gacha, name='gacha'),
     path('banner-details/<int:banner_id>/', views.banner_details, name='banner_details'),
+    path('banner-result', views.gacha_results, name='gacha_results'),
     path('student-card/<int:student_id>/', views.student_card, name='student_card'),
     path('', views.home, name='login'),
     path('', views.home, name='logout'),

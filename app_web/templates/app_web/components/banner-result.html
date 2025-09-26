@@ -1,67 +1,34 @@
-<!-- app_web/components/banner_details_modal.html -->
-<div id="modal-html-content">
-    <div class="flex flex-col h-full">
-        <!-- Modal Header (unchanged) -->
-        <div class="flex-shrink-0 p-4 border-b border-slate-600">
-            <h2 class="text-2xl font-bold text-cyan-300">Banner Result: {{ banner.banner_name }}</h2>
-            {% if banner.preset_id %}<p class="text-sm text-slate-400">Rate Preset: {{ banner.preset_id.preset_name }}</p>{% endif %}
-            <div class="mt-2 text-xs text-slate-500">
-                <span>Includes Versions: 
-                    {% for version in banner.banner_include_version.all %}
-                        <span class="font-semibold">{{ version.version_name }}</span>{% if not forloop.last %}, {% endif %}
-                    {% endfor %}
-                </span>
-                <span class="ml-4">|</span>
-                <span class="ml-4">Includes Limited Students: 
-                    <span class="font-semibold">{% if banner.banner_include_limited %}Yes{% else %}No{% endif %}</span>
-                </span>
-            </div>
-        </div>
+<!-- This is the partial template for the results modal. -->
 
-        <!-- Scrollable Modal Content -->
-        <div class="flex-grow p-4 overflow-y-auto">
-            
-            <p class="text-center text-xs text-slate-400 italic mb-4">
-                Hover over a student's portrait to see their individual rate.
-            </p>
-            
+<div class="flex flex-col h-full">
+    <!-- Modal Header -->
+    <div class="flex-shrink-0 p-4 border-b border-slate-600">
+        <h2 class="text-2xl font-bold text-cyan-300">Gacha Results</h2>
+    </div>
+
+    <!-- 
+      MODIFIED: This outer container is a flexbox whose only job is to
+      perfectly center the grid container within the modal.
+    -->
+    <div class="flex-grow p-4 flex items-center justify-center">
+        
+        <!--
+          THE CORE FIX: We use CSS Grid, the correct tool for a 2D layout.
+          The number of columns is set dynamically by the Django template.
+        -->
+        {% with num_students=pulled_students|length %}
+        <div class="grid gap-4 
+            {% if num_students == 1 %}
+                grid-cols-1
+            {% else %}
+                grid-cols-5
+            {% endif %}
+        ">
+            {% for student in pulled_students %}
+                <!-- The student card is now included at its original size. No scaling needed. -->
+                {% include 'app_web/components/student-card.html' with student=student %}
+            {% endfor %}
         </div>
+        {% endwith %}
     </div>
 </div>
-
-<!-- NEW: Self-contained script for this component -->
-<script id="modal-js-script">
-    (function() {
-        // Get references to elements INSIDE this newly loaded modal content.
-        const gridBtn = document.getElementById('view-as-grid-btn');
-        const listBtn = document.getElementById('view-as-list-btn');
-        const gridViews = document.querySelectorAll('.student-grid-view');
-        const listViews = document.querySelectorAll('.student-list-view');
-
-        if (!gridBtn) return; // Safety check in case elements aren't found
-
-        function setView(viewType) {
-            if (viewType === 'grid') {
-                gridBtn.classList.add('bg-slate-700', 'text-white');
-                gridBtn.classList.remove('bg-transparent', 'text-slate-400');
-                listBtn.classList.add('bg-transparent', 'text-slate-400');
-                listBtn.classList.remove('bg-slate-700', 'text-white');
-
-                gridViews.forEach(el => el.classList.remove('hidden'));
-                listViews.forEach(el => el.classList.add('hidden'));
-            } else { // 'list'
-                listBtn.classList.add('bg-slate-700', 'text-white');
-                listBtn.classList.remove('bg-transparent', 'text-slate-400');
-                gridBtn.classList.add('bg-transparent', 'text-slate-400');
-                gridBtn.classList.remove('bg-slate-700', 'text-white');
-
-                listViews.forEach(el => el.classList.remove('hidden'));
-                gridViews.forEach(el => el.classList.add('hidden'));
-            }
-        }
-
-        gridBtn.addEventListener('click', () => setView('grid'));
-        listBtn.addEventListener('click', () => setView('list'));
-        
-    })();
-</script>
