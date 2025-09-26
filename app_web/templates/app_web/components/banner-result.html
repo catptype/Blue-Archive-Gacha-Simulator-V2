@@ -1,4 +1,4 @@
-<!-- This is the partial template for the results modal. -->
+<!-- app_web/components/gacha_results_content.html -->
 
 <div class="flex flex-col h-full">
     <!-- Modal Header -->
@@ -7,26 +7,28 @@
     </div>
 
     <!-- 
-      MODIFIED: This outer container is a flexbox whose only job is to
-      perfectly center the grid container within the modal.
+      This outer container still uses flexbox to perfectly center the grid container
+      both vertically and horizontally within the modal.
     -->
-    <div class="flex-grow p-4 flex items-center justify-center">
+    <div class="p-4 flex items-center justify-center my-auto">
         
         <!--
-          THE CORE FIX: We use CSS Grid, the correct tool for a 2D layout.
-          The number of columns is set dynamically by the Django template.
+          THE CORE FIX: The grid is now responsive and consistent.
+          - On small screens, it's a single column.
+          - On medium screens and up ('md:'), it's ALWAYS five columns.
         -->
         {% with num_students=pulled_students|length %}
-        <div class="grid gap-4 
-            {% if num_students == 1 %}
-                grid-cols-1
-            {% else %}
-                grid-cols-5
-            {% endif %}
-        ">
+        <div class="flex-grow grid gap-4 grid-cols-1 md:grid-cols-5 my-auto">
+            
             {% for student in pulled_students %}
-                <!-- The student card is now included at its original size. No scaling needed. -->
-                {% include 'app_web/components/student-card.html' with student=student %}
+                <!-- 
+                  THE LOGIC FIX: A conditional class is added to the card wrapper.
+                  - If there's only 1 student, we tell it to start in the 3rd column on desktop.
+                  - On mobile, it remains in the 1st (and only) column.
+                -->
+                <div class="mx-auto {% if num_students == 1 %}md:col-start-3{% endif %}">
+                    {% include 'app_web/components/student-card.html' with student=student %}
+                </div>
             {% endfor %}
         </div>
         {% endwith %}

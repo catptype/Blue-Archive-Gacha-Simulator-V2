@@ -7,6 +7,7 @@
 {% block title %}Gacha{% endblock %} 
 
 {% block body %}
+<div id="csrf-token-container" data-csrf="{{ csrf_token }}" style="display: none;"></div>
 <div class="relative min-h-screen w-full bg-black antialiased text-white overflow-hidden">
     
     <!-- =============================================================== -->
@@ -108,7 +109,7 @@
     <!-- GACHA RESULTS MODAL (Initially hidden)                     -->
     <!-- =============================================================== -->
     <div id="results-modal-wrapper" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-        <div id="results-modal-panel" class="relative w-full max-w-7xl h-[80vh] bg-slate-800 border border-slate-600 rounded-lg shadow-2xl transform scale-95 opacity-0 transition-all duration-300">
+        <div id="results-modal-panel" class="relative w-full max-w-7xl h-[90vh] bg-slate-800 border border-slate-600 rounded-lg shadow-2xl transform scale-95 opacity-0 transition-all duration-300">
             <button id="results-modal-close" class="absolute top-2 right-2 text-slate-400 hover:text-white z-10 text-4xl leading-none">&times;</button>
             <div id="results-modal-content" class="w-full h-full">
                 <!-- Content will be injected here by JavaScript. -->
@@ -122,6 +123,19 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    // --- SECURE CSRF TOKEN INITIALIZATION                     ---
+    const csrfTokenContainer = document.getElementById('csrf-token-container');
+    if (!csrfTokenContainer) {
+        console.error('CRITICAL: CSRF Token container not found. POST requests will fail.');
+        return; // Stop execution if the token is missing.
+    }
+    
+    // Retrieve the token from the data attribute.
+    const csrfToken = csrfTokenContainer.dataset.csrf;
+    
+    // Immediately remove the temporary div from the DOM.
+    csrfTokenContainer.remove();
+
     // --- Get references to all key elements ---
     const heroImage = document.getElementById('hero-image');
     const heroBannerName = document.getElementById('hero-banner-name');
@@ -218,9 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             const bannerId = activeCard.dataset.bannerId;
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-            console.log("csrfToken", csrfToken);
+            console.log("bannerId", bannerId);
             
             // --- MODIFIED: Construct the URL dynamically based on the action ---
             const pullApiUrl = `/api/gacha/${bannerId}/${pullAction}/`;
@@ -268,6 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
             resultsModalContent.innerHTML = `<p class="text-center text-red-400 p-4">${error.message}</p>`;
         }
     }
+    
     function hideResultsModal() {
         resultsModalPanel.classList.add('scale-95', 'opacity-0');
         setTimeout(() => resultsModalWrapper.classList.add('hidden'), 300);
