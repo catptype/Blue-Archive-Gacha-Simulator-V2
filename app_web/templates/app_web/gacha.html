@@ -265,7 +265,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 6. Execute the script's content.
             if (scriptContent) {
+                console.log("Execute eval() for", pullApiUrl)
                 eval(scriptContent.textContent);
+                console.log("scriptContent.textContent", scriptContent.textContent)
+
             }
 
         } catch (error) {

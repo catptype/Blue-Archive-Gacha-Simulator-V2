@@ -1,83 +1,67 @@
-{% load static %}
 <!-- app_web/components/student_card.html -->
-<div class="relative w-[220px] aspect-[3/5] rounded-lg shadow-2xl border-4
-    {% if student.student_rarity == 3 %}border-yellow-400/80
-    {% elif student.student_rarity == 2 %}border-purple-400/80
-    {% else %}border-blue-400/80{% endif %}">
 
-    <!-- 
-      The "File" Container - Sits inside the "Folder" border.
-    -->
-    <div class="relative w-full h-full bg-white rounded-sm overflow-hidden flex flex-col">
+{% load static %}
+
+<!--
+  This component is now a 3D flippable card.
+  - The outer div is the "flipper" container that gets rotated.
+  - It contains two children: the "front face" and the "back face".
+-->
+<div class="student-card-flipper w-[220px] aspect-[3/5] cursor-pointer" style="perspective: 1000px;">
+    <!-- This inner div is the part that actually performs the 3D transition. -->
+    <div class="relative w-full h-full transition-transform duration-700 ease-in-out" style="transform-style: preserve-3d;">
         
         <!-- =============================================================== -->
-        <!-- 1. IMAGE SECTION (Takes up most of the card space)              -->
+        <!-- CARD BACK (Visible by default)                                  -->
         <!-- =============================================================== -->
-        <div class="relative flex-[8] bg-slate-200">
-            <!-- This wrapper adds the border and the custom corner cuts. -->
-            <div class="absolute inset-[12px] border-3 border-slate-300 overflow-hidden" 
-                 style="clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
-                        ">
-                
-                {% if student.asset_id %}
-                <img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" 
-                     alt="{{ student.student_name }}" 
-                     class="w-full h-full object-cover">
-                {% endif %}
-
-                 <div class="absolute inset-0 pointer-events-none"
-                     style="box-shadow: inset 0 0 6px 2px rgba(0, 0, 0, 0.3);">
-                </div>
-            </div>
-
-            <!-- =============================================================== -->
-            <!-- 2. FOLDER TAB (Overlapping the image)                           -->
-            <!-- =============================================================== -->
-            <div class="absolute top-0 left-3 h-8 px-3 rounded-b-md flex items-center gap-2 z-20 border-x-2 border-b-2
-                {% if student.student_rarity == 3 %}bg-yellow-200 border-yellow-400/80
-                {% elif student.student_rarity == 2 %}bg-purple-200 border-purple-400/80
-                {% else %}bg-blue-200 border-blue-400/80{% endif %}">
-                
-                <img src="{% url 'serve_school_image' school_id=student.school_id.school_id %}" alt="" class="w-5 h-5 bg-white rounded-full p-0.5">
-                <span class="text-xs font-bold text-slate-900">{{ student.school_id.school_name }}</span>
-            </div>
+        <div class="absolute w-full h-full rounded-lg shadow-2xl overflow-hidden" style="backface-visibility: hidden;">
+            <!-- This image's source is now determined by the student's rarity -->
+            {% if student.student_rarity == 3 %}
+                <img src="{% static 'images/web/gacha_r3.png' %}" class="w-full h-full object-cover">
+            {% elif student.student_rarity == 2 %}
+                <img src="{% static 'images/web/gacha_r2.png' %}" class="w-full h-full object-cover">
+            {% else %}
+                <img src="{% static 'images/web/gacha_r1.png' %}" class="w-full h-full object-cover">
+            {% endif %}
         </div>
 
         <!-- =============================================================== -->
-        <!-- 3. INFO SECTION (Compact bottom panel)                          -->
+        <!-- CARD FRONT (Initially hidden on the back)                       -->
         <!-- =============================================================== -->
-        <div class="flex-[2] flex flex-col justify-between px-3 pt-2 pb-4 bg-gray-100 border-t-2 border-gray-300">
-            
-            <!-- NEW: The Decorative Divider is now the Rarity Display -->
-            <div class="relative h-7 mt-1 flex items-center justify-center">
-                <!-- Left "Wing" of the divider -->
-                <div class="absolute left-0 top-1/2 w-[28%] h-[2px] {% if student.student_rarity == 3 %}bg-yellow-400{% elif student.student_rarity == 2 %}bg-purple-400{% else %}bg-blue-400{% endif %}"></div>
-                
-                <!-- Centerpiece "Plaque" containing the stars -->
-                <div class="relative z-10 h-full w-20 flex-shrink-0 flex items-center justify-center gap-0 rounded-full shadow-inner-sm
-                    {% if student.student_rarity == 3 %}bg-yellow-500 border-2 border-yellow-300/50
-                    {% elif student.student_rarity == 2 %}bg-purple-500 border-2 border-purple-300/50
-                    {% else %}bg-blue-500 border-2 border-blue-300/50{% endif %}">
-                    
-                    {% for i in "x"|rjust:student.student_rarity %}
-                        <img src="{% static 'images/web/star_yellow.png' %}" alt="star" class="w-4 h-4">
-                    {% endfor %}
+        <!-- This contains your entire beautiful card design from the previous step. -->
+        <div class="absolute w-full h-full" style="backface-visibility: hidden; transform: rotateY(180deg);">
+            <!-- This is the original card design, pasted inside this container. -->
+            <div class="relative w-full h-full rounded-lg shadow-2xl border-4
+                {% if student.student_rarity == 3 %}border-yellow-400/80
+                {% elif student.student_rarity == 2 %}border-purple-400/80
+                {% else %}border-blue-400/80{% endif %}">
+                <div class="relative w-full h-full bg-white rounded-sm overflow-hidden flex flex-col">
+                    <div class="relative flex-[8] bg-slate-200">
+                        <div class="absolute inset-[12px] overflow-hidden" style="clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);">
+                            {% if student.asset_id %}<img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" alt="{{ student.student_name }}" class="w-full h-full object-cover">{% endif %}
+                            <div class="absolute inset-0 pointer-events-none" style="box-shadow: inset 0 0 10px 4px rgba(0, 0, 0, 0.5);"></div>
+                        </div>
+                        <div class="absolute top-0 left-3 h-8 px-3 rounded-b-md flex items-center gap-2 z-20 border-x-2 border-b-2 {% if student.student_rarity == 3 %}bg-yellow-200 border-yellow-400/80 {% elif student.student_rarity == 2 %}bg-purple-200 border-purple-400/80 {% else %}bg-blue-200 border-blue-400/80 {% endif %}">
+                            <img src="{% url 'serve_school_image' school_id=student.school_id.school_id %}" alt="" class="w-5 h-5 bg-white rounded-full p-0.5">
+                            <span class="text-xs font-bold text-slate-900">{{ student.school_id.school_name }}</span>
+                        </div>
+                    </div>
+                    <div class="flex-[2] flex flex-col justify-center px-3 py-2 bg-gray-100 border-t-2 border-gray-300">
+                        <div class="relative h-7 mb-2 flex items-center justify-center">
+                            <div class="absolute left-0 top-1/2 w-[30%] h-[2px] {% if student.student_rarity == 3 %}bg-yellow-400{% elif student.student_rarity == 2 %}bg-purple-400{% else %}bg-blue-400{% endif %}"></div>
+                            <div class="relative z-10 h-full w-24 flex-shrink-0 flex items-center justify-center gap-1 rounded-full shadow-inner-sm {% if student.student_rarity == 3 %}bg-yellow-500 border-2 border-yellow-300/50 {% elif student.student_rarity == 2 %}bg-purple-500 border-2 border-purple-300/50 {% else %}bg-blue-500 border-2 border-blue-300/50 {% endif %}">
+                                {% for i in "x"|rjust:student.student_rarity %}<img src="{% static 'images/web/star_yellow.png' %}" alt="star" class="w-4 h-4">{% endfor %}
+                            </div>
+                            <div class="absolute right-0 top-1/2 w-[30%] h-[2px] {% if student.student_rarity == 3 %}bg-yellow-400{% elif student.student_rarity == 2 %}bg-purple-400{% else %}bg-blue-400{% endif %}"></div>
+                        </div>
+                        <div class="text-center">
+                            <h2 class="text-lg font-bold text-gray-800 truncate" title="{{ student.student_name }}">{{ student.student_name }}</h2>
+                            {% if student.version != 'Original' %}<p class="text-xs text-slate-500 -mt-1">({{ student.version }})</p>{% endif %}
+                        </div>
+                    </div>
                 </div>
-
-                <!-- Right "Wing" of the divider -->
-                <div class="absolute right-0 top-1/2 w-[28%] h-[2px] {% if student.student_rarity == 3 %}bg-yellow-400{% elif student.student_rarity == 2 %}bg-purple-400{% else %}bg-blue-400{% endif %}"></div>
             </div>
-
-            <!-- Student Name & Version -->
-            <div class="text-center">
-                <h2 class="text-lg font-bold text-gray-800 truncate" title="{{ student.student_name }}">
-                    {{ student.student_name }}
-                </h2>
-                {% if student.version != 'Original' %}
-                    <p class="text-xs text-slate-500 -mt-1">({{ student.version }})</p>
-                {% endif %}
-            </div>
-            
         </div>
+
     </div>
 </div>
