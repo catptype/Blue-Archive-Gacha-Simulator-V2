@@ -31,30 +31,34 @@
           <!-- 2. MOBILE VIEW: SLIDER (Visible below 'xl' screens)           -->
           <!-- =============================================================== -->
           <!-- This entire section is hidden on desktop screens. -->
-          <div id="mobile-gacha-slider" class="xl:hidden relative w-full h-full">
-              <!-- This track holds all the cards in a single row and moves horizontally. -->
-              <div class="slider-track absolute top-0 left-0 h-full w-full flex items-center transition-transform duration-300 ease-in-out">
-                  {% for student in pulled_students %}
-                  <!-- Each card is now a "slide". 'w-full' makes it fill the container. -->
-                  <div class="slider-slide relative w-full h-full flex-shrink-0 flex items-center justify-center">
-                      <div class="w-64"> <!-- Constrain the card width on mobile -->
-                          {% include 'app_web/components/student-card.html' with student=student %}
-                      </div>
-                  </div>
-                  {% endfor %}
-              </div>
-              
-              <!-- Navigation for the mobile slider -->
-              {% if pulled_students|length > 1 %}
-              <button class="mobile-nav-arrow mobile-nav-left absolute left-0 top-1/2 -translate-y-1/2 ...">&lt;</button>
-              <button class="mobile-nav-arrow mobile-nav-right absolute right-0 top-1/2 -translate-y-1/2 ...">&gt;</button>
-              <div class="mobile-indicator-dots absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
-                  {% for student in pulled_students %}
-                  <div class="dot w-2 h-2 bg-white/30 rounded-full transition-colors duration-300"></div>
-                  {% endfor %}
-              </div>
-              {% endif %}
-          </div>
+          <!-- MOBILE/TABLET VIEW: SLIDER -->
+            <div id="mobile-gacha-slider" class="xl:hidden relative w-full h-full">
+                <div class="slider-track absolute top-0 left-0 h-full w-full flex items-center transition-transform duration-300 ease-in-out">
+                    {% for student in pulled_students %}
+                    <div class="slider-slide relative w-full h-full flex-shrink-0 flex items-center justify-center">
+                        <div class="w-64">
+                            {% include 'app_web/components/student-card.html' with student=student %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                {% if pulled_students|length > 1 %}
+                <!-- MODIFIED: Navigation buttons are now larger and spaced from the edge -->
+                <button class="mobile-nav-arrow mobile-nav-left absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 p-4 rounded-full hover:bg-sky-500/50 transition-colors z-40">
+                    <svg class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <button class="mobile-nav-arrow mobile-nav-right absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 p-4 rounded-full hover:bg-sky-500/50 transition-colors z-40">
+                    <svg class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                </button>
+
+                <div class="mobile-indicator-dots absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
+                    {% for student in pulled_students %}
+                    <div class="dot w-2 h-2 bg-white/30 rounded-full transition-colors duration-300"></div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
       </div>
   </div>
 </div>
