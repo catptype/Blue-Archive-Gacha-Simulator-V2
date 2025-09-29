@@ -216,65 +216,57 @@ document.addEventListener('DOMContentLoaded', () => {
     modalWrapper.addEventListener('click', (e) => { if (e.target === modalWrapper) hideDetailsModal(); });
 
     async function pullGacha(pullAction) {
-
-        console.log("PULL GACHA", pullAction);
-
         const activeCard = carousel.querySelector(`.banner-card[data-index='${currentIndex}']`);
-        if (!activeCard) {
-            console.error("No active banner card found.");
-            return;
-        }
+        if (!activeCard) return;
 
-        // --- Step 1: Show the modal with a loading state ---
+        // Show the modal with a loading state.
         resultsModalContent.innerHTML = `<div class="w-full h-full flex items-center justify-center"><p class="text-2xl text-slate-300">Pulling...</p></div>`;
         resultsModalWrapper.classList.remove('hidden');
         setTimeout(() => resultsModalPanel.classList.remove('scale-95', 'opacity-0'), 10);
         
         try {
             const bannerId = activeCard.dataset.bannerId;
-            console.log("bannerId", bannerId);
-            
-            // --- MODIFIED: Construct the URL dynamically based on the action ---
             const pullApiUrl = `/api/gacha/${bannerId}/${pullAction}/`;
             
-            // --- Step 2: Call the specific API endpoint ---
+            // Step 1: Call the API to get student IDs.
             const pullResponse = await fetch(pullApiUrl, {
                 method: 'POST',
-                headers: { 
-                    'X-CSRFToken': csrfToken, 
-                    // The Content-Type is no longer needed because we are not sending a body.
-                },
-                // MODIFIED: The request payload (body) is now completely empty.
-                // The banner_id is in the URL, and the pull count is implied by the URL.
+                headers: { 'X-CSRFToken': csrfToken },
             });
-
-            console.log("pullResponse", pullResponse);
-
-            
-            if (!pullResponse.ok) {
-                const errorText = await pullResponse.text();
-                throw new Error(`Gacha pull failed: ${errorText}`);
-            }
-
+            if (!pullResponse.ok) throw new Error('Gacha pull failed on server.');
             const pullData = await pullResponse.json();
-            console.log("pullData", pullData );
-            if (!pullData.success) throw new Error('Gacha pull failed on server.');
+            if (!pullData.success) throw new Error('Server indicated a pull failure.');
 
-            // --- Step 3: Call the rendering endpoint (unchanged) ---
+            // Step 2: Call the rendering endpoint to get the HTML + Script content.
             const renderResponse = await fetch('/banner-result', {
                 method: 'POST',
-                headers: { 
-                    'X-CSRFToken': csrfToken, 
-                    'Content-Type': 'application/json' 
-                },
+                headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ student_ids: pullData.results })
             });
             if (!renderResponse.ok) throw new Error('Failed to render gacha results.');
             
-            const resultsHTML = await renderResponse.text();
+            const responseText = await renderResponse.text();
 
-            // --- Step 4: Inject the final HTML into the modal ---
-            resultsModalContent.innerHTML = resultsHTML;
+            // --- THE FIX ---
+            // 3. Create a temporary element to parse the response.
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = responseText;
+
+            // 4. Extract the HTML content and the script content.
+            const htmlContent = tempDiv.querySelector('#gacha-results-html-content');
+            const scriptContent = tempDiv.querySelector('#gacha-results-js-script');
+
+            // 5. Inject the HTML into the modal.
+            if (htmlContent) {
+                resultsModalContent.innerHTML = htmlContent.innerHTML;
+            } else {
+                throw new Error('Modal content is missing from the response.');
+            }
+
+            // 6. Execute the script's content.
+            if (scriptContent) {
+                eval(scriptContent.textContent);
+            }
 
         } catch (error) {
             resultsModalContent.innerHTML = `<p class="text-center text-red-400 p-4">${error.message}</p>`;
@@ -287,14 +279,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Attach event listeners ---
-    // Each button now calls the same function but passes a different, secure API endpoint.
-    if (pullOneButton) {
-        pullOneButton.addEventListener('click', () => pullGacha('draw_one'));
-    }
-    if (pullTenButton) {
-        pullTenButton.addEventListener('click', () => pullGacha('draw_ten'));
-    }
-    
+    pullOneButton.addEventListener('click', () => pullGacha('draw_one'));
+    pullTenButton.addEventListener('click', () => pullGacha('draw_ten'));
     resultsModalClose.addEventListener('click', hideResultsModal);
 
     // --- Main Carousel & Hero View Logic ---

@@ -1,36 +1,116 @@
-<!-- app_web/components/gacha_results_content.html -->
+<!-- This is the partial template for the results modal. -->
+<div id="gacha-results-html-content">
+  <div class="flex flex-col h-full">
+      <!-- Modal Header -->
+      <div class="flex-shrink-0 p-4 border-b border-slate-600">
+          <h2 class="text-2xl font-bold text-cyan-300">Gacha Results</h2>
+      </div>
 
-<div class="flex flex-col h-full">
-    <!-- Modal Header -->
-    <div class="flex-shrink-0 p-4 border-b border-slate-600">
-        <h2 class="text-2xl font-bold text-cyan-300">Gacha Results</h2>
-    </div>
+      <!-- 
+        This container now holds BOTH the desktop grid and the mobile slider.
+        Responsive classes will toggle which one is visible.
+      -->
+      <div class="flex-grow p-4 overflow-hidden">
+          
+          <!-- =============================================================== -->
+          <!-- 1. DESKTOP VIEW: GRID (Visible on 'xl' screens and up)         -->
+          <!-- =============================================================== -->
+          <div class="hidden xl:flex w-full h-full items-center justify-center">
+              {% with num_students=pulled_students|length %}
+              <div class="grid gap-4 grid-cols-1 xl:grid-cols-5">
+                  {% for student in pulled_students %}
+                      <div class="{% if num_students == 1 %}xl:col-start-3{% endif %}">
+                          {% include 'app_web/components/student-card.html' with student=student %}
+                      </div>
+                  {% endfor %}
+              </div>
+              {% endwith %}
+          </div>
 
-    <!-- 
-      This outer container still uses flexbox to perfectly center the grid container
-      both vertically and horizontally within the modal.
-    -->
-    <div class="p-4 flex items-center justify-center my-auto">
-        
-        <!--
-          THE CORE FIX: The grid is now responsive and consistent.
-          - On small screens, it's a single column.
-          - On medium screens and up ('md:'), it's ALWAYS five columns.
-        -->
-        {% with num_students=pulled_students|length %}
-        <div class="flex-grow grid gap-4 grid-cols-1 md:grid-cols-5 my-auto">
-            
-            {% for student in pulled_students %}
-                <!-- 
-                  THE LOGIC FIX: A conditional class is added to the card wrapper.
-                  - If there's only 1 student, we tell it to start in the 3rd column on desktop.
-                  - On mobile, it remains in the 1st (and only) column.
-                -->
-                <div class="mx-auto {% if num_students == 1 %}md:col-start-3{% endif %}">
-                    {% include 'app_web/components/student-card.html' with student=student %}
-                </div>
-            {% endfor %}
-        </div>
-        {% endwith %}
-    </div>
+          <!-- =============================================================== -->
+          <!-- 2. MOBILE VIEW: SLIDER (Visible below 'xl' screens)           -->
+          <!-- =============================================================== -->
+          <!-- This entire section is hidden on desktop screens. -->
+          <div id="mobile-gacha-slider" class="xl:hidden relative w-full h-full">
+              <!-- This track holds all the cards in a single row and moves horizontally. -->
+              <div class="slider-track absolute top-0 left-0 h-full w-full flex items-center transition-transform duration-300 ease-in-out">
+                  {% for student in pulled_students %}
+                  <!-- Each card is now a "slide". 'w-full' makes it fill the container. -->
+                  <div class="slider-slide relative w-full h-full flex-shrink-0 flex items-center justify-center">
+                      <div class="w-64"> <!-- Constrain the card width on mobile -->
+                          {% include 'app_web/components/student-card.html' with student=student %}
+                      </div>
+                  </div>
+                  {% endfor %}
+              </div>
+              
+              <!-- Navigation for the mobile slider -->
+              {% if pulled_students|length > 1 %}
+              <button class="mobile-nav-arrow mobile-nav-left absolute left-0 top-1/2 -translate-y-1/2 ...">&lt;</button>
+              <button class="mobile-nav-arrow mobile-nav-right absolute right-0 top-1/2 -translate-y-1/2 ...">&gt;</button>
+              <div class="mobile-indicator-dots absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
+                  {% for student in pulled_students %}
+                  <div class="dot w-2 h-2 bg-white/30 rounded-full transition-colors duration-300"></div>
+                  {% endfor %}
+              </div>
+              {% endif %}
+          </div>
+      </div>
+  </div>
 </div>
+
+<!-- This self-contained script powers the new mobile slider -->
+<script id="gacha-results-js-script">
+    (function() {
+        const slider = document.getElementById('mobile-gacha-slider');
+        if (!slider) return; // Exit if we're on desktop and the slider doesn't exist.
+
+        const track = slider.querySelector('.slider-track');
+        const slides = slider.querySelectorAll('.slider-slide');
+        const totalSlides = slides.length;
+        if (totalSlides <= 1) return; // No need for logic if there's only one card.
+
+        const prevBtn = slider.querySelector('.mobile-nav-left');
+        const nextBtn = slider.querySelector('.mobile-nav-right');
+        const dots = slider.querySelectorAll('.dot');
+        let currentIndex = 0;
+
+        function updateSlider() {
+            // Move the track to show the correct slide
+            track.style.transform = `translateX(-${currentIndex * 100}%)`;
+
+            // Update indicator dots
+            dots.forEach((dot, index) => {
+                if (index === currentIndex) {
+                    dot.classList.add('bg-white');
+                    dot.classList.remove('bg-white/30');
+                } else {
+                    dot.classList.remove('bg-white');
+                    dot.classList.add('bg-white/30');
+                }
+            });
+
+            // Show/hide arrows at the ends
+            prevBtn.style.display = (currentIndex === 0) ? 'none' : 'block';
+            nextBtn.style.display = (currentIndex === totalSlides - 1) ? 'none' : 'block';
+        }
+
+        nextBtn.addEventListener('click', () => {
+            if (currentIndex < totalSlides - 1) {
+                currentIndex++;
+                updateSlider();
+            }
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateSlider();
+            }
+        });
+
+        // Set the initial state
+        updateSlider();
+
+    })();
+</script>
