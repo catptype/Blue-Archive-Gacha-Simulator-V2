@@ -33,7 +33,7 @@
           <!-- This entire section is hidden on desktop screens. -->
           <!-- MOBILE/TABLET VIEW: SLIDER -->
             <div id="mobile-gacha-slider" class="xl:hidden relative w-full h-full">
-                <div class="slider-track absolute top-0 left-0 h-full w-full flex items-center transition-transform duration-300 ease-in-out">
+                <div class="slider-track absolute top-0 left-0 h-full w-full flex items-center transition-transform duration-500 ease-in-out">
                     {% for student in pulled_students %}
                     <div class="slider-slide relative w-full h-full flex-shrink-0 flex items-center justify-center">
                         <div class="w-64">
@@ -96,11 +96,38 @@
             let currentIndex = 0;
 
             function updateSlider() {
-                // ... (The updateSlider function is unchanged)
+                // Move the track to show the correct slide
+                track.style.transform = `translateX(-${currentIndex * 100}%)`;
+
+                // Update indicator dots
+                dots.forEach((dot, index) => {
+                    if (index === currentIndex) {
+                        dot.classList.add('bg-white');
+                        dot.classList.remove('bg-white/30');
+                    } else {
+                        dot.classList.remove('bg-white');
+                        dot.classList.add('bg-white/30');
+                    }
+                });
+
+                // Show/hide arrows at the ends
+                prevBtn.style.display = (currentIndex === 0) ? 'none' : 'block';
+                nextBtn.style.display = (currentIndex === totalSlides - 1) ? 'none' : 'block';
             }
 
-            nextBtn.addEventListener('click', () => { /* ... */ });
-            prevBtn.addEventListener('click', () => { /* ... */ });
+            nextBtn.addEventListener('click', () => {
+                if (currentIndex < totalSlides - 1) {
+                    currentIndex++;
+                    updateSlider();
+                }
+            });
+
+            prevBtn.addEventListener('click', () => {
+                if (currentIndex > 0) {
+                    currentIndex--;
+                    updateSlider();
+                }
+            });
             
             updateSlider();
         }
