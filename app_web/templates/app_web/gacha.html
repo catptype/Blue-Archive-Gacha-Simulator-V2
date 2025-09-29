@@ -7,6 +7,37 @@
 {% block title %}Gacha{% endblock %} 
 
 {% block body %}
+<style>
+
+    /* 2. IMPACT: The Light Ray Burst */
+    .light-ray-burst {
+        background: conic-gradient(
+            from 0deg,
+            transparent, rgba(56, 189, 248, 0.4) 5%, transparent 10%, /* Cyan */
+            transparent, rgba(244, 114, 182, 0.5) 30%, transparent 35%, /* Pink */
+            transparent, rgba(192, 132, 252, 0.5) 55%, transparent 60%  /* Purple */
+        );
+    }
+    .is-flipped .light-ray-burst {
+        animation: light-ray-anim 1s ease-out forwards;
+    }
+    @keyframes light-ray-anim {
+        50% { opacity: 1; transform: scale(0.3) rotate(0deg); }
+        100% { opacity: 0; transform: scale(1) rotate(180deg); }
+    }
+
+    /* 3. SUSTAINED: The Afterglow */
+    .is-flipped .afterglow {
+        animation: afterglow-anim 1s infinite linear;
+    }
+    @keyframes afterglow-anim {
+        0%   { box-shadow: 0 0 25px 8px rgba(56, 189, 248, 0.7); }  /* Cyan */
+        33%  { box-shadow: 0 0 25px 8px rgba(244, 114, 182, 0.7); } /* Pink */
+        66%  { box-shadow: 0 0 25px 8px rgba(192, 132, 252, 0.7); } /* Purple */
+        100% { box-shadow: 0 0 25px 8px rgba(56, 189, 248, 0.7); }  /* Back to Cyan */
+    }
+</style>
+
 <div id="csrf-token-container" data-csrf="{{ csrf_token }}" style="display: none;"></div>
 <div class="relative min-h-screen w-full bg-black antialiased text-white overflow-hidden">
     

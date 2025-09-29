@@ -7,7 +7,7 @@
   - The outer div is the "flipper" container that gets rotated.
   - It contains two children: the "front face" and the "back face".
 -->
-<div class="student-card-flipper w-[220px] aspect-[3/5] cursor-pointer " style="perspective: 1000px;">
+<div class="student-card-flipper w-[220px] aspect-[3/5] cursor-pointer " style="perspective: 1000px;" data-rarity="{{ student.student_rarity }}">
     <!-- This inner div is the part that actually performs the 3D transition. -->
     <div class="relative w-full h-full transition-transform duration-700 ease-in-out" style="transform-style: preserve-3d;">
         
@@ -70,7 +70,22 @@
                     </div>
                 </div>
             </div>
+
+            {% if student.student_rarity == 3 %}
+                <div class="afterglow absolute inset-[-4px] rounded-lg pointer-events-none"></div>
+            {% endif %}
         </div>
 
+        <!-- =============================================================== -->
+        <!-- NEW: 3-STAR REVEAL EFFECTS (Hidden by default)                  -->
+        <!-- =============================================================== -->
+        {% if student.student_rarity == 3 %}
+
+            <!-- 2. The "Impact" Burst (Light Rays) -->
+            <div class="light-ray-burst absolute inset-[-50%] z-20 opacity-0 pointer-events-none"></div>
+
+            <!-- 3. The "Afterglow" (Sustained Reward) -->
+            <!-- <div class="afterglow absolute inset-[-4px] rounded-lg pointer-events-none"></div> -->
+        {% endif %}
     </div>
 </div>
