@@ -182,41 +182,41 @@
                 return positions;
             }
 
-            const revealCard = (cardElement) => {
-                const innerCard = cardElement.querySelector('.relative.w-full.h-full');
-                if (innerCard.classList.contains('is-flipped')) return;
+                const revealCard = (cardElement) => {
+                    const innerCard = cardElement.querySelector('.relative.w-full.h-full');
+                    if (innerCard.classList.contains('is-flipped')) return;
 
-                const rarity = parseInt(cardElement.dataset.rarity, 10);
-                
-                innerCard.classList.add('is-flipped');
-                
-                if (rarity === 3) {
-                    innerCard.style.transform = 'rotateY(180deg) scale(0.95)';
+                    const rarity = parseInt(cardElement.dataset.rarity, 10);
                     
-                    // --- MODIFIED: Use the new "smart" position generator ---
-                    setTimeout(() => {
-                        const sparkles = cardElement.querySelectorAll('.sparkle');
-                        const sparklePositions = generateSparklePositions(sparkles.length);
+                    innerCard.classList.add('is-flipped');
+                    
+                    if (rarity === 3) {
+                        innerCard.style.transform = 'rotateY(180deg) scale(0.95)';
+                        
+                        // --- MODIFIED: Use the new "smart" position generator ---
+                        setTimeout(() => {
+                            const sparkles = cardElement.querySelectorAll('.sparkle');
+                            const sparklePositions = generateSparklePositions(sparkles.length);
 
-                        sparkles.forEach((sparkle, index) => {
-                            // Apply the generated position to each sparkle.
-                            sparkle.style.top = `${sparklePositions[index].top}%`;
-                            sparkle.style.left = `${sparklePositions[index].left}%`;
+                            sparkles.forEach((sparkle, index) => {
+                                // Apply the generated position to each sparkle.
+                                sparkle.style.top = `${sparklePositions[index].top}%`;
+                                sparkle.style.left = `${sparklePositions[index].left}%`;
 
-                            // The rest of the animation logic is unchanged.
-                            setTimeout(() => {
-                                sparkle.classList.add('animate');
+                                // The rest of the animation logic is unchanged.
                                 setTimeout(() => {
-                                    sparkle.classList.add('fade');
-                                }, 500);
-                            }, index * 100);
-                        });
-                    }, 800);
+                                    sparkle.classList.add('animate');
+                                    setTimeout(() => {
+                                        sparkle.classList.add('fade');
+                                    }, 500);
+                                }, index * 100);
+                            });
+                        }, 800);
 
-                } else {
-                    innerCard.style.transform = 'rotateY(180deg)';
-                }
-            };
+                    } else {
+                        innerCard.style.transform = 'rotateY(180deg) scale(0.95)';
+                    }
+                };
 
             // --- Event Listeners (Unchanged) ---
             allFlippableCards.forEach(card => {
