@@ -40,6 +40,8 @@
                         <div class="absolute inset-[12px] overflow-hidden" style="clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);">
                             {% if student.asset_id %}<img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" alt="{{ student.student_name }}" class="w-full h-full object-cover">{% endif %}
                             <div class="absolute inset-0 pointer-events-none" style="box-shadow: inset 0 0 10px 4px rgba(0, 0, 0, 0.5);"></div>
+                            {% if student.student_rarity == 3 %}
+                            {% endif %}
                         </div>
                         <div class="absolute top-0 left-3 h-8 px-3 rounded-b-md flex items-center gap-2 z-20 border-x-2 border-b-2 
                             {% if student.student_rarity == 3 %}bg-gradient-to-r from-pink-200 to-cyan-200 border-purple-400/80

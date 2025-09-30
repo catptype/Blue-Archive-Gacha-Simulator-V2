@@ -140,6 +140,48 @@
             const allFlippableCards = document.querySelectorAll('.student-card-flipper');
             const revealAllButton = document.getElementById('reveal-all-btn');
 
+            /**
+             * NEW: A "smart" random position generator using Grid Partitioning.
+             * This ensures sparkles are scattered and never too close.
+             * @param {number} count - The number of positions to generate.
+             * @returns {Array<Object>} An array of {top, left} percentage positions.
+             */
+            function generateSparklePositions(count = 5) {
+                const positions = [];
+                const gridCols = 2;
+                const gridRows = 2;
+                const totalCells = gridCols * gridRows;
+
+                // 1. Create a list of all possible grid cell indices (0 to 8).
+                let cellIndices = Array.from(Array(totalCells).keys());
+
+                // 2. Shuffle the list of indices to pick random cells.
+                for (let i = cellIndices.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [cellIndices[i], cellIndices[j]] = [cellIndices[j], cellIndices[i]];
+                }
+
+                // 3. Take the first 'count' of the shuffled indices.
+                const chosenCells = cellIndices.slice(0, count);
+
+                // 4. For each chosen cell, generate a random position ("jitter") within it.
+                chosenCells.forEach(cellIndex => {
+                    const col = cellIndex % gridCols;
+                    const row = Math.floor(cellIndex / gridCols);
+
+                    // Calculate a random position inside the cell, avoiding the very edges.
+                    const jitterX = (Math.random() * 0.6 + 0.2) * (100 / gridCols); // Jitter between 20% and 80% of cell width
+                    const jitterY = (Math.random() * 0.6 + 0.2) * (100 / gridRows); // Jitter between 20% and 80% of cell height
+                    
+                    positions.push({
+                        left: (col * (100 / gridCols)) + jitterX,
+                        top: (row * (100 / gridRows)) + jitterY,
+                    });
+                });
+
+                return positions;
+            }
+
             const revealCard = (cardElement) => {
                 const innerCard = cardElement.querySelector('.relative.w-full.h-full');
                 if (innerCard.classList.contains('is-flipped')) return;
@@ -151,28 +193,25 @@
                 if (rarity === 3) {
                     innerCard.style.transform = 'rotateY(180deg) scale(0.95)';
                     
-                    // --- NEW: Dynamic Sparkle Logic ---
-                    // This starts after the shine effect begins.
+                    // --- MODIFIED: Use the new "smart" position generator ---
                     setTimeout(() => {
                         const sparkles = cardElement.querySelectorAll('.sparkle');
-                        sparkles.forEach((sparkle, index) => {
-                            // 1. Generate random positions for each sparkle.
-                            const randomTop = 10 + Math.random() * 80; // from 10% to 90%
-                            const randomLeft = 10 + Math.random() * 80; // from 10% to 90%
-                            sparkle.style.top = `${randomTop}%`;
-                            sparkle.style.left = `${randomLeft}%`;
+                        const sparklePositions = generateSparklePositions(sparkles.length);
 
-                            // 2. Stagger the animation of each sparkle.
+                        sparkles.forEach((sparkle, index) => {
+                            // Apply the generated position to each sparkle.
+                            sparkle.style.top = `${sparklePositions[index].top}%`;
+                            sparkle.style.left = `${sparklePositions[index].left}%`;
+
+                            // The rest of the animation logic is unchanged.
                             setTimeout(() => {
-                                // Add 'animate' to trigger the burst
                                 sparkle.classList.add('animate');
-                                // After a short delay, add 'fade' to make it disappear
                                 setTimeout(() => {
                                     sparkle.classList.add('fade');
-                                }, 500); // How long the sparkle stays visible
-                            }, index * 100); // Stagger delay
+                                }, 500);
+                            }, index * 100);
                         });
-                    }, 800); // Overall delay to start the sparkle effect
+                    }, 800);
 
                 } else {
                     innerCard.style.transform = 'rotateY(180deg)';
