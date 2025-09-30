@@ -4,6 +4,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.db.models import CheckConstraint, Q
 from django.contrib.auth import get_user_model
+from django.conf import settings
 
 class Version(models.Model):
     version_id = models.AutoField(primary_key=True, auto_created=True, editable=False, verbose_name='ID')
@@ -338,7 +339,7 @@ class GachaBanner(models.Model):
 
 class GachaTransaction(models.Model):
     transaction_id = models.AutoField(primary_key=True, auto_created=True, editable=False, verbose_name='ID')
-    transaction_user = models.ForeignKey(get_user_model(), on_delete=models.PROTECT, verbose_name='User')
+    transaction_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, verbose_name='User')
     banner_id = models.ForeignKey(GachaBanner, on_delete=models.PROTECT, verbose_name='Banner')
     student_id = models.ForeignKey(Student, on_delete=models.PROTECT, verbose_name='Student')
     transaction_create_on = models.DateTimeField(auto_now_add=True, editable=False, verbose_name='Create On')
@@ -374,3 +375,32 @@ class GachaTransaction(models.Model):
 
         # Ordering by newest first is common for transaction logs.
         ordering = ['-transaction_create_on']
+
+class UserInventory(models.Model):
+    inventory_id = models.AutoField(primary_key=True, auto_created=True, editable=False, verbose_name='ID')
+    inventory_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='User')
+    student_id = models.ForeignKey(Student, on_delete=models.CASCADE, verbose_name="Student")
+    inventory_num_obtained = models.PositiveIntegerField(default=1, verbose_name="Number Obtained")
+    
+    # This is a highly useful field to add for sorting and achievements.
+    inventory_first_obtained_on = models.DateTimeField(auto_now_add=True, editable=False)
+
+    def __str__(self):
+        return f'{self.inventory_user.username} - {self.student_id.name} (x{self.inventory_num_obtained})'
+    
+    class Meta:
+        db_table = 'user_inventory_table'
+
+        # Define indexes.
+        indexes = [
+            models.Index(fields=['inventory_user']),
+            models.Index(fields=['student_id']),
+        ]
+        # This is the most important part. It creates a database constraint
+        # that ensures a user can only have ONE row for each unique student.
+        unique_together = ('inventory_user', 'student_id')
+        
+        verbose_name = "User Inventory"
+        verbose_name_plural = "User Inventories"
+        ordering = ['-inventory_first_obtained_on']
+        

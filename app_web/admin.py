@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.template.loader import render_to_string
 
-from .models import Student, School, Version, GachaBanner, GachaPreset
+from .models import Student, School, Version, GachaBanner, GachaPreset, GachaTransaction, UserInventory
 
 def create_image_display(image_type, description):
     """
@@ -170,3 +170,29 @@ class GachaBannerAdmin(admin.ModelAdmin):
 
     list_per_page = 10
     ordering = ['banner_id']
+
+@admin.register(GachaTransaction)
+class GachaTransactionAdmin(admin.ModelAdmin):
+    list_display = [
+        'transaction_id',
+        'transaction_user',
+        'banner_id',
+        'student_id',
+        'transaction_create_on'
+    ]
+
+    list_per_page = 10
+
+@admin.register(UserInventory)
+class UserInventoryAdmin(admin.ModelAdmin):
+    list_display = [
+        'inventory_id',
+        'inventory_user',
+        'student_id',
+        'inventory_num_obtained',
+        'inventory_first_obtained_on'
+    ]
+
+    list_per_page = 10
+    
+    list_filter = ['student_id']

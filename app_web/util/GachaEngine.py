@@ -96,6 +96,7 @@ class GachaEngine:
         Performs a single standard pull and returns the result as a JSON-ready list.
         """
         pulled_student = self._draw_one(guarantee_r2_or_higher=False)
+        return [pulled_student]
         return [self._serialize_student(pulled_student)]
     
     def draw_10(self) -> list[dict]:
@@ -111,5 +112,6 @@ class GachaEngine:
         pulled_students.append(guaranteed_pull)
         
         # 4. Convert all 10 student objects to the final JSON format.
+        return pulled_students
         return [self._serialize_student(student) for student in pulled_students]
     

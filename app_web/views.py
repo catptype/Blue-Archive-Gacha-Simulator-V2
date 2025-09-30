@@ -6,12 +6,13 @@ from django.core.cache import cache
 from django.contrib.staticfiles import finders
 from django.http import JsonResponse, HttpRequest, HttpResponse, FileResponse, HttpResponseNotFound, HttpResponseBadRequest
 from django.shortcuts import render, get_object_or_404
+from django.db import transaction
 from django.db.models import Q
 from django.urls import reverse
 from django.views.decorators.http import require_POST, require_GET
 
 from .util.GachaEngine import GachaEngine
-from .models import School, Student, Version, GachaBanner
+from .models import School, Student, Version, GachaBanner, GachaTransaction, UserInventory
 
 CACHE_IMAGE_TIMEOUT = 300 # 5 minutes 
 
@@ -227,39 +228,60 @@ def get_students_by_school(request: HttpRequest, school_id: int) -> JsonResponse
 
     return JsonResponse({'students': students_data})
 
+def _perform_gacha_pull(request: HttpRequest, banner_id: int, pull_count: int) -> JsonResponse:
+    """
+    This is the core, user-aware gacha logic.
+    - It performs the pull using the GachaEngine.
+    - If the user is logged in, it saves transactions and updates their inventory.
+    - For guests, it does NOT save anything.
+    - It returns the list of pulled student IDs.
+    """
+    banner = get_object_or_404(GachaBanner, pk=banner_id)
+    user = request.user
+
+    # Step 1: Initialize the engine and perform the pulls
+    engine = GachaEngine(banner)
+
+    if pull_count == 1:
+        pulled_students = engine.draw_1()
+    elif pull_count == 10:
+        pulled_students = engine.draw_10()
+    else:
+        return JsonResponse({'success': False})
+    
+    print(pulled_students)
+
+    # --- THIS IS THE KEY LOGIC ---
+    if user.is_authenticated:
+        # For logged-in users, we run the database operations inside a transaction.
+        with transaction.atomic():
+            # a) Save the transaction log
+            transactions = [GachaTransaction(transaction_user=user, banner_id=banner, student_id=s) for s in pulled_students]
+            GachaTransaction.objects.bulk_create(transactions)
+            
+            # b) Update the user's inventory
+            for student in pulled_students:
+                inventory_item, created = UserInventory.objects.get_or_create(
+                    inventory_user=user,
+                    student_id=student
+                )
+                if not created:
+                    inventory_item.inventory_num_obtained += 1
+                    inventory_item.save()
+
+    # Step 2: Prepare the list of IDs for the JSON response.
+    # This happens for both guests and logged-in users.
+    pulled_student_ids = [student.id for student in pulled_students]
+    
+    return JsonResponse({'success': True, 'results': pulled_student_ids})
+
+@require_POST
 def draw_one_gacha(request: HttpRequest, banner_id: int) -> JsonResponse:
-    
-    banner = GachaBanner.objects.get(banner_id=banner_id)
-    engine = GachaEngine(banner)
+    return _perform_gacha_pull(request, banner_id, pull_count=1)
 
-    results = engine.draw_1()
-
-    # Take only id
-    results = [student["id"] for student in results]
-
-    data_response = {
-        "success": True,
-        "results": results
-    }
-    
-    return JsonResponse(data_response, status=200)
-
+@require_POST
 def draw_ten_gacha(request: HttpRequest, banner_id: int) -> JsonResponse:
-    
-    banner = GachaBanner.objects.get(banner_id=banner_id)
-    engine = GachaEngine(banner)
-
-    results = engine.draw_10()
-
-    # Take only id
-    results = [student["id"] for student in results]
-
-    data_response = {
-        "success": True,
-        "results": results
-    }
-    
-    return JsonResponse(data_response, status=200)
+    return _perform_gacha_pull(request, banner_id, pull_count=10)
 
 #######################################
 #####   REQUEST -> FILERESPONSE   #####
