@@ -8,6 +8,39 @@
 
 {% block body %}
 <style>
+    /* 1. NEW: THE RING WAVE EFFECT */
+    .ring-wave-effect {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 1;
+        pointer-events: none;
+        aspect-ratio: 1 / 1;
+        animation: ring-wave-anim 0.75s ease-out forwards;
+        z-index: -1;
+    }
+    @keyframes ring-wave-anim {
+        0% {
+            width: 0%;
+            opacity: 1;
+            /* 
+              MODIFIED: The spread values are now much larger, creating a "fattier" ring.
+              The inner pink ring is 15px thick.
+              The outer cyan ring is an additional 10px thick.
+            */
+            box-shadow: 0 0 0 10px rgba(244, 114, 182, 0.9), /* Pink */
+                0 0 0 20px rgba(192, 132, 252, 0.8), /* Purple */
+                0 0 0 25px rgba(56, 189, 248, 0.7);  /* Cyan */
+        }
+        100% {
+            width: 40%;
+            opacity: 1;
+            /* Also update the final state for consistency. */
+            box-shadow: 0 0 0 8px rgba(244, 114, 182, 0),
+                0 0 0 16px rgba(192, 132, 252, 0),
+                0 0 0 24px rgba(56, 189, 248, 0);
+        }
+    }
+
     /* 
       The .card-shine-overlay is a container for the shine pseudo-element.
       It's clipped by its parent's shape.

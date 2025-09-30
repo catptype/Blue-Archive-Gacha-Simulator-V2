@@ -182,18 +182,53 @@
                 return positions;
             }
 
-                const revealCard = (cardElement) => {
-                    const innerCard = cardElement.querySelector('.relative.w-full.h-full');
-                    if (innerCard.classList.contains('is-flipped')) return;
+            /**
+             * NEW: This function dynamically creates and animates the ring wave.
+             * @param {HTMLElement} targetCard - The card that was clicked.
+             */
+            const createRingWave = (targetCard) => {
+                const wave = document.createElement('div');
+                wave.className = 'ring-wave-effect';
 
-                    const rarity = parseInt(cardElement.dataset.rarity, 10);
-                    
-                    innerCard.classList.add('is-flipped');
-                    
-                    if (rarity === 3) {
-                        innerCard.style.transform = 'rotateY(180deg) scale(0.95)';
+                // Find the parent container that holds all cards.
+                const parentContainer = targetCard.closest('.grid, .slider-track');
+                if (!parentContainer) return;
+
+                // --- THE FIX ---
+                // 1. Get the position of the card RELATIVE TO THE PARENT.
+                //    'offsetTop' and 'offsetLeft' are simpler and more reliable here.
+                const top = targetCard.offsetTop + (targetCard.offsetHeight / 2);
+                const left = targetCard.offsetLeft + (targetCard.offsetWidth / 2);
+
+                // // 2. Set the wave's initial state and position.
+                // //    The 'transform' must be set here to center the origin.
+                wave.style.top = `${top}px`;
+                wave.style.left = `${left}px`;
+                wave.style.width = `${targetCard.offsetWidth * 0.5}px`;
+                wave.style.transform = 'translate(-50%, -50%)'; // Center the element on its coordinates
+                
+                // 3. Append to the parent, THEN trigger the animation.
+                parentContainer.appendChild(wave);
+                
+            };
+
+            const revealCard = (cardElement) => {
+                const innerCard = cardElement.querySelector('.relative.w-full.h-full');
+                if (innerCard.classList.contains('is-flipped')) return;
+
+                const rarity = parseInt(cardElement.dataset.rarity, 10);
+                
+                if (rarity === 3) {
+                    // --- 3-STAR REVEAL SEQUENCE ---
+                    // Step 1 (Time: 0ms): Create the Ring Wave behind the card.
+                    createRingWave(cardElement);
+
+                    // Step 2 (Time: 150ms): Start the card flip.
+                    setTimeout(() => {
+                        innerCard.classList.add('is-flipped');
+                        innerCard.style.transform = 'rotateY(180deg)';
                         
-                        // --- MODIFIED: Use the new "smart" position generator ---
+                        // The subsequent sparkle effect is unchanged.
                         setTimeout(() => {
                             const sparkles = cardElement.querySelectorAll('.sparkle');
                             const sparklePositions = generateSparklePositions(sparkles.length);
@@ -212,11 +247,14 @@
                                 }, index * 100);
                             });
                         }, 800);
+                    }, 150);
 
-                    } else {
-                        innerCard.style.transform = 'rotateY(180deg) scale(0.95)';
-                    }
-                };
+                } else {
+                    // Standard Flip
+                    innerCard.classList.add('is-flipped');
+                    innerCard.style.transform = 'rotateY(180deg)';
+                }
+            };
 
             // --- Event Listeners (Unchanged) ---
             allFlippableCards.forEach(card => {

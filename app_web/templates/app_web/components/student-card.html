@@ -7,7 +7,7 @@
   - The outer div is the "flipper" container that gets rotated.
   - It contains two children: the "front face" and the "back face".
 -->
-<div class="student-card-flipper w-[220px] aspect-[3/5] cursor-pointer " style="perspective: 1000px;" data-rarity="{{ student.student_rarity }}">
+<div class="student-card-flipper w-[220px] aspect-[3.5/5] cursor-pointer" style="perspective: 1000px;" data-rarity="{{ student.student_rarity }}">
     <!-- This inner div is the part that actually performs the 3D transition. -->
     <div class="relative w-full h-full transition-transform duration-700 ease-in-out" style="transform-style: preserve-3d;">
         
