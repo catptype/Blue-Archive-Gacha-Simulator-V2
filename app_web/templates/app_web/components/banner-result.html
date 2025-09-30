@@ -140,23 +140,55 @@
             const allFlippableCards = document.querySelectorAll('.student-card-flipper');
             const revealAllButton = document.getElementById('reveal-all-btn');
 
-            const flipCard = (cardElement) => {
+            const revealCard = (cardElement) => {
                 const innerCard = cardElement.querySelector('.relative.w-full.h-full');
                 if (innerCard.classList.contains('is-flipped')) return;
+
+                const rarity = parseInt(cardElement.dataset.rarity, 10);
+                
                 innerCard.classList.add('is-flipped');
-                innerCard.style.transform = 'rotateY(180deg) scale(0.95)';
+                
+                if (rarity === 3) {
+                    innerCard.style.transform = 'rotateY(180deg) scale(0.95)';
+                    
+                    // --- NEW: Dynamic Sparkle Logic ---
+                    // This starts after the shine effect begins.
+                    setTimeout(() => {
+                        const sparkles = cardElement.querySelectorAll('.sparkle');
+                        sparkles.forEach((sparkle, index) => {
+                            // 1. Generate random positions for each sparkle.
+                            const randomTop = 10 + Math.random() * 80; // from 10% to 90%
+                            const randomLeft = 10 + Math.random() * 80; // from 10% to 90%
+                            sparkle.style.top = `${randomTop}%`;
+                            sparkle.style.left = `${randomLeft}%`;
+
+                            // 2. Stagger the animation of each sparkle.
+                            setTimeout(() => {
+                                // Add 'animate' to trigger the burst
+                                sparkle.classList.add('animate');
+                                // After a short delay, add 'fade' to make it disappear
+                                setTimeout(() => {
+                                    sparkle.classList.add('fade');
+                                }, 500); // How long the sparkle stays visible
+                            }, index * 100); // Stagger delay
+                        });
+                    }, 800); // Overall delay to start the sparkle effect
+
+                } else {
+                    innerCard.style.transform = 'rotateY(180deg)';
+                }
             };
 
+            // --- Event Listeners (Unchanged) ---
             allFlippableCards.forEach(card => {
-                const handleCardClick = () => flipCard(card);
-                card.addEventListener('click', handleCardClick, { once: true });
+                card.addEventListener('click', () => revealCard(card), { once: true });
             });
 
             if (revealAllButton) {
                 revealAllButton.addEventListener('click', () => {
                     allFlippableCards.forEach((card, index) => {
                         setTimeout(() => {
-                            flipCard(card);
+                            revealCard(card);
                         }, index * 75);
                     });
                     // revealAllButton.style.display = 'none';
