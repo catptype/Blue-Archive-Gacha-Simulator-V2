@@ -8,22 +8,82 @@
 
 {% block body %}
 <style>
+    /* 
+      The .card-shine-overlay is a container for the shine pseudo-element.
+      It's clipped by its parent's shape.
+    */
+    .card-shine-overlay {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+    }
 
-    /* 2. IMPACT: The Light Ray Burst */
-    .light-ray-burst {
-        background: conic-gradient(
-            from 0deg,
-            transparent, rgba(56, 189, 248, 0.4) 5%, transparent 10%, /* Cyan */
-            transparent, rgba(244, 114, 182, 0.5) 30%, transparent 35%, /* Pink */
-            transparent, rgba(192, 132, 252, 0.5) 55%, transparent 60%  /* Purple */
+    /*
+      The ::before pseudo-element is the shine itself.
+      It's a tall, diagonal bar of light that starts off-screen.
+    */
+    .card-shine-overlay::before {
+        content: '';
+        position: absolute;
+        top: -150%;
+        left: -150%;
+        width: 40px; /* How thick the shine is */
+        height: 400%;
+        background: linear-gradient(
+            to right,
+            transparent 0%,
+            rgba(255, 255, 255, 0.5) 50%,
+            transparent 100%
         );
+        transform: rotate(-45deg);
+        opacity: 0;
     }
-    .is-flipped .light-ray-burst {
-        animation: light-ray-anim 1s ease-out forwards;
+
+    /* When the card is flipped, the shine animation is triggered. */
+    .is-flipped .card-shine-overlay::before {
+        animation: card-shine-anim 0.7s ease-in-out;
+        /* The delay ensures the shine happens AFTER the card has flipped forward. */
+        animation-delay: 0.4s; 
     }
-    @keyframes light-ray-anim {
-        50% { opacity: 1; transform: scale(0.3) rotate(0deg); }
-        100% { opacity: 0; transform: scale(1) rotate(180deg); }
+
+    @keyframes card-shine-anim {
+        0% {
+            left: -150%; /* Start far to the left */
+            opacity: 1;
+        }
+        100% {
+            left: 150%; /* End far to the right */
+            opacity: 1;
+        }
+    }
+
+
+    /* 2. NEW: SPARKLE EFFECT */
+    .sparkle {
+        position: absolute;
+        width: 6px;
+        height: 6px;
+        background-color: white;
+        border-radius: 50%;
+        box-shadow: 0 0 10px 2px #fff, 0 0 20px 5px #f0f, 0 0 30px 10px #0ff; /* Prismatic shadow */
+        opacity: 0;
+    }
+    /* When the card is flipped, the sparkle animation is triggered. */
+    .is-flipped .sparkle {
+        /* The animation-delay ensures sparkles appear AFTER the shine. */
+        animation: sparkle-anim 1.5s ease-out;
+        animation-delay: 0.8s;
+    }
+
+    /* We use nth-child to give each sparkle a unique position and animation delay. */
+    .sparkle:nth-child(1) { top: 20%; left: 80%; }
+    .sparkle:nth-child(2) { top: 70%; left: 30%; animation-delay: 1s; }
+    .sparkle:nth-child(3) { top: 40%; left: 10%; animation-delay: 1.2s; }
+
+    @keyframes sparkle-anim {
+        0% { transform: scale(0); opacity: 0; }
+        50% { transform: scale(1.5); opacity: 1; }
+        100% { transform: scale(0); opacity: 0; }
     }
 
     /* 3. SUSTAINED: The Afterglow */

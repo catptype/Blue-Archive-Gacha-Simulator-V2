@@ -72,7 +72,20 @@
             </div>
 
             {% if student.student_rarity == 3 %}
+                <!-- The "Foil Shine" Overlay -->
+                <div class="card-shine-overlay absolute inset-0"></div>
+                
+                <!-- Afterglow -->
                 <div class="afterglow absolute inset-[-4px] rounded-lg pointer-events-none"></div>
+
+                <!-- NEW: Sparkle Effect Layers -->
+                <div class="sparkle-overlay absolute inset-0">
+                    <div class="sparkle"></div>
+                    <div class="sparkle"></div>
+                    <div class="sparkle"></div>
+                    <div class="sparkle"></div>
+                    <div class="sparkle"></div>
+                </div>
             {% endif %}
         </div>
 
@@ -81,11 +94,6 @@
         <!-- =============================================================== -->
         {% if student.student_rarity == 3 %}
 
-            <!-- 2. The "Impact" Burst (Light Rays) -->
-            <div class="light-ray-burst absolute inset-[-50%] z-20 opacity-0 pointer-events-none"></div>
-
-            <!-- 3. The "Afterglow" (Sustained Reward) -->
-            <!-- <div class="afterglow absolute inset-[-4px] rounded-lg pointer-events-none"></div> -->
         {% endif %}
     </div>
 </div>
