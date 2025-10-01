@@ -1,18 +1,166 @@
-<h1 class="text-3xl font-bold mb-6">Summary</h1>
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-    <div class="p-4 bg-slate-700/50 rounded-lg text-center">
-        <div class="text-4xl font-bold">{{ total_pulls }}</div>
-        <div class="text-sm text-slate-400">Total Pulls</div>
+<!-- This template is now a self-contained component with its own script for the chart. -->
+{% load static %}
+<!-- This div wraps all the visible HTML for parsing by eval(). -->
+<div class="tab-html-content">
+    
+    <!-- =============================================================== -->
+    <!-- 1. KPI WIDGETS (Key Performance Indicators)                       -->
+    <!-- =============================================================== -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="p-4 bg-slate-700/50 rounded-lg text-center"><div class="text-4xl font-bold">{{ total_pulls|default:0 }}</div><div class="text-sm text-slate-400">Total Pulls</div></div>
+        <div class="p-4 bg-yellow-500/20 rounded-lg text-center"><div class="text-4xl font-bold">{{ r3_count|default:0 }}</div><div class="text-sm text-yellow-300">★★★ Students</div></div>
+        <div class="p-4 bg-purple-500/20 rounded-lg text-center"><div class="text-4xl font-bold">{{ r2_count|default:0 }}</div><div class="text-sm text-purple-300">★★ Students</div></div>
+        <div class="p-4 bg-blue-500/20 rounded-lg text-center"><div class="text-4xl font-bold">{{ r1_count|default:0 }}</div><div class="text-sm text-blue-300">★ Students</div></div>
     </div>
-    <div class="p-4 bg-slate-700/50 rounded-lg text-center">
-        <div class="text-4xl font-bold">{{ unique_students_obtained }}</div>
-        <div class="text-sm text-slate-400">Unique Students</div>
+
+    <!-- =============================================================== -->
+    <!-- NEW: TOP 3 STUDENTS (Card-based Layout)                         -->
+    <!-- =============================================================== -->
+    <div class="mb-6">
+        <h3 class="text-xl font-semibold mb-4">Most Pulled Students</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {% for student in top_students %}
+                <div class="relative">
+                    <!-- The rank icon (1st, 2nd, 3rd) -->
+                    <img src="{% static 'images/web/rank_'|add:forloop.counter|stringformat:'s'|add:'.png' %}" 
+                         class="absolute -top-4 -left-4 w-16 h-16 z-10">
+                    <!-- Include the standard static student card component -->
+                    {% include 'app_web/components/student-card-static.html' with student=student %}
+                </div>
+            {% empty %}
+                <p class="md:col-span-3 text-center text-slate-400">Pull gacha to see your top students!</p>
+            {% endfor %}
+        </div>
     </div>
-    {% for rarity in rarity_counts %}
-    <div class="p-4 bg-slate-700/50 rounded-lg text-center">
-        <div class="text-4xl font-bold">{{ rarity.count }}</div>
-        <div class="text-sm text-slate-400">Total ★★★ Students</div>
+
+    <!-- Main Dashboard Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- =============================================================== -->
+        <!-- Rarity Distribution Chart (Unchanged)                           -->
+        <!-- =============================================================== -->
+        <div class="lg:col-span-2 p-4 bg-slate-700/50 rounded-lg">
+            <h3 class="text-xl font-semibold mb-4">Rarity Distribution</h3>
+            <canvas id="rarityPieChart"></canvas>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- NEW: Banner Distribution Chart                                  -->
+        <!-- =============================================================== -->
+        <div class="lg:col-span-1 p-4 bg-slate-700/50 rounded-lg">
+            <h3 class="text-xl font-semibold mb-4">Banner Distribution</h3>
+            <!-- A horizontal bar chart is perfect for a potentially long list of banners. -->
+            <canvas id="bannerBarChart"></canvas>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- 3-Star Pull Analysis (Now always visible)                       -->
+        <!-- =============================================================== -->
+        <div class="lg:col-span-3 p-4 bg-slate-700/50 rounded-lg">
+            <h3 class="text-xl font-semibold mb-4">3-Star Pull Analysis</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div><div class="text-3xl font-bold">{{ r3_gap_stats.min }}</div><div class="text-sm text-slate-400">Shortest Gap</div></div>
+                <div><div class="text-3xl font-bold">{{ r3_gap_stats.max }}</div><div class="text-sm text-slate-400">Longest Gap</div></div>
+                <div><div class="text-3xl font-bold">{{ r3_gap_stats.avg }}</div><div class="text-sm text-slate-400">Average Gap</div></div>
+                <div><div class="text-3xl font-bold">{{ r3_gap_stats.stdev }}</div><div class="text-sm text-slate-400">Standard Deviation</div></div>
+            </div>
+        </div>
     </div>
-    {% endfor %}
+
+
+
 </div>
-<!-- You could add charts/graphs here later -->
+
+<!-- The script to initialize the chart -->
+<script class="tab-js-script">
+    (function() {
+        // --- Include Chart.js library ---
+        // We dynamically add the script to the page to ensure it's available.
+        if (!document.getElementById('chartjs-script')) {
+            const script = document.createElement('script');
+            script.id = 'chartjs-script';
+            script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+            document.head.appendChild(script);
+        }
+
+        const createChart = () => {
+            const pieCtx = document.getElementById('rarityPieChart');
+            if (pieCtx) {
+                new Chart(pieCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['★★★', '★★', '★'],
+                        datasets: [{
+                            label: 'Pulls',
+                            // These values are passed directly from the Django view.
+                            data: [{{ r3_count|default:0 }}, {{ r2_count|default:0 }}, {{ r1_count|default:0 }}],
+                            backgroundColor: [
+                                'rgba(250, 204, 21, 0.7)',  // Yellow
+                                'rgba(192, 132, 252, 0.7)', // Purple
+                                'rgba(96, 165, 250, 0.7)'   // Blue
+                            ],
+                            borderColor: [
+                                '#FBBF24',
+                                '#C084FC',
+                                '#60A5FA'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    color: '#cbd5e1' // slate-300
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            
+
+            // --- NEW: Banner Bar Chart ---
+            const barCtx = document.getElementById('bannerBarChart');
+            if (barCtx) {
+                // Get the data passed from the Django view.
+                const bannerData = {{ banner_distribution|safe }};
+                
+                new Chart(barCtx, {
+                    type: 'bar', // A bar chart is better for many items.
+                    data: {
+                        labels: bannerData.map(item => item.banner_id__banner_name),
+                        datasets: [{
+                            label: 'Pulls',
+                            data: bannerData.map(item => item.count),
+                            backgroundColor: 'rgba(56, 189, 248, 0.7)', // Cyan
+                            borderColor: '#38BDF8',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y', // Makes the bar chart horizontal - crucial for long labels.
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false }, // Hide the legend for a cleaner look.
+                        },
+                        scales: {
+                            y: { ticks: { color: '#cbd5e1' } },
+                            x: { ticks: { color: '#cbd5e1' } }
+                        }
+                    }
+                });
+            }
+        };
+        
+        // Wait for the Chart.js library to load before creating the chart.
+        if (typeof Chart !== 'undefined') {
+            createChart();
+        } else {
+            document.getElementById('chartjs-script').addEventListener('load', createChart);
+        }
+    })();
+</script>

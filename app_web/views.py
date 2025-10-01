@@ -1,5 +1,6 @@
 import itertools
 import json
+import statistics
 import tempfile
 from decimal import Decimal
 from django.core.cache import cache
@@ -179,13 +180,49 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
     context = {'user': user}
     template_name = None
 
-    if tab_name == 'summary':
-        # --- Logic for the main dashboard summary ---
-        all_pulls = GachaTransaction.objects.filter(transaction_user=user)
-        context['total_pulls'] = all_pulls.count()
-        context['unique_students_obtained'] = UserInventory.objects.filter(inventory_user=user).count()
-        # Get rarity breakdown using Django's aggregation features
-        context['rarity_counts'] = all_pulls.values('student_id__student_rarity').annotate(count=Count('student_id__student_rarity')).order_by('-student_id__student_rarity')
+    if tab_name == 'summary': # I've renamed this from 'summary' for clarity
+        
+        # --- THE FIX: Base QuerySet is now highly optimized with select_related ---
+        # This is the answer to your first question. We pre-fetch all related data at the start.
+        all_pulls = GachaTransaction.objects.filter(transaction_user=user).select_related(
+            'student_id__version_id', 'student_id__school_id', 'student_id__asset_id', 
+            'banner_id'
+        ).order_by('transaction_create_on')
+        
+        total_pulls = all_pulls.count()
+        context['total_pulls'] = total_pulls
+
+        if total_pulls > 0:
+            # --- 1. Top 3 Students (now returns full objects for card rendering) ---
+            top_student_ids = all_pulls.values('student_id').annotate(count=Count('student_id')).order_by('-count').values_list('student_id', flat=True)[:3]
+            # We fetch the full student objects in a separate query to preserve the order and use our pre-fetched data.
+            context['top_students'] = sorted(Student.objects.filter(pk__in=top_student_ids), key=lambda s: list(top_student_ids).index(s.pk))
+
+            # --- 2. Rarity Breakdown for Chart ---
+            rarity_counts_query = all_pulls.values('student_id__student_rarity').annotate(count=Count('pk')).order_by()
+            rarity_counts = {item['student_id__student_rarity']: item['count'] for item in rarity_counts_query}
+            context['r3_count'] = rarity_counts.get(3, 0)
+            context['r2_count'] = rarity_counts.get(2, 0)
+            context['r1_count'] = rarity_counts.get(1, 0)
+
+            # --- NEW: Banner Distribution for the new chart ---
+            context['banner_distribution'] = list(all_pulls.values('banner_id__banner_name').annotate(count=Count('banner_id')).order_by('-count'))
+            
+            # --- 3. Advanced Statistics (Gap between 3-Star Pulls) ---
+            r3_indices = [i + 1 for i, pull in enumerate(all_pulls) if pull.student_id.student_rarity == 3]
+            
+            # THE FIX: Always show the widget, but provide default/NA values.
+            if len(r3_indices) > 1:
+                gaps = [r3_indices[i] - r3_indices[i-1] for i in range(1, len(r3_indices))]
+                context['r3_gap_stats'] = {
+                    'min': min(gaps), 'max': max(gaps), 'avg': f"{statistics.mean(gaps):.1f}",
+                    'stdev': f"{statistics.stdev(gaps):.2f}" if len(gaps) > 1 else "N/A"
+                }
+            elif len(r3_indices) == 1:
+                context['r3_gap_stats'] = {'min': 'N/A', 'max': 'N/A', 'avg': 'N/A', 'stdev': 'N/A'}
+            else: # len is 0
+                context['r3_gap_stats'] = {'min': 0, 'max': 0, 'avg': 0, 'stdev': 0}
+
         template_name = 'app_web/components/dashboard-summary.html'
 
     elif tab_name == 'history':
@@ -194,7 +231,7 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
         # 1. Get the full, ordered list of all transactions for the user.
         # We pre-fetch related data for high performance.
         transaction_list = GachaTransaction.objects.filter(transaction_user=user).select_related(
-            'banner_id', 'student_id__version_id'
+            'banner_id', 'student_id'
         ).order_by('-transaction_create_on')
         
         # 2. Get the requested page number from the URL query (e.g., ?page=2). Default to page 1.
