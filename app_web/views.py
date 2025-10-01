@@ -214,8 +214,6 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
             student.is_obtained = student.student_id in owned_student_ids
 
         context['all_students'] = all_students
-
-        print(context['all_students'])
         template_name = 'app_web/components/dashboard-collection.html'
 
     elif tab_name == 'achievements':
@@ -223,11 +221,11 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
         template_name = 'app_web/components/dashboard-achievement.html'
 
     if template_name:
-        # Render the partial template to an HTML string.
-        html_content = render_to_string(template_name, context, request=request)
-        return JsonResponse({'html': html_content})
+        # THE FIX: We now use render() to directly return the HTML fragment.
+        # The frontend will receive this as a simple text/html response.
+        return render(request, template_name, context)
     else:
-        return JsonResponse({'error': 'Invalid tab name'}, status=400)
+        return HttpResponse("Invalid tab name.", status=400)
 
 
 def student_HEAVY(request:HttpRequest) -> HttpResponse:

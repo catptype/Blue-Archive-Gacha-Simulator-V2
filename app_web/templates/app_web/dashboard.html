@@ -1,7 +1,33 @@
 {% extends 'app_web/components/base.html' %}
 {% load static %}
 {% block title %}Dashboard{% endblock %}
+
 {% block body %}
+<style>
+    /* For Webkit-based browsers (Chrome, Safari, Edge) */
+    #dashboard-content::-webkit-scrollbar {
+        width: 8px; /* A thin width */
+    }
+    #dashboard-content::-webkit-scrollbar-track {
+        background: transparent; /* Invisible track */
+    }
+    #dashboard-content::-webkit-scrollbar-thumb {
+        background-color: rgba(107, 114, 128, 0.4); /* A semi-transparent gray handle */
+        border-radius: 10px; /* Rounded corners */
+        border: 2px solid transparent;
+        background-clip: padding-box;
+    }
+    #dashboard-content::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(156, 163, 175, 0.6); /* Slightly more visible on hover */
+    }
+
+    /* For Firefox */
+    #dashboard-content {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(107, 114, 128, 0.4) transparent;
+    }
+</style>
+
 <div class="relative min-h-screen w-full bg-black antialiased text-white pt-20">
     {% include 'app_web/components/background.html' %}
 
@@ -29,17 +55,23 @@
             </div>
 
             <!-- =============================================================== -->
-            <!-- DYNAMIC CONTENT PANEL                                           -->
+            <!-- DYNAMIC CONTENT PANEL (FIXED)                                   -->
             <!-- =============================================================== -->
             <!-- 
-              'relative z-10' ensures this panel sits below the tabs.
-              'pt-12' adds padding to the top to make space for the overlapping tabs.
+              FIXED:
+              - The 'pt-12' class has been RESTORED to create space for the tabs.
+              - The main panel is now a flex container, and the content inside it will scroll.
             -->
-            <div id="dashboard-content" class="relative z-10 w-full min-h-[60vh] pt-12 p-6 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg">
-                <!-- Content will be injected here by JavaScript -->
-                <div class="w-full h-full flex items-center justify-center">
-                    <svg class="animate-spin h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            <div id="dashboard-content-wrapper" class="relative z-10 w-full h-[80vh] bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-lg flex flex-col pt-12 p-6">
+                
+                <!-- This new inner div is now the scrollable container -->
+                <div id="dashboard-content" class="flex-grow overflow-y-auto">
+                    <!-- Content will be injected here by JavaScript -->
+                    <div class="w-full h-full flex items-center justify-center">
+                        <svg class="animate-spin h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                    </div>
                 </div>
+
             </div>
         </div>
     </div>
@@ -86,6 +118,61 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // --- 4. Inject into the DOM ---
             contentContainer.innerHTML = data.html;
+
+        } catch (error) {
+            contentContainer.innerHTML = `<p class="text-red-400">${error.message}</p>`;
+        } finally {
+            isLoading = false;
+            contentContainer.style.opacity = 1;
+        }
+    }
+
+    async function loadTabContent(tabName) {
+        if (isLoading) return;
+        isLoading = true;
+
+        // --- 1. Update Tab Styles ---
+        tabs.forEach(tab => {
+            if (tab.dataset.tab === tabName) {
+                // Active tab style
+                tab.classList.add('bg-sky-800/80', 'border-slate-700', 'text-white', 'font-semibold');
+                tab.classList.remove('text-slate-400', 'hover:bg-slate-700/50');
+            } else {
+                // Inactive tab style
+                tab.classList.remove('bg-sky-800/80', 'border-slate-700', 'text-white', 'font-semibold');
+                tab.classList.add('text-slate-400', 'hover:bg-slate-700/50');
+            }
+        });
+
+        // --- 2. Show Loading State & Animate ---
+        contentContainer.style.opacity = 0.5;
+
+        // --- 3. Fetch New Content ---
+        try {
+            const response = await fetch(`/dashboard/${tabName}/`);
+            if (!response.ok) throw new Error('Failed to load content.');
+            
+            // THE FIX: We now expect the response to be plain HTML text.
+            const responseText = await response.text();
+
+            // --- The eval() logic for parsing the response ---
+            // (This is the same robust logic from your gacha modals)
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = responseText;
+
+            const htmlContent = tempDiv.querySelector('#collection-html-content'); // Or other tab IDs
+            const scriptContent = tempDiv.querySelector('#collection-js-script'); // Or other tab script IDs
+
+            if (htmlContent) {
+                contentContainer.innerHTML = htmlContent.outerHTML;
+            } else {
+                // Fallback for simple tabs that don't need scripts
+                contentContainer.innerHTML = responseText;
+            }
+
+            if (scriptContent) {
+                eval(scriptContent.textContent);
+            }
 
         } catch (error) {
             contentContainer.innerHTML = `<p class="text-red-400">${error.message}</p>`;

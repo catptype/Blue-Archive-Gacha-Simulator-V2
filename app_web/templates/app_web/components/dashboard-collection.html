@@ -1,33 +1,103 @@
-<!-- This is the partial template for the Collection tab. -->
+<!-- app_web/components/_collection.html -->
+<!-- This template is now a self-contained component with its own filtering logic. -->
 
-<h1 class="text-3xl font-bold mb-6">Collection</h1>
+<div id="collection-html-content">
+  <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+      <h2 id="collection-counter" class="text-xl font-semibold text-slate-300">
+          <!-- This text will be updated by JavaScript -->
+      </h2>
+      
+      <!-- Filter Buttons -->
+      <div class="flex items-center gap-2 p-1 bg-slate-700/50 rounded-lg">
+          <button data-filter="all" class="filter-btn flex items-center gap-2 px-3 py-1 rounded-md text-sm font-semibold">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+              <span>All</span>
+          </button>
+          <button data-filter="obtained" class="filter-btn flex items-center gap-2 px-3 py-1 rounded-md text-sm font-semibold">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>
+              <span>Obtained</span>
+          </button>
+          <button data-filter="not-obtained" class="filter-btn flex items-center gap-2 px-3 py-1 rounded-md text-sm font-semibold">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+              <span>Not Obtained</span>
+          </button>
+      </div>
+  </div>
 
-<!-- The main grid container for all student cards. -->
-<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-    
-    {% for student in all_students %}
-        <!-- 
-          This wrapper div conditionally applies the styling for "not obtained" cards.
-          - 'opacity-50' dims the card.
-          - 'grayscale' makes it black and white.
-        -->
-        <div class="relative {% if not student.is_obtained %}opacity-50 grayscale{% endif %}">
-            
-            <!-- We include the standard student card component. -->
-            {% include 'app_web/components/student-card-collection.html' with student=student %}
-            
-            <!-- 
-              If the student is NOT obtained, we overlay a "lock" icon.
-              The 'absolute inset-0' makes it cover the entire card.
-            -->
-            {% if not student.is_obtained %}
-            <div class="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg">
-                <!-- Lock Icon SVG -->
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-white/50" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
-                </svg>
-            </div>
-            {% endif %}
-        </div>
-    {% endfor %}
+  <!-- The main grid container for all student cards. -->
+  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      
+      {% for student in all_students %}
+          <div class="student-item relative" data-status="{% if student.is_obtained %}obtained{% else %}not-obtained{% endif %}">
+              
+              <div class="transition-all duration-300 {% if not student.is_obtained %}opacity-30 grayscale{% endif %}">
+                  {% include 'app_web/components/student-card-static.html' with student=student %}
+              </div>
+              
+              {% if not student.is_obtained %}
+              <div class="absolute w-[220px] inset-0 flex items-center justify-center bg-black/60 rounded-lg pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 text-white" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+                  </svg>
+              </div>
+              {% endif %}
+          </div>
+      {% endfor %}
+  </div>
 </div>
+
+<!-- =============================================================== -->
+<!-- THE SCRIPT IS NOW SEPARATED FOR EXECUTION BY EVAL()             -->
+<!-- =============================================================== -->
+<script id="collection-js-script">
+    (function() {
+        // Find elements within the currently loaded content.
+        const contentWrapper = document.getElementById('collection-html-content');
+
+        console.log("contentWrapper", contentWrapper)
+        if (!contentWrapper) return;
+
+        const filterButtons = contentWrapper.querySelectorAll('.filter-btn');
+        const studentItems = contentWrapper.querySelectorAll('.student-item');
+        const collectionCounter = contentWrapper.querySelector('#collection-counter');
+        const totalStudents = studentItems.length;
+
+        function filterCollection(filter) {
+            let visibleCount = 0;
+
+            filterButtons.forEach(btn => {
+                if (btn.dataset.filter === filter) {
+                    btn.classList.add('bg-cyan-600', 'text-white');
+                    btn.classList.remove('text-slate-400', 'hover:bg-slate-600');
+                } else {
+                    btn.classList.add('text-slate-400', 'hover:bg-slate-600');
+                    btn.classList.remove('bg-cyan-600', 'text-white');
+                }
+            });
+
+            studentItems.forEach(item => {
+                const status = item.dataset.status;
+                const shouldShow = (filter === 'all' || filter === status);
+                
+                if (shouldShow) {
+                    item.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            if (collectionCounter) {
+                collectionCounter.textContent = `Showing ${visibleCount} of ${totalStudents} students`;
+            }
+        }
+
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterCollection(btn.dataset.filter);
+            });
+        });
+
+        filterCollection('all'); // Set initial state
+    })();
+</script>
