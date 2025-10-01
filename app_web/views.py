@@ -213,7 +213,22 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
         for student in all_students:
             student.is_obtained = student.student_id in owned_student_ids
 
+        # --- NEW: Calculate the completion stats ---
+        obtained_count = len(owned_student_ids)
+        total_students = all_students.count()
+        
+        # Handle division by zero if there are no students in the database.
+        if total_students > 0:
+            completion_percentage = (obtained_count / total_students) * 100
+        else:
+            completion_percentage = 0
+
         context['all_students'] = all_students
+        # Pass the new stats to the template.
+        context['obtained_count'] = obtained_count
+        context['total_students'] = total_students
+        context['completion_percentage'] = completion_percentage
+
         template_name = 'app_web/components/dashboard-collection.html'
 
     elif tab_name == 'achievements':
