@@ -1,0 +1,18 @@
+<h1 class="text-3xl font-bold mb-6">Summary</h1>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="p-4 bg-slate-700/50 rounded-lg text-center">
+        <div class="text-4xl font-bold">{{ total_pulls }}</div>
+        <div class="text-sm text-slate-400">Total Pulls</div>
+    </div>
+    <div class="p-4 bg-slate-700/50 rounded-lg text-center">
+        <div class="text-4xl font-bold">{{ unique_students_obtained }}</div>
+        <div class="text-sm text-slate-400">Unique Students</div>
+    </div>
+    {% for rarity in rarity_counts %}
+    <div class="p-4 bg-slate-700/50 rounded-lg text-center">
+        <div class="text-4xl font-bold">{{ rarity.count }}</div>
+        <div class="text-sm text-slate-400">Total ★★★ Students</div>
+    </div>
+    {% endfor %}
+</div>
+<!-- You could add charts/graphs here later -->

@@ -1,0 +1,43 @@
+<!-- app_web/components/student-card-collection.html -->
+
+{% load static %}
+
+<div class="relative w-[220px] aspect-[3.5/5] rounded-lg shadow-lg p-1
+    {% if student.student_rarity == 3 %}bg-gradient-to-br from-pink-400 via-purple-400 to-cyan-400
+    {% elif student.student_rarity == 2 %}bg-yellow-400/80
+    {% else %}bg-blue-400/80{% endif %}">
+    
+    <div class="relative w-full h-full bg-white rounded-sm overflow-hidden flex flex-col">
+        <div class="relative flex-[8] bg-slate-200">
+            <div class="absolute inset-[12px] overflow-hidden" style="clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);">
+                {% if student.asset_id %}<img src="{% url 'serve_student_image' student_id=student.student_id image_type='portrait' %}" alt="{{ student.student_name }}" class="w-full h-full object-cover">{% endif %}
+                <div class="absolute inset-0 pointer-events-none" style="box-shadow: inset 0 0 10px 4px rgba(0, 0, 0, 0.5);"></div>
+            </div>
+            <div class="absolute top-0 left-3 h-8 px-3 rounded-b-md flex items-center gap-2 z-20 border-x-2 border-b-2 
+                {% if student.student_rarity == 3 %}bg-gradient-to-r from-pink-200 to-cyan-200 border-purple-400/80
+                {% elif student.student_rarity == 2 %}bg-yellow-200 border-yellow-400/80
+                {% else %}bg-blue-200 border-blue-400/80{% endif %}">
+                <img src="{% url 'serve_school_image' school_id=student.school_id.school_id %}" alt="" class="w-5 h-5 bg-white rounded-full p-0.5">
+                <span class="text-xs font-bold text-slate-900">{{ student.school_id.school_name }}</span>
+            </div>
+        </div>
+        <div class="flex-[2] flex flex-col justify-center px-3 py-2 bg-gray-100 border-t-2 border-gray-300">
+            <div class="relative h-7 mb-2 flex items-center justify-center">
+                <div class="absolute left-0 top-1/2 w-[30%] h-[2px] {% if student.student_rarity == 3 %}bg-gradient-to-r from-pink-400 to-purple-400{% elif student.student_rarity == 2 %}bg-yellow-400{% else %}bg-blue-400{% endif %}"></div>
+                <div class="relative z-10 h-full w-24 flex-shrink-0 flex items-center justify-center gap-1 rounded-full shadow-inner-sm 
+                    {% if student.student_rarity == 3 %}bg-gradient-to-br from-pink-400 via-purple-400 to-cyan-400
+                    {% elif student.student_rarity == 2 %}bg-yellow-500 border-2 border-yellow-300/50
+                    {% else %}bg-blue-500 border-2 border-blue-300/50{% endif %}">
+                    {% for i in "x"|rjust:student.student_rarity %}
+                        <img src="{% static 'images/web/star_yellow.png' %}" alt="star" class="w-4 h-4">
+                    {% endfor %}
+                </div>
+                <div class="absolute right-0 top-1/2 w-[30%] h-[2px] {% if student.student_rarity == 3 %}bg-gradient-to-r from-purple-400 to-cyan-400{% elif student.student_rarity == 2 %}bg-yellow-400{% else %}bg-blue-400{% endif %}"></div>
+            </div>
+            <div class="text-center">
+                <h2 class="text-lg font-bold text-gray-800 truncate" title="{{ student.student_name }}">{{ student.student_name }}</h2>
+                {% if student.version != 'Original' %}<p class="text-xs text-slate-500 -mt-1">({{ student.version }})</p>{% endif %}
+            </div>
+        </div>
+    </div>
+</div>

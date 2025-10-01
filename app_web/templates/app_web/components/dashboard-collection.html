@@ -1,0 +1,33 @@
+<!-- This is the partial template for the Collection tab. -->
+
+<h1 class="text-3xl font-bold mb-6">Collection</h1>
+
+<!-- The main grid container for all student cards. -->
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+    
+    {% for student in all_students %}
+        <!-- 
+          This wrapper div conditionally applies the styling for "not obtained" cards.
+          - 'opacity-50' dims the card.
+          - 'grayscale' makes it black and white.
+        -->
+        <div class="relative {% if not student.is_obtained %}opacity-50 grayscale{% endif %}">
+            
+            <!-- We include the standard student card component. -->
+            {% include 'app_web/components/student-card-collection.html' with student=student %}
+            
+            <!-- 
+              If the student is NOT obtained, we overlay a "lock" icon.
+              The 'absolute inset-0' makes it cover the entire card.
+            -->
+            {% if not student.is_obtained %}
+            <div class="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg">
+                <!-- Lock Icon SVG -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-white/50" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>

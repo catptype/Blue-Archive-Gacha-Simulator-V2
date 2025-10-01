@@ -3,16 +3,18 @@ import json
 import tempfile
 from decimal import Decimal
 from django.core.cache import cache
+from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles import finders
+from django.db import transaction
+from django.db.models import Count
 from django.http import JsonResponse, HttpRequest, HttpResponse, FileResponse, HttpResponseNotFound, HttpResponseBadRequest
 from django.shortcuts import render, get_object_or_404
-from django.db import transaction
-from django.db.models import Q
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.views.decorators.http import require_POST, require_GET
 
-from .util.GachaEngine import GachaEngine
 from .models import School, Student, Version, GachaBanner, GachaTransaction, UserInventory
+from .util.GachaEngine import GachaEngine
 
 CACHE_IMAGE_TIMEOUT = 300 # 5 minutes 
 
@@ -161,6 +163,72 @@ def gacha_results(request: HttpRequest) -> HttpResponse:
 
     except (json.JSONDecodeError, TypeError):
         return HttpResponseBadRequest("Invalid request body.")
+
+@login_required
+def dashboard(request: HttpRequest) -> HttpResponse:
+    return render(request, 'app_web/dashboard.html')
+
+@login_required
+def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
+    """
+    API endpoint that fetches the correct data based on the requested tab
+    and returns the rendered HTML as a JSON response.
+    """
+    user = request.user
+    context = {'user': user}
+    template_name = None
+
+    if tab_name == 'dashboard':
+        # --- Logic for the main dashboard summary ---
+        all_pulls = GachaTransaction.objects.filter(transaction_user=user)
+        context['total_pulls'] = all_pulls.count()
+        context['unique_students_obtained'] = UserInventory.objects.filter(inventory_user=user).count()
+        # Get rarity breakdown using Django's aggregation features
+        context['rarity_counts'] = all_pulls.values('student_id__student_rarity').annotate(count=Count('student_id__student_rarity')).order_by('-student_id__student_rarity')
+        template_name = 'app_web/components/dashboard-summary.html'
+
+    elif tab_name == 'history':
+        # --- Logic for the transaction history ---
+        # Use select_related for a huge performance boost!
+        context['transactions'] = GachaTransaction.objects.filter(transaction_user=user).select_related(
+            'banner_id', 'student_id'
+        ).order_by('-transaction_create_on')[:100] # Limit to the most recent 100 for now
+        template_name = 'app_web/components/dashboard-history.html'
+
+    elif tab_name == 'collection':
+        # --- NEW, SUPERIOR LOGIC FOR THE COLLECTION TAB ---
+
+        # 1. Get a simple, efficient set of all student IDs the user owns.
+        owned_student_ids = set(
+            UserInventory.objects.filter(inventory_user=user).values_list('student_id', flat=True)
+        )
+
+        # 2. Fetch ALL students in the game, efficiently pre-loading related data.
+        all_students = Student.objects.select_related(
+            'school_id', 'version_id', 'asset_id'
+        ).order_by('student_name')
+
+        # 3. Augment the student objects with the 'is_obtained' flag in Python.
+        # This is extremely fast and keeps the database logic simple.
+        for student in all_students:
+            student.is_obtained = student.student_id in owned_student_ids
+
+        context['all_students'] = all_students
+
+        print(context['all_students'])
+        template_name = 'app_web/components/dashboard-collection.html'
+
+    elif tab_name == 'achievements':
+        # --- Placeholder for achievements ---
+        template_name = 'app_web/components/dashboard-achievement.html'
+
+    if template_name:
+        # Render the partial template to an HTML string.
+        html_content = render_to_string(template_name, context, request=request)
+        return JsonResponse({'html': html_content})
+    else:
+        return JsonResponse({'error': 'Invalid tab name'}, status=400)
+
 
 def student_HEAVY(request:HttpRequest) -> HttpResponse:
     """

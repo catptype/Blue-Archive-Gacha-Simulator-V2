@@ -1,0 +1,113 @@
+{% extends 'app_web/components/base.html' %}
+{% load static %}
+{% block title %}Dashboard{% endblock %}
+{% block body %}
+<div class="relative min-h-screen w-full bg-black antialiased text-white pt-20">
+    {% include 'app_web/components/background.html' %}
+
+    <!-- Main Content Container with margins -->
+    <div class="w-full max-w-7xl mx-auto px-4 lg:px-6 py-8">
+        
+        <!--
+          THE NEW LAYOUT: The tabs and content panel are now combined into a single element.
+          'relative' is crucial for positioning the tabs.
+        -->
+        <div class="relative w-full">
+
+            <!-- =============================================================== -->
+            <!-- TABS (Now on top of the content panel)                          -->
+            <!-- =============================================================== -->
+            <div class="absolute -top-px left-6 z-20 flex gap-1">
+                <!-- 
+                  Each button is now styled to look like a solid, inactive tab.
+                  The active state will be applied by JavaScript.
+                -->
+                <button class="dashboard-tab px-6 py-2 rounded-t-lg transition-colors duration-200 border-x border-t" data-tab="dashboard">Dashboard</button>
+                <button class="dashboard-tab px-6 py-2 rounded-t-lg transition-colors duration-200 border-x border-t" data-tab="history">History</button>
+                <button class="dashboard-tab px-6 py-2 rounded-t-lg transition-colors duration-200 border-x border-t" data-tab="collection">Collection</button>
+                <button class="dashboard-tab px-6 py-2 rounded-t-lg transition-colors duration-200 border-x border-t" data-tab="achievements">Achievements</button>
+            </div>
+
+            <!-- =============================================================== -->
+            <!-- DYNAMIC CONTENT PANEL                                           -->
+            <!-- =============================================================== -->
+            <!-- 
+              'relative z-10' ensures this panel sits below the tabs.
+              'pt-12' adds padding to the top to make space for the overlapping tabs.
+            -->
+            <div id="dashboard-content" class="relative z-10 w-full min-h-[60vh] pt-12 p-6 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg">
+                <!-- Content will be injected here by JavaScript -->
+                <div class="w-full h-full flex items-center justify-center">
+                    <svg class="animate-spin h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Get references to the key elements ---
+    const tabs = document.querySelectorAll('.dashboard-tab');
+    const contentContainer = document.getElementById('dashboard-content');
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    let currentTab = 'dashboard';
+    let isLoading = false;
+
+    /**
+     * The main function to fetch and display content for a given tab.
+     */
+    async function loadTabContent(tabName) {
+        if (isLoading) return;
+        isLoading = true;
+
+        // --- 1. Update Tab Styles ---
+        tabs.forEach(tab => {
+            if (tab.dataset.tab === tabName) {
+                // Active tab style
+                tab.classList.add('bg-slate-800/80', 'border-slate-700', 'text-white', 'font-semibold');
+                tab.classList.remove('text-slate-400', 'hover:bg-slate-700/50');
+            } else {
+                // Inactive tab style
+                tab.classList.remove('bg-slate-800/80', 'border-slate-700', 'text-white', 'font-semibold');
+                tab.classList.add('text-slate-400', 'hover:bg-slate-700/50');
+            }
+        });
+
+        // --- 2. Show Loading State & Animate ---
+        contentContainer.style.opacity = 0.5;
+
+        // --- 3. Fetch New Content ---
+        try {
+            const response = await fetch(`/dashboard/${tabName}/`);
+            if (!response.ok) throw new Error('Failed to load content.');
+            const data = await response.json();
+            
+            // --- 4. Inject into the DOM ---
+            contentContainer.innerHTML = data.html;
+
+        } catch (error) {
+            contentContainer.innerHTML = `<p class="text-red-400">${error.message}</p>`;
+        } finally {
+            isLoading = false;
+            contentContainer.style.opacity = 1;
+        }
+    }
+
+    // --- Attach event listeners to all tabs ---
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabName = tab.dataset.tab;
+            if (tabName !== currentTab) {
+                currentTab = tabName;
+                loadTabContent(tabName);
+            }
+        });
+    });
+
+    // --- Initial Load ---
+    loadTabContent('dashboard');
+});
+</script>
+{% endblock %}

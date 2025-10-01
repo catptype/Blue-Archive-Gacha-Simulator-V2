@@ -12,7 +12,8 @@ urlpatterns = [
     path('student-card/<int:student_id>/', views.student_card, name='student_card'),
     path('', views.home, name='login'),
     path('', views.home, name='logout'),
-    path('', views.home, name='dashboard'),
+    path('dashboard', views.dashboard, name='dashboard'),
+    path('dashboard/<str:tab_name>/', views.get_dashboard_content, name='get_dashboard_content'),
     path('', views.home, name='register'),
 
     # --- NEW API ENDPOINT ---

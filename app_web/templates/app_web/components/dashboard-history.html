@@ -1,0 +1,17 @@
+<h1 class="text-3xl font-bold mb-6">Transaction History</h1>
+<div class="overflow-x-auto">
+    <table class="w-full text-left">
+        <thead class="border-b border-slate-600">
+            <tr><th class="p-2">Date</th><th class="p-2">Banner</th><th class="p-2">Student</th></tr>
+        </thead>
+        <tbody>
+            {% for tx in transactions %}
+            <tr class="border-b border-slate-700/50">
+                <td class="p-2 text-slate-400">{{ tx.transaction_create_on|date:"Y-m-d H:i" }}</td>
+                <td class="p-2">{{ tx.banner_id.name }}</td>
+                <td class="p-2 font-semibold">{{ tx.student_id.name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
