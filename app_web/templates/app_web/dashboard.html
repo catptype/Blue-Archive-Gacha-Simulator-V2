@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- 3. Fetch New Content ---
         try {
-            const response = await fetch(`/dashboard/${tabName}/`);
+            const response = await fetch(`/dashboard/${tabName}`);
             if (!response.ok) throw new Error('Failed to load content.');
             
             // THE FIX: We now expect the response to be plain HTML text.
