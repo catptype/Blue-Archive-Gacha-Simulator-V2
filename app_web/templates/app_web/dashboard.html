@@ -48,7 +48,7 @@
                   Each button is now styled to look like a solid, inactive tab.
                   The active state will be applied by JavaScript.
                 -->
-                <button class="dashboard-tab px-6 py-2 rounded-t-lg transition-colors duration-200 border-x border-t" data-tab="dashboard">Dashboard</button>
+                <button class="dashboard-tab px-6 py-2 rounded-t-lg transition-colors duration-200 border-x border-t" data-tab="summary">Dashboard</button>
                 <button class="dashboard-tab px-6 py-2 rounded-t-lg transition-colors duration-200 border-x border-t" data-tab="history">History</button>
                 <button class="dashboard-tab px-6 py-2 rounded-t-lg transition-colors duration-200 border-x border-t" data-tab="collection">Collection</button>
                 <button class="dashboard-tab px-6 py-2 rounded-t-lg transition-colors duration-200 border-x border-t" data-tab="achievements">Achievements</button>
@@ -81,10 +81,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     const tabs = document.querySelectorAll('.dashboard-tab');
     const contentContainer = document.getElementById('dashboard-content');
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    // const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
     
     // --- STATE MANAGEMENT VARIABLES ---
-    let currentTab = 'dashboard';
+    let currentTab = 'summary';
     let isLoading = false;
     // NEW: This variable will remember the last tab clicked while loading.
     let pendingTabName = null;
@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Initial Load ---
-    loadTabContent('dashboard');
+    loadTabContent('summary');
 });
 </script>
 {% endblock %}

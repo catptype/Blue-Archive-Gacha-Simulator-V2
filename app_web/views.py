@@ -179,7 +179,7 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
     context = {'user': user}
     template_name = None
 
-    if tab_name == 'dashboard':
+    if tab_name == 'summary':
         # --- Logic for the main dashboard summary ---
         all_pulls = GachaTransaction.objects.filter(transaction_user=user)
         context['total_pulls'] = all_pulls.count()
