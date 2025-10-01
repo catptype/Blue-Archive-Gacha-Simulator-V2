@@ -79,30 +79,39 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Get references to the key elements ---
     const tabs = document.querySelectorAll('.dashboard-tab');
     const contentContainer = document.getElementById('dashboard-content');
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
     
+    // --- STATE MANAGEMENT VARIABLES ---
     let currentTab = 'dashboard';
     let isLoading = false;
+    // NEW: This variable will remember the last tab clicked while loading.
+    let pendingTabName = null;
 
     /**
      * The main function to fetch and display content for a given tab.
+     * This function is now fully robust against race conditions.
      */
     async function loadTabContent(tabName) {
-        console.log(tabName)
-        if (isLoading) return;
-        isLoading = true;
+        // --- THE FIX: Part 1 ---
+        // If a request is already running, just record the user's latest intent and exit.
+        // Don't change the currentTab or update styles yet.
+        if (isLoading) {
+            pendingTabName = tabName;
+            return;
+        }
 
-        // --- 1. Update Tab Styles ---
+        isLoading = true;
+        // The "true" current tab is only set when we actually start loading it.
+        currentTab = tabName; 
+
+        // --- 1. Update Tab Styles for the CURRENTLY loading tab ---
         tabs.forEach(tab => {
-            if (tab.dataset.tab === tabName) {
-                // Active tab style
+            if (tab.dataset.tab === currentTab) {
                 tab.classList.add('bg-sky-800/80', 'border-slate-700', 'text-white', 'font-semibold');
                 tab.classList.remove('text-slate-400', 'hover:bg-slate-700/50');
             } else {
-                // Inactive tab style
                 tab.classList.remove('bg-sky-800/80', 'border-slate-700', 'text-white', 'font-semibold');
                 tab.classList.add('text-slate-400', 'hover:bg-slate-700/50');
             }
@@ -115,46 +124,53 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(`/dashboard/${tabName}`);
             if (!response.ok) throw new Error('Failed to load content.');
-            
-            // THE FIX: We now expect the response to be plain HTML text.
             const responseText = await response.text();
 
-            // --- The eval() logic for parsing the response ---
-            // (This is the same robust logic from your gacha modals)
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = responseText;
+            // Only inject the content if the user hasn't already clicked another tab.
+            // This prevents the old content (e.g., Collection) from appearing for a split second
+            // before the new content (e.g., History) starts loading.
+            if (tabName === currentTab) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = responseText;
+                const htmlContent = tempDiv.querySelector('.tab-html-content');
+                const scriptContent = tempDiv.querySelector('.tab-js-script');
 
-            // --- THE GENERIC FIX ---
-            // Instead of a hard-coded ID, we look for a generic class.
-            const htmlContent = tempDiv.querySelector('.tab-html-content');
-            const scriptContent = tempDiv.querySelector('.tab-js-script');
-
-            if (htmlContent) {
-                contentContainer.innerHTML = htmlContent.outerHTML;
-            } else {
-                // Fallback for simple tabs that don't need scripts
-                contentContainer.innerHTML = responseText;
+                if (htmlContent) {
+                    contentContainer.innerHTML = htmlContent.outerHTML;
+                } else {
+                    contentContainer.innerHTML = responseText;
+                }
+                if (scriptContent) {
+                    eval(scriptContent.textContent);
+                }
             }
-
-            if (scriptContent) {
-                console.log("scriptContent", scriptContent)
-                eval(scriptContent.textContent);
-            }
-
         } catch (error) {
-            contentContainer.innerHTML = `<p class="text-red-400">${error.message}</p>`;
+            contentContainer.innerHTML = `<p class="text-red-400 p-4">${error.message}</p>`;
         } finally {
             isLoading = false;
             contentContainer.style.opacity = 1;
+
+            // --- THE FIX: Part 2 ---
+            // After we finish, check if the user clicked another tab while we were busy.
+            if (pendingTabName) {
+                const nextTabToLoad = pendingTabName;
+                pendingTabName = null; // Clear the pending request.
+
+                // If the pending request is different from the tab we just finished loading,
+                // immediately start loading the new one.
+                if (nextTabToLoad !== currentTab) {
+                    loadTabContent(nextTabToLoad);
+                }
+            }
         }
     }
 
     // --- Attach event listeners to all tabs ---
+    // The listener is now simpler. It doesn't need to manage 'currentTab' itself.
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
             const tabName = tab.dataset.tab;
             if (tabName !== currentTab) {
-                currentTab = tabName;
                 loadTabContent(tabName);
             }
         });

@@ -208,7 +208,6 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
 
         context['transactions_page'] = transactions_page
 
-        print(transactions_page)
         template_name = 'app_web/components/dashboard-history.html'
 
     elif tab_name == 'collection':
