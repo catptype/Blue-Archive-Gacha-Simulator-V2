@@ -91,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * The main function to fetch and display content for a given tab.
      */
     async function loadTabContent(tabName) {
+        console.log(tabName)
         if (isLoading) return;
         isLoading = true;
 
@@ -123,8 +124,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = responseText;
 
-            const htmlContent = tempDiv.querySelector('#collection-html-content'); // Or other tab IDs
-            const scriptContent = tempDiv.querySelector('#collection-js-script'); // Or other tab script IDs
+            // --- THE GENERIC FIX ---
+            // Instead of a hard-coded ID, we look for a generic class.
+            const htmlContent = tempDiv.querySelector('.tab-html-content');
+            const scriptContent = tempDiv.querySelector('.tab-js-script');
 
             if (htmlContent) {
                 contentContainer.innerHTML = htmlContent.outerHTML;
@@ -134,6 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (scriptContent) {
+                console.log("scriptContent", scriptContent)
                 eval(scriptContent.textContent);
             }
 

@@ -1,7 +1,7 @@
 <!-- app_web/components/_collection.html -->
 <!-- This template is now a self-contained component with its own filtering logic. -->
 
-<div id="collection-html-content">
+<div class="tab-html-content">
   <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
       <!-- MODIFIED: The counter is now static and rendered by Django -->
       <h2 id="collection-counter" class="text-xl font-semibold text-slate-300">
@@ -51,10 +51,10 @@
 <!-- =============================================================== -->
 <!-- THE SCRIPT IS NOW SEPARATED FOR EXECUTION BY EVAL()             -->
 <!-- =============================================================== -->
-<script id="collection-js-script">
+<script class="tab-js-script">
     (function() {
         // Find elements within the currently loaded content.
-        const contentWrapper = document.getElementById('collection-html-content');
+        const contentWrapper = document.querySelector('.tab-html-content');
 
         console.log("contentWrapper", contentWrapper)
         if (!contentWrapper) return;

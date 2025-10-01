@@ -1,49 +1,43 @@
 <!-- This template now contains the table, pagination controls, and its own script. -->
 
 <!-- This div wraps all the visible HTML for parsing by eval(). -->
-<div id="history-html-content">
+<div class="tab-html-content">
     
     <!-- This inner wrapper is the target for our AJAX content replacement. -->
     <div id="history-table-wrapper">
         <div class="overflow-x-auto">
             <table class="w-full text-left">
-                <!-- MODIFIED: The table header now has 4 columns -->
+                <!-- MODIFIED: The header is now 4 columns -->
                 <thead class="border-b border-slate-600 text-sm text-slate-400">
                     <tr>
                         <th class="p-2 w-[20%]">Date</th>
-                        <th class="p-2 w-[25%]">Banner</th>
-                        <th class="p-2 w-[45%]">Student</th>
+                        <th class="p-2 w-[30%]">Banner</th>
                         <th class="p-2 w-[10%]">Rarity</th>
+                        <th class="p-2 w-[40%]">Student</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for tx in transactions_page %}
                     <tr class="border-b border-slate-700/50 
-                        {% if tx.student_id.student_rarity == 3 %}bg-yellow-500/10 text-yellow-300 font-semibold{% endif %}
-                    ">
-                        <!-- Datetime Column (Unchanged) -->
+                        {% if tx.student_id.student_rarity == 3 %}bg-yellow-500/10 text-yellow-300 font-semibold{% endif %}">
+                        
                         <td class="p-2 text-slate-400 font-mono">{{ tx.transaction_create_on|date:"Y-m-d H:i" }}</td>
                         
-                        <!-- Banner Image Column (Unchanged) -->
                         <td class="p-2">
                             <img src="{% url 'serve_banner_image' banner_id=tx.banner_id.banner_id %}" class="w-32 h-auto rounded-md object-cover">
                         </td>
                         
-                        <!-- Student Info Column (Now simpler) -->
-                        <td class="p-2">
-                            <div class="flex flex-col">
-                                <span class="text-lg">{{ tx.student_id.name }}</span>
-                                {% if tx.student_id.version != 'Original' %}
-                                    <span class="text-sm text-slate-400">({{ tx.student_id.version }})</span>
-                                {% endif %}
-                            </div>
+                        <!-- NEW: Rarity Column with stars -->
+                        <td class="p-2 text-lg">
+                            {% for i in "x"|rjust:tx.student_id.student_rarity %}<span>★</span>{% endfor %}
                         </td>
-
-                        <!-- NEW: Rarity Column -->
-                        <td class="p-2">
-                            <div class="flex">
-                                {% for i in "x"|rjust:tx.student_id.student_rarity %}<span>★</span>{% endfor %}
-                            </div>
+                        
+                        <!-- MODIFIED: Student Column now just has name and version -->
+                        <td class="p-2 text-lg">
+                            {{ tx.student_id.student_name }}
+                            {% if tx.student_id.version != 'Original' %}
+                                <span class="text-sm text-slate-400">({{ tx.student_id.version }})</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -76,34 +70,36 @@
 </div>
 
 <!-- This script is separated and will be executed by eval() in the main dashboard page. -->
-<script id="history-js-script">
+<script class="tab-js-script">
     (function() {
-        const contentWrapper = document.getElementById('history-html-content');
+        // Find elements within the currently loaded content.
+        const contentWrapper = document.querySelector('.tab-html-content');
+        console.log("contentWrapper", contentWrapper)
         if (!contentWrapper) return;
         
-        const pageLinks = contentWrapper.querySelectorAll('.page-link');
+        // This is the part of the content that WILL be replaced.
+        const tableWrapper = contentWrapper.querySelector('#history-table-wrapper');
 
-        async function loadPage(url) {
-            // Find the wrapper by its ID each time to ensure we're targeting the current one.
-            const tableWrapper = document.getElementById('history-table-wrapper');
+        /**
+         * Fetches and replaces the table content for a given page URL.
+         */
+        async function fetchAndReplacePage(url) {
             if (!tableWrapper) return;
-
             tableWrapper.style.opacity = 0.5;
             try {
-                // THE FIX: The full, correct URL is now passed directly to fetch.
-                const response = await fetch(url);
+                const response = await fetch(`/dashboard/history${url}`);
                 if (!response.ok) throw new Error('Failed to load page.');
                 
                 const responseText = await response.text();
                 
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = responseText;
+                
                 const newTableWrapper = tempDiv.querySelector('#history-table-wrapper');
 
                 if (newTableWrapper) {
+                    // Replace the content of the old wrapper with the new content.
                     tableWrapper.innerHTML = newTableWrapper.innerHTML;
-                    // IMPORTANT: We must re-attach the event listeners to the new links.
-                    reAttachListeners();
                 }
 
             } catch (error) {
@@ -112,22 +108,24 @@
                 tableWrapper.style.opacity = 1;
             }
         }
+
+        // --- THE EVENT DELEGATION FIX ---
+        // 1. Attach ONE click listener to the stable parent container.
+        contentWrapper.addEventListener('click', (event) => {
+            // 2. Check if the element that was actually clicked (or its parent) is a .page-link.
+            //    '.closest()' is the perfect tool for this.
+            const pageLink = event.target.closest('.page-link');
+
+            // 3. If it's not a page link, do nothing.
+            if (!pageLink) {
+                return;
+            }
+
+            // 4. If it IS a page link, prevent the default refresh and load the content.
+            event.preventDefault();
+            const url = pageLink.getAttribute('href');
+            fetchAndReplacePage(url);
+        });
         
-        // This function re-runs the logic to find and attach click handlers.
-        function reAttachListeners() {
-            const newPageLinks = document.querySelectorAll('#history-table-wrapper .page-link');
-            newPageLinks.forEach(link => {
-                link.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    // Construct the full, correct API URL.
-                    const url = `/dashboard/content/history/${link.getAttribute('href')}`;
-                    loadPage(url);
-                });
-            });
-        }
-
-        // Run this once for the initial set of links.
-        reAttachListeners();
-
     })();
 </script>
