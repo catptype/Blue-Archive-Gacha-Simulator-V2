@@ -3,6 +3,7 @@ import json
 import tempfile
 from decimal import Decimal
 from django.core.cache import cache
+from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles import finders
 from django.db import transaction
@@ -188,11 +189,26 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
         template_name = 'app_web/components/dashboard-summary.html'
 
     elif tab_name == 'history':
-        # --- Logic for the transaction history ---
-        # Use select_related for a huge performance boost!
-        context['transactions'] = GachaTransaction.objects.filter(transaction_user=user).select_related(
-            'banner_id', 'student_id'
-        ).order_by('-transaction_create_on')[:100] # Limit to the most recent 100 for now
+        # --- NEW, PAGINATED LOGIC FOR THE TRANSACTION HISTORY ---
+        
+        # 1. Get the full, ordered list of all transactions for the user.
+        # We pre-fetch related data for high performance.
+        transaction_list = GachaTransaction.objects.filter(transaction_user=user).select_related(
+            'banner_id', 'student_id__version_id'
+        ).order_by('-transaction_create_on')
+        
+        # 2. Get the requested page number from the URL query (e.g., ?page=2). Default to page 1.
+        page_number = request.GET.get('page', 1)
+        
+        # 3. Create a Paginator object, with 10 items per page.
+        paginator = Paginator(transaction_list, 5)
+        
+        # 4. Get the specific page object. This handles invalid page numbers gracefully.
+        transactions_page = paginator.get_page(page_number)
+
+        context['transactions_page'] = transactions_page
+
+        print(transactions_page)
         template_name = 'app_web/components/dashboard-history.html'
 
     elif tab_name == 'collection':

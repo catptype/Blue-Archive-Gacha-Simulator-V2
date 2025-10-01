@@ -98,43 +98,6 @@ document.addEventListener('DOMContentLoaded', () => {
         tabs.forEach(tab => {
             if (tab.dataset.tab === tabName) {
                 // Active tab style
-                tab.classList.add('bg-slate-800/80', 'border-slate-700', 'text-white', 'font-semibold');
-                tab.classList.remove('text-slate-400', 'hover:bg-slate-700/50');
-            } else {
-                // Inactive tab style
-                tab.classList.remove('bg-slate-800/80', 'border-slate-700', 'text-white', 'font-semibold');
-                tab.classList.add('text-slate-400', 'hover:bg-slate-700/50');
-            }
-        });
-
-        // --- 2. Show Loading State & Animate ---
-        contentContainer.style.opacity = 0.5;
-
-        // --- 3. Fetch New Content ---
-        try {
-            const response = await fetch(`/dashboard/${tabName}/`);
-            if (!response.ok) throw new Error('Failed to load content.');
-            const data = await response.json();
-            
-            // --- 4. Inject into the DOM ---
-            contentContainer.innerHTML = data.html;
-
-        } catch (error) {
-            contentContainer.innerHTML = `<p class="text-red-400">${error.message}</p>`;
-        } finally {
-            isLoading = false;
-            contentContainer.style.opacity = 1;
-        }
-    }
-
-    async function loadTabContent(tabName) {
-        if (isLoading) return;
-        isLoading = true;
-
-        // --- 1. Update Tab Styles ---
-        tabs.forEach(tab => {
-            if (tab.dataset.tab === tabName) {
-                // Active tab style
                 tab.classList.add('bg-sky-800/80', 'border-slate-700', 'text-white', 'font-semibold');
                 tab.classList.remove('text-slate-400', 'hover:bg-slate-700/50');
             } else {
