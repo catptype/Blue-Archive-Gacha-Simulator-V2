@@ -15,22 +15,21 @@
         </div>
         
         <!-- Podium Base - MODIFIED: Now a simple, consistent color -->
-        <div class="w-full {% if forloop.counter == 1 %}h-16{% elif forloop.counter == 2 %}h-12{% else %}h-8{% endif %} rounded-t-md mt-2 bg-slate-600/50
-            ">
+        <div class="w-full {% if forloop.counter == 1 %}h-20{% elif forloop.counter == 2 %}h-16{% else %}h-12{% endif %} rounded-t-md mt-2 bg-slate-600/50">
         </div>
 
         <!-- Rank Icon & Text -->
-        <div class="absolute -bottom-5 flex flex-col items-center">
+        <div class="absolute {% if forloop.counter == 1 %}bottom-3{% else %}bottom-0{% endif %} flex flex-col items-center">
             <!-- THE FIX: Use a simple 'if/elif' block for robust image paths -->
             {% if forloop.counter == 1 %}
-                <img src="{% static 'images/web/rank1.png' %}" class="w-16 h-16 object-cover">
-                <span class="font-bold text-lg -mt-4 text-white" style="text-shadow: 1px 1px 3px #000;">1st</span>
+                <img src="{% static 'images/web/rank1.png' %}" class="w-14 h-14 object-cover">
+                <span class="font-bold text-md -mt-4 text-white" style="text-shadow: 1px 1px 3px #000;">1st</span>
             {% elif forloop.counter == 2 %}
-                <img src="{% static 'images/web/rank2.png' %}" class="w-16 h-16 object-cover">
-                <span class="font-bold text-lg -mt-4 text-white" style="text-shadow: 1px 1px 3px #000;">2nd</span>
+                <img src="{% static 'images/web/rank2.png' %}" class="w-14 h-14 object-cover">
+                <span class="font-bold text-md -mt-4 text-white" style="text-shadow: 1px 1px 3px #000;">2nd</span>
             {% else %}
-                <img src="{% static 'images/web/rank3.png' %}" class="w-16 h-16 object-cover">
-                <span class="font-bold text-lg -mt-4 text-white" style="text-shadow: 1px 1px 3px #000;">3rd</span>
+                <img src="{% static 'images/web/rank3.png' %}" class="w-14 h-14 object-cover">
+                <span class="font-bold text-md -mt-4 text-white" style="text-shadow: 1px 1px 3px #000;">3rd</span>
             {% endif %}
         </div>
     </div>
