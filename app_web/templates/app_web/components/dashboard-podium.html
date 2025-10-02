@@ -1,40 +1,40 @@
-<!-- This is a new partial template for the podium display. -->
+<!-- app_web/components/_podium.html -->
 {% load static %}
 
-<!-- Main flex container for the podium. 'items-end' aligns cards to the bottom. -->
+<!-- Main flex container for the podium. -->
 <div class="flex items-end justify-center gap-4 h-full">
 
-    <!-- This loop generates the podium steps. It correctly handles cases with 0, 1, or 2 students. -->
     {% for student in top_students %}
-        <!-- Podium Step Wrapper -->
-        <div class="relative flex flex-col items-center
-            {% if forloop.counter == 1 %}order-2{% elif forloop.counter == 2 %}order-1{% else %}order-3{% endif %}">
-            
-            <!-- The Student Card -->
-            <!-- The first student is lifted higher to create the podium effect. -->
-            <div class="transition-transform duration-300 {% if forloop.counter == 1 %}-translate-y-8{% endif %}">
-                {% include 'app_web/components/student-card-static.html' with student=student %}
-            </div>
-            
-            <!-- Podium Base -->
-            <div class="w-full h-8 rounded-t-md mt-2 
-                {% if forloop.counter == 1 %}h-12{% endif %}
-                {% if rarity == 3 %}bg-yellow-500/20
-                {% elif rarity == 2 %}bg-purple-500/20
-                {% else %}bg-blue-500/20{% endif %}">
-            </div>
-
-            <!-- Rank Icon & Text -->
-            <div class="absolute -bottom-5 flex flex-col items-center">
-                <img src="{% static 'images/web/rank'|add:forloop.counter|stringformat:'s'|add:'.png' %}" class="w-16 h-16">
-                <span class="font-bold text-lg -mt-4 text-white" style="text-shadow: 1px 1px 3px #000;">
-                    {% if forloop.counter == 1 %}1st
-                    {% elif forloop.counter == 2 %}2nd
-                    {% else %}3rd{% endif %}
-                </span>
-            </div>
+    <!-- Podium Step Wrapper -->
+    <div class="relative flex flex-col items-center
+        {% if forloop.counter == 1 %}order-2{% elif forloop.counter == 2 %}order-1{% else %}order-3{% endif %}">
+        
+        <!-- The Student Card -->
+        <div>
+            {% include 'app_web/components/student-card-static.html' with student=student %}
         </div>
+        
+        <!-- Podium Base - MODIFIED: Now a simple, consistent color -->
+        <div class="w-full {% if forloop.counter == 1 %}h-16{% elif forloop.counter == 2 %}h-12{% else %}h-8{% endif %} rounded-t-md mt-2 bg-slate-600/50
+            ">
+        </div>
+
+        <!-- Rank Icon & Text -->
+        <div class="absolute -bottom-5 flex flex-col items-center">
+            <!-- THE FIX: Use a simple 'if/elif' block for robust image paths -->
+            {% if forloop.counter == 1 %}
+                <img src="{% static 'images/web/rank1.png' %}" class="w-16 h-16 object-cover">
+                <span class="font-bold text-lg -mt-4 text-white" style="text-shadow: 1px 1px 3px #000;">1st</span>
+            {% elif forloop.counter == 2 %}
+                <img src="{% static 'images/web/rank2.png' %}" class="w-16 h-16 object-cover">
+                <span class="font-bold text-lg -mt-4 text-white" style="text-shadow: 1px 1px 3px #000;">2nd</span>
+            {% else %}
+                <img src="{% static 'images/web/rank3.png' %}" class="w-16 h-16 object-cover">
+                <span class="font-bold text-lg -mt-4 text-white" style="text-shadow: 1px 1px 3px #000;">3rd</span>
+            {% endif %}
+        </div>
+    </div>
     {% empty %}
-        <p class="text-center text-slate-400">No students of this rarity pulled yet.</p>
+        <p class="text-center text-slate-400 py-16">No students of this rarity pulled yet.</p>
     {% endfor %}
 </div>
