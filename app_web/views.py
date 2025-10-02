@@ -167,6 +167,33 @@ def gacha_results(request: HttpRequest) -> HttpResponse:
         return HttpResponseBadRequest("Invalid request body.")
 
 @login_required
+def get_top_students_by_rarity(request: HttpRequest, rarity: int) -> HttpResponse:
+    """
+    API endpoint that fetches the top 3 most-pulled students for a given rarity
+    and renders the podium partial template.
+    """
+    user = request.user
+
+    cache_key = f"user_podium:{user}:{rarity}"
+    top_students = cache.get(cache_key)
+
+    if top_students is None:
+        print(f"CACHE MISS for key: {cache_key}")
+        # Fetch the top 3 students for the requested rarity.
+        top_students = Student.objects.filter(
+            gachatransaction__transaction_user=user, 
+            student_rarity=rarity
+        ).annotate(count=Count('pk')).order_by('-count')[:3]
+        cache.set(cache_key, top_students, timeout=CACHE_IMAGE_TIMEOUT)
+
+    context = {
+        'top_students': top_students,
+        'rarity': rarity, # Pass the rarity for styling in the template
+    }
+    # Render a NEW partial template just for the podium.
+    return render(request, 'app_web/components/dashboard-podium.html', context)
+
+@login_required
 def dashboard(request: HttpRequest) -> HttpResponse:
     return render(request, 'app_web/dashboard.html')
 
@@ -193,10 +220,10 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
         context['total_pulls'] = total_pulls
 
         if total_pulls > 0:
-            # --- 1. Top 3 Students (now returns full objects for card rendering) ---
-            top_student_ids = all_pulls.values('student_id').annotate(count=Count('student_id')).order_by('-count').values_list('student_id', flat=True)[:3]
-            # We fetch the full student objects in a separate query to preserve the order and use our pre-fetched data.
-            context['top_students'] = sorted(Student.objects.filter(pk__in=top_student_ids), key=lambda s: list(top_student_ids).index(s.pk))
+
+            # --- 1. MODIFIED: Top 3 Most Pulled Students PER Rarity ---
+            # We fetch these as full objects directly for the card rendering.
+            context['top_r3_students'] = Student.objects.filter(gachatransaction__transaction_user=user, student_rarity=3).annotate(count=Count('pk')).order_by('-count')[:3]
 
             # --- 2. Rarity Breakdown for Chart ---
             rarity_counts_query = all_pulls.values('student_id__student_rarity').annotate(count=Count('pk')).order_by()
@@ -205,23 +232,51 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
             context['r2_count'] = rarity_counts.get(2, 0)
             context['r1_count'] = rarity_counts.get(1, 0)
 
-            # --- NEW: Banner Distribution for the new chart ---
+            # --- 3. Banner Distribution for Chart ---
             context['banner_distribution'] = list(all_pulls.values('banner_id__banner_name').annotate(count=Count('banner_id')).order_by('-count'))
             
-            # --- 3. Advanced Statistics (Gap between 3-Star Pulls) ---
-            r3_indices = [i + 1 for i, pull in enumerate(all_pulls) if pull.student_id.student_rarity == 3]
-            
-            # THE FIX: Always show the widget, but provide default/NA values.
-            if len(r3_indices) > 1:
-                gaps = [r3_indices[i] - r3_indices[i-1] for i in range(1, len(r3_indices))]
-                context['r3_gap_stats'] = {
-                    'min': min(gaps), 'max': max(gaps), 'avg': f"{statistics.mean(gaps):.1f}",
-                    'stdev': f"{statistics.stdev(gaps):.2f}" if len(gaps) > 1 else "N/A"
+            # --- 4. NEW: Per-Banner 3-Star Pull Analysis ---
+            banner_analysis = []
+            # Get all banners the user has actually pulled on.
+            pulled_banners = GachaBanner.objects.filter(gachatransaction__transaction_user=user).distinct()
+
+            for banner in pulled_banners:
+                # Get all pulls for this specific banner, ordered chronologically.
+                banner_pulls = all_pulls.filter(banner_id=banner).order_by('transaction_create_on')
+                r3_indices = [i + 1 for i, pull in enumerate(banner_pulls) if pull.student_id.student_rarity == 3]
+                
+                analysis_data = {
+                    'banner_name': banner.banner_name,
+                    'total_pulls': banner_pulls.count(),
+                    'r3_count': len(r3_indices),
+                    'gaps': None
                 }
-            elif len(r3_indices) == 1:
-                context['r3_gap_stats'] = {'min': 'N/A', 'max': 'N/A', 'avg': 'N/A', 'stdev': 'N/A'}
-            else: # len is 0
-                context['r3_gap_stats'] = {'min': 0, 'max': 0, 'avg': 0, 'stdev': 0}
+
+                if len(r3_indices) > 1:
+                    gaps = [r3_indices[i] - r3_indices[i-1] for i in range(1, len(r3_indices))]
+                    analysis_data['gaps'] = {
+                        'min': min(gaps), 'max': max(gaps), 'avg': f"{statistics.mean(gaps):.1f}",
+                        'stdev': f"{statistics.stdev(gaps):.2f}" if len(gaps) > 1 else "N/A"
+                    }
+                
+                banner_analysis.append(analysis_data)
+            
+            context['banner_analysis'] = banner_analysis
+
+            # # --- 3. Advanced Statistics (Gap between 3-Star Pulls) ---
+            # r3_indices = [i + 1 for i, pull in enumerate(all_pulls) if pull.student_id.student_rarity == 3]
+            
+            # # THE FIX: Always show the widget, but provide default/NA values.
+            # if len(r3_indices) > 1:
+            #     gaps = [r3_indices[i] - r3_indices[i-1] for i in range(1, len(r3_indices))]
+            #     context['r3_gap_stats'] = {
+            #         'min': min(gaps), 'max': max(gaps), 'avg': f"{statistics.mean(gaps):.1f}",
+            #         'stdev': f"{statistics.stdev(gaps):.2f}" if len(gaps) > 1 else "N/A"
+            #     }
+            # elif len(r3_indices) == 1:
+            #     context['r3_gap_stats'] = {'min': 'N/A', 'max': 'N/A', 'avg': 'N/A', 'stdev': 'N/A'}
+            # else: # len is 0
+            #     context['r3_gap_stats'] = {'min': 0, 'max': 0, 'avg': 0, 'stdev': 0}
 
         template_name = 'app_web/components/dashboard-summary.html'
 

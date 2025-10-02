@@ -14,22 +14,23 @@
     </div>
 
     <!-- =============================================================== -->
-    <!-- NEW: TOP 3 STUDENTS (Card-based Layout)                         -->
+    <!-- NEW: TOP STUDENTS WIDGET                                        -->
     <!-- =============================================================== -->
     <div class="mb-6">
-        <h3 class="text-xl font-semibold mb-4">Most Pulled Students</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {% for student in top_students %}
-                <div class="relative">
-                    <!-- The rank icon (1st, 2nd, 3rd) -->
-                    <img src="{% static 'images/web/rank_'|add:forloop.counter|stringformat:'s'|add:'.png' %}" 
-                         class="absolute -top-4 -left-4 w-16 h-16 z-10">
-                    <!-- Include the standard static student card component -->
-                    {% include 'app_web/components/student-card-static.html' with student=student %}
-                </div>
-            {% empty %}
-                <p class="md:col-span-3 text-center text-slate-400">Pull gacha to see your top students!</p>
-            {% endfor %}
+        <h3 class="text-xl font-semibold mb-4">Most Pulled Students by Rarity</h3>
+        <!-- This is the main widget container -->
+        <div class="flex gap-6">
+            <!-- Left Side: Rarity Tabs -->
+            <nav class="flex flex-col gap-2">
+                <button class="rarity-tab p-3 rounded-lg font-semibold" data-rarity="3">★★★</button>
+                <button class="rarity-tab p-3 rounded-lg font-semibold" data-rarity="2">★★</button>
+                <button class="rarity-tab p-3 rounded-lg font-semibold" data-rarity="1">★</button>
+            </nav>
+            <!-- Right Side: Podium Content Area -->
+            <div id="podium-content" class="flex-grow min-h-[450px]">
+                <!-- The initial podium for 3-star students is rendered here by Django -->
+                {% include 'app_web/components/dashboard-podium.html' with top_students=top_r3_students rarity=3 %}
+            </div>
         </div>
     </div>
 
@@ -54,17 +55,41 @@
         </div>
 
         <!-- =============================================================== -->
-        <!-- 3-Star Pull Analysis (Now always visible)                       -->
+        <!-- NEW: PER-BANNER PULL ANALYSIS                                   -->
         <!-- =============================================================== -->
         <div class="lg:col-span-3 p-4 bg-slate-700/50 rounded-lg">
-            <h3 class="text-xl font-semibold mb-4">3-Star Pull Analysis</h3>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                <div><div class="text-3xl font-bold">{{ r3_gap_stats.min }}</div><div class="text-sm text-slate-400">Shortest Gap</div></div>
-                <div><div class="text-3xl font-bold">{{ r3_gap_stats.max }}</div><div class="text-sm text-slate-400">Longest Gap</div></div>
-                <div><div class="text-3xl font-bold">{{ r3_gap_stats.avg }}</div><div class="text-sm text-slate-400">Average Gap</div></div>
-                <div><div class="text-3xl font-bold">{{ r3_gap_stats.stdev }}</div><div class="text-sm text-slate-400">Standard Deviation</div></div>
+            <h3 class="text-xl font-semibold mb-4">3-Star Pull Analysis by Banner</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="border-b border-slate-600">
+                        <tr>
+                            <th class="p-2">Banner</th>
+                            <th class="p-2 text-center">Total Pulls</th>
+                            <th class="p-2 text-center">3-Star Count</th>
+                            <th class="p-2 text-center">Shortest Gap</th>
+                            <th class="p-2 text-center">Longest Gap</th>
+                            <th class="p-2 text-center">Average Gap</th>
+                            <th class="p-2 text-center">Stdev Gap</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for analysis in banner_analysis %}
+                        <tr class="border-b border-slate-700/50">
+                            <td class="p-2 font-semibold">{{ analysis.banner_name }}</td>
+                            <td class="p-2 text-center">{{ analysis.total_pulls }}</td>
+                            <td class="p-2 text-center text-yellow-300 font-bold">{{ analysis.r3_count }}</td>
+                            <td class="p-2 text-center">{{ analysis.gaps.min|default:"N/A" }}</td>
+                            <td class="p-2 text-center">{{ analysis.gaps.max|default:"N/A" }}</td>
+                            <td class="p-2 text-center">{{ analysis.gaps.avg|default:"N/A" }}</td>
+                            <td class="p-2 text-center">{{ analysis.gaps.stdev|default:"N/A" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
+
+
     </div>
 
 
@@ -74,6 +99,58 @@
 <!-- The script to initialize the chart -->
 <script class="tab-js-script">
     (function() {
+
+        // --- NEW: PODIUM TAB LOGIC ---
+        const contentWrapper = document.querySelector('.tab-html-content');
+        if (!contentWrapper) return;
+
+        const rarityTabs = contentWrapper.querySelectorAll('.rarity-tab');
+        const podiumContainer = contentWrapper.querySelector('#podium-content');
+        let isLoadingPodium = false;
+
+        async function loadPodiumContent(rarity) {
+            if (isLoadingPodium) return;
+            isLoadingPodium = true;
+
+            // Update tab styles
+            rarityTabs.forEach(tab => {
+                if (tab.dataset.rarity == rarity) {
+                    tab.classList.add('bg-cyan-600', 'text-white');
+                    tab.classList.remove('bg-slate-700/50', 'text-slate-400');
+                } else {
+                    tab.classList.remove('bg-cyan-600', 'text-white');
+                    tab.classList.add('bg-slate-700/50', 'text-slate-400');
+                }
+            });
+
+            // Show loading state
+            podiumContainer.style.opacity = 0.5;
+
+            try {
+                const response = await fetch(`/dashboard/top-students/${rarity}/`);
+                if (!response.ok) throw new Error('Failed to load podium data.');
+                podiumContainer.innerHTML = await response.text();
+            } catch (error) {
+                podiumContainer.innerHTML = `<p class="text-red-400">${error.message}</p>`;
+            } finally {
+                isLoadingPodium = false;
+                podiumContainer.style.opacity = 1;
+            }
+        }
+
+        // Attach listeners
+        rarityTabs.forEach(tab => {
+            tab.addEventListener('click', () => loadPodiumContent(tab.dataset.rarity));
+        });
+
+        // Set initial active state for the default (3-star) tab
+        rarityTabs[0].click();
+
+
+
+
+
+
         // --- Include Chart.js library ---
         // We dynamically add the script to the page to ensure it's available.
         if (!document.getElementById('chartjs-script')) {
@@ -120,8 +197,6 @@
                     }
                 });
             }
-
-            
 
             // --- NEW: Banner Bar Chart ---
             const barCtx = document.getElementById('bannerBarChart');

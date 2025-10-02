@@ -14,6 +14,7 @@ urlpatterns = [
     path('', views.home, name='logout'),
     path('dashboard', views.dashboard, name='dashboard'),
     path('dashboard/<str:tab_name>/', views.get_dashboard_content, name='get_dashboard_content'),
+    path('dashboard/top-students/<int:rarity>/', views.get_top_students_by_rarity, name='get_top_students_by_rarity'),
     path('', views.home, name='register'),
 
     # --- NEW API ENDPOINT ---
