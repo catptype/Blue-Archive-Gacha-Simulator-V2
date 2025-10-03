@@ -15,6 +15,8 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.views.decorators.http import require_POST, require_GET
 
+from collections import Counter, defaultdict
+
 from .models import School, Student, Version, GachaBanner, GachaTransaction, UserInventory
 from .util.GachaEngine import GachaEngine
 
@@ -209,74 +211,68 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
 
     if tab_name == 'summary': # I've renamed this from 'summary' for clarity
         
-        # --- THE FIX: Base QuerySet is now highly optimized with select_related ---
-        # This is the answer to your first question. We pre-fetch all related data at the start.
-        all_pulls = GachaTransaction.objects.filter(transaction_user=user).select_related(
-            'student_id__version_id', 'student_id__school_id', 'student_id__asset_id', 
-            'banner_id'
+        # Fetch all transactions and all related data in one go.
+        all_pulls_queryset = GachaTransaction.objects.filter(transaction_user=user).select_related(
+            'student_id', 'banner_id'
         ).order_by('transaction_create_on')
+
+        # All subsequent operations will be on this in-memory list, with ZERO extra DB hits.
+        all_pulls = list(all_pulls_queryset)
         
-        total_pulls = all_pulls.count()
+        total_pulls = len(all_pulls)
         context['total_pulls'] = total_pulls
 
         if total_pulls > 0:
 
-            # --- 1. MODIFIED: Top 3 Most Pulled Students PER Rarity ---
-            # We fetch these as full objects directly for the card rendering.
+            # --- 1. Default Top 3 Most Pulled Students Rarity 3 ---
+            # for other will be fetch by get_top_students_by_rarity() later
             context['top_r3_students'] = Student.objects.filter(gachatransaction__transaction_user=user, student_rarity=3).annotate(count=Count('pk')).order_by('-count')[:3]
 
             # --- 2. Rarity Breakdown for Chart ---
-            rarity_counts_query = all_pulls.values('student_id__student_rarity').annotate(count=Count('pk')).order_by()
-            rarity_counts = {item['student_id__student_rarity']: item['count'] for item in rarity_counts_query}
-            context['r3_count'] = rarity_counts.get(3, 0)
-            context['r2_count'] = rarity_counts.get(2, 0)
-            context['r1_count'] = rarity_counts.get(1, 0)
+            rarity_counter = Counter(pull.student_id.student_rarity for pull in all_pulls)
+            context['r3_count'] = rarity_counter.get(3, 0)
+            context['r2_count'] = rarity_counter.get(2, 0)
+            context['r1_count'] = rarity_counter.get(1, 0)
 
             # --- 3. Banner Distribution for Chart ---
-            context['banner_distribution'] = list(all_pulls.values('banner_id__banner_name').annotate(count=Count('banner_id')).order_by('-count'))
+            banner_counter = Counter(pull.banner_id.banner_name for pull in all_pulls)
+            context['banner_distribution'] = [
+                {'banner_id__banner_name': name, 'count': count}
+                for name, count in banner_counter.most_common()
+            ]
             
             # --- 4. NEW: Per-Banner 3-Star Pull Analysis ---
-            banner_analysis = []
-            # Get all banners the user has actually pulled on.
-            pulled_banners = GachaBanner.objects.filter(gachatransaction__transaction_user=user).distinct()
+            pulls_by_banner = defaultdict(list)
+            for pull in all_pulls:
+                pulls_by_banner[pull.banner].append(pull)
 
-            for banner in pulled_banners:
-                # Get all pulls for this specific banner, ordered chronologically.
-                banner_pulls = all_pulls.filter(banner_id=banner).order_by('transaction_create_on')
-                r3_indices = [i + 1 for i, pull in enumerate(banner_pulls) if pull.student_id.student_rarity == 3]
+            banner_analysis = []
+            for banner_name, pulls_in_banner in pulls_by_banner.items():
+                r3_indices = [
+                    i + 1 
+                    for i, pull in enumerate(pulls_in_banner) 
+                    if pull.student_id.student_rarity == 3
+                ]
                 
                 analysis_data = {
-                    'banner_name': banner.banner_name,
-                    'total_pulls': banner_pulls.count(),
+                    'banner_name': banner_name,
+                    'total_pulls': len(pulls_in_banner),
                     'r3_count': len(r3_indices),
                     'gaps': None
                 }
-
+                
                 if len(r3_indices) > 1:
                     gaps = [r3_indices[i] - r3_indices[i-1] for i in range(1, len(r3_indices))]
                     analysis_data['gaps'] = {
                         'min': min(gaps), 'max': max(gaps), 'avg': f"{statistics.mean(gaps):.1f}",
                         'stdev': f"{statistics.stdev(gaps):.2f}" if len(gaps) > 1 else "N/A"
                     }
-                
+
                 banner_analysis.append(analysis_data)
             
             context['banner_analysis'] = banner_analysis
 
-            # # --- 3. Advanced Statistics (Gap between 3-Star Pulls) ---
-            # r3_indices = [i + 1 for i, pull in enumerate(all_pulls) if pull.student_id.student_rarity == 3]
-            
-            # # THE FIX: Always show the widget, but provide default/NA values.
-            # if len(r3_indices) > 1:
-            #     gaps = [r3_indices[i] - r3_indices[i-1] for i in range(1, len(r3_indices))]
-            #     context['r3_gap_stats'] = {
-            #         'min': min(gaps), 'max': max(gaps), 'avg': f"{statistics.mean(gaps):.1f}",
-            #         'stdev': f"{statistics.stdev(gaps):.2f}" if len(gaps) > 1 else "N/A"
-            #     }
-            # elif len(r3_indices) == 1:
-            #     context['r3_gap_stats'] = {'min': 'N/A', 'max': 'N/A', 'avg': 'N/A', 'stdev': 'N/A'}
-            # else: # len is 0
-            #     context['r3_gap_stats'] = {'min': 0, 'max': 0, 'avg': 0, 'stdev': 0}
+            print(context['banner_analysis'])
 
         template_name = 'app_web/components/dashboard-summary.html'
 
