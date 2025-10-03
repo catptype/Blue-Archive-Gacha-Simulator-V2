@@ -1,0 +1,20 @@
+services:
+  # redis:
+  #   image: redis:latest
+  #   container_name: anpr_redis
+  #   ports:
+  #     - "6379:6379"
+      
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ba_gacha_sim
+    container_name: blue_archive
+    # restart: always
+    # depends_on:
+      # - redis
+    ports:
+      - "8000:8000"
+    command: python manage.py runserver 0.0.0.0:8000
+  

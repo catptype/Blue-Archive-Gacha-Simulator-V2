@@ -2,7 +2,8 @@ django
 djangorestframework
 django-cors-headers
 django-browser-reload
-django-debug-toolbar
 python-webpack-boilerplate
 drf-yasg
 whitenoise
+opencv-python
+pillow

@@ -21,6 +21,8 @@ FROM python:3.10-slim
 # Install runtime dependencies only
 RUN apt-get update && apt-get install -y \
     curl \
+    libgl1 \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONDONTWRITEBYTECODE=1 \

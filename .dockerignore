@@ -6,5 +6,10 @@ README.md
 *.log
 *.yml
 *.env
+*.sqlite3
 __pycache__/
+external/
+docs/
 node_modules/
+.github/
+tools/
