@@ -222,6 +222,13 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
         total_pulls = len(all_pulls)
         context['total_pulls'] = total_pulls
 
+        # --- NEW: Calculate Total Pyroxene Usage ---
+        context['total_pyroxene_spent'] = total_pulls * 120
+
+        # --- NEW: Find the User's First-Ever 3-Star Pull ---
+        context['first_r3_pull'] = all_pulls_queryset.filter(student_id__student_rarity=3).first()
+        print(context['first_r3_pull'])
+
         if total_pulls > 0:
 
             # --- 1. Default Top 3 Most Pulled Students Rarity 3 ---
@@ -246,23 +253,48 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
             for pull in all_pulls:
                 pulls_by_banner[pull.banner].append(pull)
 
+  
+
             banner_analysis = []
             for banner_name, pulls_in_banner in pulls_by_banner.items():
+                
                 r3_indices = [
                     i + 1 
                     for i, pull in enumerate(pulls_in_banner) 
                     if pull.student_id.student_rarity == 3
                 ]
-                
+
+                r3_count = len(r3_indices)
+                total_banner_pulls = len(pulls_in_banner)
+
                 analysis_data = {
                     'banner_name': banner_name,
                     'total_pulls': len(pulls_in_banner),
                     'r3_count': len(r3_indices),
                     'gaps': None
                 }
+
+                # Calculate user's actual rate for this banner
+                user_rate = (Decimal(r3_count) / Decimal(total_banner_pulls)) * 100 if total_banner_pulls > 0 else Decimal('0.0')
+
+                # Get the banner's advertised rate from its preset
+                if len(pulls_in_banner) > 0:
+                    banner_rate = pulls_in_banner[0].banner_id.preset_id.preset_r3_rate
+                else:
+                    banner_rate = Decimal('0.0')
+
+                analysis_data = {
+                    'banner_name': banner_name,
+                    'total_pulls': total_banner_pulls,
+                    'r3_count': r3_count,
+                    'user_rate': f"{user_rate:.2f}%",
+                    'banner_rate': f"{banner_rate:.2f}%",
+                    'luck_variance': f"{user_rate - banner_rate:+.2f}%", # The '+' sign shows +/-
+                    'gaps': None
+                }
                 
-                if len(r3_indices) > 1:
-                    gaps = [r3_indices[i] - r3_indices[i-1] for i in range(1, len(r3_indices))]
+                if r3_count > 1:
+                    gaps = [r3_indices[i] - r3_indices[i-1] for i in range(1, r3_count)]
                     analysis_data['gaps'] = {
                         'min': min(gaps), 'max': max(gaps), 'avg': f"{statistics.mean(gaps):.1f}",
                         'stdev': f"{statistics.stdev(gaps):.2f}" if len(gaps) > 1 else "N/A"
@@ -271,8 +303,6 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
                 banner_analysis.append(analysis_data)
             
             context['banner_analysis'] = banner_analysis
-
-            print(context['banner_analysis'])
 
         template_name = 'app_web/components/dashboard-summary.html'
 

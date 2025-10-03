@@ -6,11 +6,21 @@
     <!-- =============================================================== -->
     <!-- 1. KPI WIDGETS (Key Performance Indicators)                       -->
     <!-- =============================================================== -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="p-4 bg-slate-700/50 rounded-lg text-center"><div class="text-4xl font-bold">{{ total_pulls|default:0 }}</div><div class="text-sm text-slate-400">Total Pulls</div></div>
-        <div class="p-4 bg-yellow-500/20 rounded-lg text-center"><div class="text-4xl font-bold">{{ r3_count|default:0 }}</div><div class="text-sm text-yellow-300">★★★ Students</div></div>
-        <div class="p-4 bg-purple-500/20 rounded-lg text-center"><div class="text-4xl font-bold">{{ r2_count|default:0 }}</div><div class="text-sm text-purple-300">★★ Students</div></div>
-        <div class="p-4 bg-blue-500/20 rounded-lg text-center"><div class="text-4xl font-bold">{{ r1_count|default:0 }}</div><div class="text-sm text-blue-300">★ Students</div></div>
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+        <div class="p-4 bg-slate-700/50 rounded-lg text-center"><div class="text-3xl font-bold">{{ total_pulls|default:0 }}</div><div class="text-sm text-slate-400">Total Pulls</div></div>
+        
+        <!-- NEW: Pyroxene Usage Widget -->
+        <div class="md:col-span-2 lg:col-span-1 p-4 bg-slate-700/50 rounded-lg text-center">
+            <div class="flex items-center justify-center gap-2 text-3xl font-bold">
+                <img src="{% static 'images/web/pyroxene.png' %}" class="h-8 w-8"> <!-- Assuming you have a pyroxene icon -->
+                <span>{{ total_pyroxene_spent|default:0 }}</span>
+            </div>
+            <div class="text-sm text-slate-400">Pyroxene Spent</div>
+        </div>
+        
+        <div class="p-4 bg-yellow-500/20 rounded-lg text-center"><div class="text-3xl font-bold">{{ r3_count|default:0 }}</div><div class="text-sm text-yellow-300">★★★ Students</div></div>
+        <div class="p-4 bg-purple-500/20 rounded-lg text-center"><div class="text-3xl font-bold">{{ r2_count|default:0 }}</div><div class="text-sm text-purple-300">★★ Students</div></div>
+        <div class="p-4 bg-blue-500/20 rounded-lg text-center"><div class="text-3xl font-bold">{{ r1_count|default:0 }}</div><div class="text-sm text-blue-300">★ Students</div></div>
     </div>
 
     <!-- =============================================================== -->
@@ -38,6 +48,19 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         <!-- =============================================================== -->
+        <!-- NEW: "FIRST ★★★ PULL" WIDGET                                    -->
+        <!-- =============================================================== -->
+        <div class="lg:col-span-1 p-4 bg-slate-700/50 rounded-lg flex flex-col items-center justify-center min-h-[400px]">
+            <h3 class="text-xl font-semibold mb-4">Your First ★★★ Pull</h3>
+            {% if first_r3_pull %}
+                {% include 'app_web/components/student-card-static.html' with student=first_r3_pull.student_id %}
+                <p class="text-sm text-slate-400 mt-2">Pulled on {{ first_r3_pull.transaction_create_on|date:"Y-m-d" }}</p>
+            {% else %}
+                <p class="text-slate-400">Keep pulling to find your first 3-star!</p>
+            {% endif %}
+        </div>
+
+        <!-- =============================================================== -->
         <!-- Rarity Distribution Chart (Unchanged)                           -->
         <!-- =============================================================== -->
         <div class="lg:col-span-2 p-4 bg-slate-700/50 rounded-lg">
@@ -55,10 +78,10 @@
         </div>
 
         <!-- =============================================================== -->
-        <!-- NEW: PER-BANNER PULL ANALYSIS                                   -->
+        <!-- MODIFIED: PER-BANNER ANALYSIS TABLE WITH LUCK METRICS           -->
         <!-- =============================================================== -->
         <div class="lg:col-span-3 p-4 bg-slate-700/50 rounded-lg">
-            <h3 class="text-xl font-semibold mb-4">3-Star Pull Analysis by Banner</h3>
+            <h3 class="text-xl font-semibold mb-4">Analysis by Banner</h3>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead class="border-b border-slate-600">
@@ -70,6 +93,9 @@
                             <th class="p-2 text-center">Longest Gap</th>
                             <th class="p-2 text-center">Average Gap</th>
                             <th class="p-2 text-center">Stdev Gap</th>
+                            <th class="p-2 text-center">Your Rate</th>
+                            <th class="p-2 text-center">Banner Rate</th>
+                            <th class="p-2 text-center">Luck Variance</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -82,6 +108,15 @@
                             <td class="p-2 text-center">{{ analysis.gaps.max|default:"N/A" }}</td>
                             <td class="p-2 text-center">{{ analysis.gaps.avg|default:"N/A" }}</td>
                             <td class="p-2 text-center">{{ analysis.gaps.stdev|default:"N/A" }}</td>
+                            <td class="p-2 text-center">{{ analysis.user_rate }}</td>
+                            <td class="p-2 text-center">{{ analysis.banner_rate }}</td>
+                            <!-- Conditionally color the luck variance for at-a-glance readability -->
+                            <td class="p-2 text-center font-bold 
+                                {% if analysis.luck_variance|slice:':1' == '+' %}text-green-400
+                                {% elif analysis.luck_variance|slice:':1' == '-' %}text-red-400
+                                {% else %}text-slate-400{% endif %}">
+                                {{ analysis.luck_variance }}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -90,8 +125,6 @@
         </div>
 
     </div>
-
-
 
 </div>
 
@@ -144,11 +177,6 @@
 
         // Set initial active state for the default (3-star) tab
         rarityTabs[0].click();
-
-
-
-
-
 
         // --- Include Chart.js library ---
         // We dynamically add the script to the page to ensure it's available.
