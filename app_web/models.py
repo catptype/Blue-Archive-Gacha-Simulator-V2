@@ -94,7 +94,7 @@ class Student(models.Model):
     student_is_limited = models.BooleanField(default=False)
 
     def __str__(self) -> str:
-        return f"[{self.id:03d}] {self.school} {self.fullname}"
+        return f"[{self.id:03d}] {self.school} {self.fullname} {'★'*self.student_rarity}"
         
     def clean(self):
         query = Student.objects.exclude(pk=self.pk)

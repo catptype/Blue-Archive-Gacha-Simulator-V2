@@ -181,7 +181,9 @@ class GachaTransactionAdmin(admin.ModelAdmin):
         'transaction_create_on'
     ]
 
-    list_per_page = 10
+    list_filter = ['transaction_user', 'banner_id']
+
+    list_per_page = 50
 
 @admin.register(UserInventory)
 class UserInventoryAdmin(admin.ModelAdmin):
