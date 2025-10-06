@@ -2,6 +2,9 @@
 {% load static %}
 {% load humanize %}
 <!-- This div wraps all the visible HTML for parsing by eval(). -->
+
+
+
 <div class="tab-html-content">
     
     <!-- =============================================================== -->
@@ -113,7 +116,7 @@
                 <div class="transform scale-90">
                     {% include 'app_web/components/student-card-static.html' with student=first_r3_pull.student_id %}
                 </div>
-                <p class="text-sm text-slate-400 mt-2">Pulled on {{ first_r3_pull.transaction_create_on|date:"Y-m-d" }}</p>
+                <p class="text-sm text-slate-400 mt-2">{{ first_r3_pull.transaction_create_on|date:"Y-m-d" }}</p>
             {% else %}
                 <p class="text-slate-400">Keep pulling to find your first 3-star!</p>
             {% endif %}
@@ -121,21 +124,41 @@
     </div>
 
     <!-- Main Dashboard Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
         <!-- =============================================================== -->
         <!-- Rarity Distribution Chart (Unchanged)                           -->
         <!-- =============================================================== -->
         <div class="p-4 bg-slate-700/50 rounded-lg">
-            <h3 class="text-xl font-semibold mb-4">Rarity Distribution</h3>
+            <h3 class="text-xl font-semibold mb-4">Overall Rarity</h3>
             <canvas id="rarityPieChart"></canvas>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- NEW: WIDGET 2: PER-BANNER RARITY DISTRIBUTION                   -->
+        <!-- =============================================================== -->
+        <!-- 2. NEW: Per-Banner Rarity Distribution Chart (Top-Right) -->
+        <div class="relative p-4 bg-slate-700/50 rounded-lg">
+            <h3 class="text-xl font-semibold mb-4">Banner Breakdown</h3>
+            <!-- The canvas for the new chart -->
+            <canvas id="perBannerPieChart"></canvas>
+            
+            <!-- The banner selector, positioned in the center of the chart -->
+            <div class="absolute top-3/5 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+                <label for="banner-select" class="text-xs text-slate-400"></label>
+                <select id="banner-select" class="bg-slate-800 border border-slate-600 rounded-md text-white p-1 text-sm">
+                    {% for banner_item in banner_distribution %}
+                        <option value="{{ banner_item.banner_id__banner_name }}">{{ banner_item.banner_id__banner_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
 
         <!-- =============================================================== -->
         <!-- NEW: Banner Distribution Chart                                  -->
         <!-- =============================================================== -->
         <div class="p-4 bg-slate-700/50 rounded-lg">
-            <h3 class="text-xl font-semibold mb-4">Banner Distribution</h3>
+            <h3 class="text-xl font-semibold mb-4">Banner Activity</h3>
             <!-- A horizontal bar chart is perfect for a potentially long list of banners. -->
             <canvas id="bannerBarChart"></canvas>
         </div>
@@ -143,8 +166,8 @@
         <!-- =============================================================== -->
         <!-- MODIFIED: PER-BANNER ANALYSIS TABLE WITH LUCK METRICS           -->
         <!-- =============================================================== -->
-        <div class="lg:col-span-3 p-4 bg-slate-700/50 rounded-lg">
-            <h3 class="text-xl font-semibold mb-4">Analysis by Banner</h3>
+        <div class="md:col-span-3 p-4 bg-slate-700/50 rounded-lg">
+            <h3 class="text-xl font-semibold mb-4">Luck Performance</h3>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead class="border-b border-slate-600">
@@ -323,6 +346,74 @@
                     }
                 });
             }
+
+            // --- NEW: INTERACTIVE PER-BANNER DOUGHNUT CHART ---
+            const perBannerCtx = document.getElementById('perBannerPieChart');
+            const bannerSelect = document.getElementById('banner-select');
+            
+            if (perBannerCtx && bannerSelect) {
+                // 1. Get the data passed from the Django view.
+                const perBannerData = JSON.parse('{{ per_banner_rarity_json|escapejs|default:"{}" }}');
+                let perBannerChart = null;
+
+                // 2. This function updates the chart with new data.
+                const updatePerBannerChart = (bannerName) => {
+                    const data = perBannerData[bannerName];
+                    if (!data) return;
+
+                    if (perBannerChart) {
+                        // If the chart exists, just update its data and redraw.
+                        perBannerChart.data.datasets[0].data = [data.r3, data.r2, data.r1];
+                        perBannerChart.update();
+                    } else {
+                        // If it's the first time, create the chart instance.
+                        perBannerChart = new Chart(perBannerCtx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['★★★', '★★', '★'],
+                                datasets: [{
+                                    label: 'Pulls',
+                                    data: [data.r3, data.r2, data.r1],
+                                    backgroundColor: [
+                                        'rgba(250, 204, 21, 0.7)',  // Yellow
+                                        'rgba(192, 132, 252, 0.7)', // Purple
+                                        'rgba(96, 165, 250, 0.7)'   // Blue
+                                    ],
+                                    borderColor: [
+                                        '#FBBF24',
+                                        '#C084FC',
+                                        '#60A5FA'
+                                    ],
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: {
+                                    legend: {
+                                        position: 'top',
+                                        labels: {
+                                            color: '#cbd5e1' // slate-300
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                };
+
+                // 3. Attach an event listener to the dropdown.
+                bannerSelect.addEventListener('change', (event) => {
+                    updatePerBannerChart(event.target.value);
+                });
+
+                // 4. Initial draw: show the chart for the first banner in the list.
+                if (bannerSelect.options.length > 0) {
+                    updatePerBannerChart(bannerSelect.options[0].value);
+                }
+            }
+
+            
         };
         
         // Wait for the Chart.js library to load before creating the chart.

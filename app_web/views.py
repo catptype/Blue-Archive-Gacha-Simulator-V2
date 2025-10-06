@@ -241,6 +241,8 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
             context['r2_count'] = rarity_counter.get(2, 0)
             context['r1_count'] = rarity_counter.get(1, 0)
 
+            
+
             # --- 3. Banner Distribution for Chart ---
             banner_counter = Counter(pull.banner_id.banner_name for pull in all_pulls)
             context['banner_distribution'] = [
@@ -252,6 +254,20 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
             pulls_by_banner = defaultdict(list)
             for pull in all_pulls:
                 pulls_by_banner[pull.banner].append(pull)
+
+            
+            # --- NEW: Calculate Per-Banner Rarity Distribution ---
+            per_banner_rarity_data = {}
+            for banner_name, pulls in pulls_by_banner.items():
+                rarity_counter = Counter(p.student_id.student_rarity for p in pulls)
+                per_banner_rarity_data[banner_name] = {
+                    'r3': rarity_counter.get(3, 0),
+                    'r2': rarity_counter.get(2, 0),
+                    'r1': rarity_counter.get(1, 0),
+                }
+            
+            # Pass this data to the template as a JSON string for easy use in JavaScript.
+            context['per_banner_rarity_json'] = json.dumps(per_banner_rarity_data)
 
   
 
