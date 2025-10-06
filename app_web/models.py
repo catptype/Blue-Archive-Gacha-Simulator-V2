@@ -404,3 +404,39 @@ class UserInventory(models.Model):
         verbose_name_plural = "User Inventories"
         ordering = ['-inventory_first_obtained_on']
         
+class Achievement(models.Model):
+    achievement_id = models.AutoField(primary_key=True, auto_created=True, editable=False, verbose_name='ID')
+    achievement_name = models.CharField(max_length=100, unique=True)
+    achievement_description = models.TextField()
+    achievement_icon = models.BinaryField(null=True, blank=True, verbose_name='Image')
+    
+    # You can add a category for easier filtering in the UI
+    CATEGORY_CHOICES = [
+        ('COLLECTION', 'Collection'),
+        ('MILESTONE', 'Milestone'),
+        ('LUCK', 'Feats of Luck'),
+        ('CONSISTENCY', 'Consistency'),
+    ]
+    achievement_category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='MILESTONE')
+    
+    # A hidden field to link this achievement to the logic that unlocks it.
+    achievement_key = models.CharField(max_length=50, unique=True, editable=False)
+
+    def __str__(self):
+        return self.achievement_name
+    
+    @property
+    def name(self):
+        return self.achievement_name
+    
+class UnlockAchievement(models.Model):
+    unlock_id = models.AutoField(primary_key=True, auto_created=True, editable=False, verbose_name='ID')
+    unlock_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='achievements')
+    achievement_id = models.ForeignKey(Achievement, on_delete=models.CASCADE)
+    unlock_on = models.DateTimeField(auto_now_add=True, editable=False)
+    
+    class Meta:
+        unique_together = ('user', 'achievement') # A user can only get an achievement once.
+
+    def __str__(self):
+        return f'{self.unlock_user.username} unlocked "{self.achievement_id.name}"'

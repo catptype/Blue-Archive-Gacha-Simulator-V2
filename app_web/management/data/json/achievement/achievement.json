@@ -1,0 +1,30 @@
+[
+    {
+        "key": "COLLECTION_CNC_ORIGINAL",
+        "category": "COLLECTION",
+        "name": "",
+        "description": "",
+        "image": "base64",
+        "students": [
+            { "name": "Akane", "version": "Original" },
+            { "name": "Asuna", "version": "Original" },
+            { "name": "Karin", "version": "Original" },
+            { "name": "Neru", "version": "Original" },
+            { "name": "Toki", "version": "Original" }
+        ]
+    },
+    {
+        "key": "COLLECTION_CNC_BUNNY",
+        "category": "COLLECTION",
+        "name": "Bunny Chaser",
+        "description": "",
+        "image": "base64",
+        "students": [
+            { "name": "Akane", "version": "Bunny Girl" },
+            { "name": "Asuna", "version": "Bunny Girl" },
+            { "name": "Karin", "version": "Bunny Girl" },
+            { "name": "Neru", "version": "Bunny Girl" },
+            { "name": "Toki", "version": "Bunny Girl" }
+        ]
+    }
+]
