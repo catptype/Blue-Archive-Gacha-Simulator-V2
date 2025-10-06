@@ -24,41 +24,49 @@
     </div>
 
     <!-- =============================================================== -->
-    <!-- TOP STUDENTS WIDGET (REVISED)                                   -->
+    <!-- NEW: COMBINED "HALL OF FAME" ROW                                -->
     <!-- =============================================================== -->
-    <!-- THE FIX: The widget now has the same styling as all other dashboard components. -->
-    <div class="mb-6 p-4 bg-slate-700/50 rounded-lg">
-        <h3 class="text-xl font-semibold mb-4">Most Pulled Students by Rarity</h3>
-        <div class="flex gap-6">
-            <!-- Left Side: Rarity Tabs -->
-            <nav class="flex flex-col gap-2">
-                <button class="rarity-tab p-3 rounded-lg font-semibold" data-rarity="3">★★★</button>
-                <button class="rarity-tab p-3 rounded-lg font-semibold" data-rarity="2">★★</button>
-                <button class="rarity-tab p-3 rounded-lg font-semibold" data-rarity="1">★</button>
-            </nav>
-            <!-- Right Side: Podium Content Area -->
-            <div id="podium-content" class="flex-grow h-full">
-                <!-- Initial podium is rendered here -->
-                {% include 'app_web/components/dashboard-podium.html' with top_students=top_r3_students %}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        
+        <!-- =============================================================== -->
+        <!-- LEFT (2/3 width): TOP STUDENTS WIDGET (with Folder Tabs)      -->
+        <!-- =============================================================== -->
+        <div class="relative lg:col-span-2">
+            <!-- Rarity Folder Tabs -->
+            <div class="absolute -top-px z-20 flex gap-1">
+                <button class="rarity-tab px-6 py-2 rounded-t-lg transition-colors duration-200 border-x border-t" data-rarity="3">★★★</button>
+                <button class="rarity-tab px-6 py-2 rounded-t-lg transition-colors duration-200 border-x border-t" data-rarity="2">★★</button>
+                <button class="rarity-tab px-6 py-2 rounded-t-lg transition-colors duration-200 border-x border-t" data-rarity="1">★</button>
+            </div>
+
+            <!-- Podium Content Panel -->
+            <div id="podium-content-wrapper" class="relative z-10 w-full min-h-[480px] pt-12 p-4 bg-slate-700/50 backdrop-blur-sm border border-slate-600 rounded-lg">
+                <!-- The podium content will be injected here -->
+                <div id="podium-content" class="h-full">
+                    {% include 'app_web/components/dashboard-podium.html' with top_students=top_r3_students %}
+                </div>
             </div>
         </div>
-    </div>
-
-    <!-- Main Dashboard Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         <!-- =============================================================== -->
-        <!-- NEW: "FIRST ★★★ PULL" WIDGET                                    -->
+        <!-- RIGHT (1/3 width): "FIRST ★★★ PULL" WIDGET                      -->
         <!-- =============================================================== -->
-        <div class="lg:col-span-1 p-4 bg-slate-700/50 rounded-lg flex flex-col items-center justify-center min-h-[400px]">
+        <div class="lg:col-span-1 p-4 bg-slate-700/50 rounded-lg flex flex-col items-center justify-center min-h-[480px]">
             <h3 class="text-xl font-semibold mb-4">Your First ★★★ Pull</h3>
             {% if first_r3_pull %}
-                {% include 'app_web/components/student-card-static.html' with student=first_r3_pull.student_id %}
+                <!-- Use a transform to scale the card down slightly to fit better -->
+                <div class="transform scale-90">
+                    {% include 'app_web/components/student-card-static.html' with student=first_r3_pull.student_id %}
+                </div>
                 <p class="text-sm text-slate-400 mt-2">Pulled on {{ first_r3_pull.transaction_create_on|date:"Y-m-d" }}</p>
             {% else %}
                 <p class="text-slate-400">Keep pulling to find your first 3-star!</p>
             {% endif %}
         </div>
+    </div>
+
+    <!-- Main Dashboard Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         <!-- =============================================================== -->
         <!-- Rarity Distribution Chart (Unchanged)                           -->
