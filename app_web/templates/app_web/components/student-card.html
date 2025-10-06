@@ -53,8 +53,8 @@
                     </div>
                     <div class="flex-[2] flex flex-col justify-center px-3 py-2 bg-gray-100 border-t-2 border-gray-300">
                         <div class="relative h-7 mb-2 flex items-center justify-center">
-                            <div class="absolute left-0 top-1/2 w-[30%] h-[2px] {% if student.student_rarity == 3 %}bg-gradient-to-r from-pink-400 to-purple-400{% elif student.student_rarity == 2 %}bg-yellow-400{% else %}bg-blue-400{% endif %}"></div>
-                            <div class="relative z-10 h-full w-24 flex-shrink-0 flex items-center justify-center gap-1 rounded-full shadow-inner-sm 
+                            <div class="absolute left-0 top-1/2 w-[25%] h-[2px] {% if student.student_rarity == 3 %}bg-gradient-to-r from-pink-400 to-purple-400{% elif student.student_rarity == 2 %}bg-yellow-400{% else %}bg-blue-400{% endif %}"></div>
+                            <div class="relative z-10 h-full w-19 flex-shrink-0 flex items-center justify-center gap-0 rounded-full shadow-inner-sm 
                                 {% if student.student_rarity == 3 %}bg-gradient-to-br from-pink-400 via-purple-400 to-cyan-400
                                 {% elif student.student_rarity == 2 %}bg-yellow-500 border-2 border-yellow-300/50
                                 {% else %}bg-blue-500 border-2 border-blue-300/50{% endif %}">
@@ -63,7 +63,7 @@
                                     <img src="{% static 'images/web/star_yellow.png' %}" alt="star" class="w-4 h-4">
                                 {% endfor %}
                             </div>
-                            <div class="absolute right-0 top-1/2 w-[30%] h-[2px] {% if student.student_rarity == 3 %}bg-gradient-to-r from-purple-400 to-cyan-400{% elif student.student_rarity == 2 %}bg-yellow-400{% else %}bg-blue-400{% endif %}"></div>
+                            <div class="absolute right-0 top-1/2 w-[25%] h-[2px] {% if student.student_rarity == 3 %}bg-gradient-to-r from-purple-400 to-cyan-400{% elif student.student_rarity == 2 %}bg-yellow-400{% else %}bg-blue-400{% endif %}"></div>
                         </div>
                         <div class="text-center">
                             <h2 class="text-lg font-bold text-gray-800 truncate" title="{{ student.student_name }}">{{ student.student_name }}</h2>
