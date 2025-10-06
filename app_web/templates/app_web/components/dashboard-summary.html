@@ -1,5 +1,6 @@
 <!-- This template is now a self-contained component with its own script for the chart. -->
 {% load static %}
+{% load humanize %}
 <!-- This div wraps all the visible HTML for parsing by eval(). -->
 <div class="tab-html-content">
     
@@ -13,14 +14,14 @@
         <div class="md:col-span-2 lg:col-span-1 p-4 bg-slate-700/50 rounded-lg text-center">
             <div class="flex items-center justify-center gap-2 text-3xl font-bold">
                 <img src="{% static 'images/web/pyroxene.png' %}" class="h-8 w-8"> <!-- Assuming you have a pyroxene icon -->
-                <span>{{ total_pyroxene_spent|default:0 }}</span>
+                <span>{{ total_pyroxene_spent|default:0|intcomma }}</span>
             </div>
             <div class="text-sm text-slate-400">Pyroxene Spent</div>
         </div>
         
-        <div class="p-4 bg-yellow-500/20 rounded-lg text-center"><div class="text-3xl font-bold">{{ r3_count|default:0 }}</div><div class="text-sm text-yellow-300">★★★ Students</div></div>
-        <div class="p-4 bg-purple-500/20 rounded-lg text-center"><div class="text-3xl font-bold">{{ r2_count|default:0 }}</div><div class="text-sm text-purple-300">★★ Students</div></div>
-        <div class="p-4 bg-blue-500/20 rounded-lg text-center"><div class="text-3xl font-bold">{{ r1_count|default:0 }}</div><div class="text-sm text-blue-300">★ Students</div></div>
+        <div class="p-4 bg-yellow-500/20 rounded-lg text-center"><div class="text-3xl font-bold">{{ r3_count|default:0|intcomma }}</div><div class="text-sm text-yellow-300">★★★ Students</div></div>
+        <div class="p-4 bg-purple-500/20 rounded-lg text-center"><div class="text-3xl font-bold">{{ r2_count|default:0|intcomma }}</div><div class="text-sm text-purple-300">★★ Students</div></div>
+        <div class="p-4 bg-blue-500/20 rounded-lg text-center"><div class="text-3xl font-bold">{{ r1_count|default:0|intcomma }}</div><div class="text-sm text-blue-300">★ Students</div></div>
     </div>
 
     <!-- =============================================================== -->
@@ -87,7 +88,7 @@
         <!-- =============================================================== -->
         <!-- Rarity Distribution Chart (Unchanged)                           -->
         <!-- =============================================================== -->
-        <div class="lg:col-span-2 p-4 bg-slate-700/50 rounded-lg">
+        <div class="p-4 bg-slate-700/50 rounded-lg">
             <h3 class="text-xl font-semibold mb-4">Rarity Distribution</h3>
             <canvas id="rarityPieChart"></canvas>
         </div>
@@ -95,7 +96,7 @@
         <!-- =============================================================== -->
         <!-- NEW: Banner Distribution Chart                                  -->
         <!-- =============================================================== -->
-        <div class="lg:col-span-1 p-4 bg-slate-700/50 rounded-lg">
+        <div class="p-4 bg-slate-700/50 rounded-lg">
             <h3 class="text-xl font-semibold mb-4">Banner Distribution</h3>
             <!-- A horizontal bar chart is perfect for a potentially long list of banners. -->
             <canvas id="bannerBarChart"></canvas>
