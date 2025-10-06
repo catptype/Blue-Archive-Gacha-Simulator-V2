@@ -29,30 +29,37 @@
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
         
         <!-- =============================================================== -->
-        <!-- LEFT (3/4 width): TOP STUDENTS WIDGET (with Folder Tabs)      -->
+        <!-- (3/4) TOP STUDENTS WIDGET (RE-ENGINEERED with Flexbox)                -->
         <!-- =============================================================== -->
-        <div class="relative lg:col-span-3">
-            
-            <!-- Rarity Folder Tabs (Re-designed) -->
-            <div class="absolute left-0 z-20 flex flex-col gap-1">
-                <button class="rarity-tab w-10 h-24 flex items-center justify-center rounded-l-lg transition-colors duration-200 border-l border-t border-b" data-rarity="3">
-                    <span class="transform -rotate-90 whitespace-nowrap font-semibold">★★★</span>
-                </button>
-                <button class="rarity-tab w-10 h-24 flex items-center justify-center rounded-l-lg transition-colors duration-200 border-l border-t border-b" data-rarity="2">
-                    <span class="transform -rotate-90 whitespace-nowrap font-semibold">★★</span>
-                </button>
-                <button class="rarity-tab w-10 h-24 flex items-center justify-center rounded-l-lg transition-colors duration-200 border-l border-t border-b" data-rarity="1">
-                    <span class="transform -rotate-90 whitespace-nowrap font-semibold">★</span>
-                </button>
-            </div>
+        <div class="lg:col-span-3">
+            <!-- This is the main flex container for the widget. 'relative' is for the title. -->
+            <div class="relative flex">
 
-            <!-- Podium Content Panel -->
-            <!-- MODIFIED: Left padding is now smaller (pl-12) to accommodate the narrow tabs -->
-            <div id="podium-content-wrapper" class="relative z-10 w-full min-h-[480px] pl-12 p-4 bg-slate-700/50 backdrop-blur-sm border border-slate-600 rounded-lg">
-                <h3 class="text-xl font-semibold mb-2">Most Pulled Students</h3>
-                <div id="podium-content" class="h-full">
-                    <!-- Initial podium is rendered here -->
-                    {% include 'app_web/components/dashboard-podium.html' with top_students=top_r3_students %}
+                <!-- Column 1: Vertical Rarity Tabs -->
+                <!-- 'flex-shrink-0' is crucial to give the tabs a fixed width. -->
+                <!-- 'z-20' ensures they render on top of the content panel's corner. -->
+                <div class="flex flex-col gap-1 z-20 pt-2">
+                    <button class="rarity-tab w-10 h-24 flex items-center justify-center rounded-l-lg transition-colors duration-200 border-l border-t border-b" data-rarity="3">
+                        <span class="transform -rotate-90 whitespace-nowrap font-semibold">★★★</span>
+                    </button>
+                    <button class="rarity-tab w-10 h-24 flex items-center justify-center rounded-l-lg transition-colors duration-200 border-l border-t border-b" data-rarity="2">
+                        <span class="transform -rotate-90 whitespace-nowrap font-semibold">★★</span>
+                    </button>
+                    <button class="rarity-tab w-10 h-24 flex items-center justify-center rounded-l-lg transition-colors duration-200 border-l border-t border-b" data-rarity="1">
+                        <span class="transform -rotate-90 whitespace-nowrap font-semibold">★</span>
+                    </button>
+                </div>
+
+                <!-- Column 2: Podium Content Panel -->
+                <!-- MODIFIED: Reduced min-height and padding to perfectly fit the scaled content -->
+                <div id="podium-content-wrapper" class="relative w-[90%] h-full z-10 flex-grow p-2 bg-slate-700/50 border border-slate-600 rounded-lg">
+                    <h3 class="text-xl font-semibold mb-2 px-2">Most Pulled Students</h3>
+                    
+                    <!-- MODIFIED: The podium content is now permanently scaled to 90% -->
+                    <div id="podium-content" class="transform scale-90 origin-center">
+                        <!-- Initial podium is rendered here -->
+                        {% include 'app_web/components/dashboard-podium.html' with top_students=top_r3_students rarity=3 %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -60,7 +67,7 @@
         <!-- =============================================================== -->
         <!-- RIGHT (1/4 width): "FIRST ★★★ PULL" WIDGET                      -->
         <!-- =============================================================== -->
-        <div class="lg:col-span-1 p-4 bg-slate-700/50 rounded-lg flex flex-col items-center justify-center min-h-[480px]">
+        <div class="lg:col-span-1 p-4 bg-slate-700/50 rounded-lg flex flex-col items-center justify-center">
             <h3 class="text-xl font-semibold mb-4">Your First ★★★ Pull</h3>
             {% if first_r3_pull %}
                 <!-- Use a transform to scale the card down slightly to fit better -->
