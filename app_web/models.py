@@ -436,7 +436,7 @@ class UnlockAchievement(models.Model):
     unlock_on = models.DateTimeField(auto_now_add=True, editable=False)
     
     class Meta:
-        unique_together = ('user', 'achievement') # A user can only get an achievement once.
+        unique_together = ('unlock_user', 'achievement_id') # A user can only get an achievement once.
 
     def __str__(self):
         return f'{self.unlock_user.username} unlocked "{self.achievement_id.name}"'

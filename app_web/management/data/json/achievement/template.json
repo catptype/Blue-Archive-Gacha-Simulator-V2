@@ -1,0 +1,12 @@
+[
+    {
+        "key": "CATEGORY_NAME_ACHIEVEMENT",
+        "category": "COLLECTION | LUCK | MILESTONE",
+        "name": "NAME",
+        "description": "DESCRIPTION",
+        "image": "BASE64 STRING",
+        "students": [
+            { "name": "Akane", "version": "Original" }
+        ]
+    }
+]
