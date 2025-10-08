@@ -354,9 +354,7 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
         )
 
         # 2. Fetch ALL students in the game, efficiently pre-loading related data.
-        all_students = Student.objects.select_related(
-            'school_id', 'version_id', 'asset_id'
-        ).order_by('-student_rarity', 'student_name')
+        all_students = Student.objects.order_by('-student_rarity', 'student_name')
 
         # 3. Augment the student objects with the 'is_obtained' flag in Python.
         # This is extremely fast and keeps the database logic simple.
