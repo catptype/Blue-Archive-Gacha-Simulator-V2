@@ -17,7 +17,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST, require_GET
 from collections import Counter, defaultdict
 
-from .models import School, Student, Version, GachaBanner, GachaTransaction, UserInventory, Achievement
+from .models import School, Student, Version, GachaBanner, GachaTransaction, UserInventory, Achievement, UnlockAchievement
 from .util.GachaEngine import GachaEngine
 
 CACHE_IMAGE_TIMEOUT = 300 # 5 minutes 
@@ -374,7 +374,6 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
             completion_percentage = 0
 
         context['all_students'] = all_students
-        # Pass the new stats to the template.
         context['obtained_count'] = obtained_count
         context['total_students'] = total_students
         context['completion_percentage'] = completion_percentage
@@ -382,7 +381,26 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
         template_name = 'app_web/components/dashboard-collection.html'
 
     elif tab_name == 'achievements':
-        # --- Placeholder for achievements ---
+        # --- LOGIC FOR THE ACHIEVEMENTS TAB ---
+
+        # 1. Get a set of the IDs of all achievements the user has unlocked.
+        # MODIFIED: Query the renamed 'UnlockAchievement' model
+        unlocked_achievement_ids = set(
+            UnlockAchievement.objects.filter(unlock_user=user).values_list('achievement_id', flat=True)
+        )
+
+        # 2. Fetch ALL achievement definitions.
+        all_achievements = Achievement.objects.all().order_by('achievement_category', 'achievement_name')
+
+        # 3. Augment the achievement objects.
+        # MODIFIED: Query the renamed 'UnlockAchievement' model
+        user_unlocks = {ua.achievement_id: ua.unlock_on for ua in UnlockAchievement.objects.filter(unlock_user=user)}
+
+        for ach in all_achievements:
+            ach.is_unlocked = ach.achievement_id in unlocked_achievement_ids
+            ach.unlocked_on = user_unlocks.get(ach.achievement_id)
+
+        context['all_achievements'] = all_achievements
         template_name = 'app_web/components/dashboard-achievement.html'
 
     if template_name:

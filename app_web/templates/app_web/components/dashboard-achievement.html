@@ -1,2 +1,62 @@
-<h1 class="text-3xl font-bold mb-6">Achievements</h1>
-<p class="text-slate-400">This feature is coming soon!</p>```
+<!-- app_web/components/_achievements.html -->
+{% load static %}
+
+<!--
+  This template displays all achievements, grouped by category.
+  It uses the 'is_unlocked' flag from the view to apply different styles.
+-->
+
+<!-- 
+  This is a Django template trick to group items by a specific attribute.
+  'regroup' is the perfect tool for this job.
+-->
+{% regroup all_achievements by achievement_category as achievements_by_category %}
+
+<div class="flex flex-col gap-8">
+    {% for category in achievements_by_category %}
+        <div>
+            <!-- Category Header -->
+            <h2 class="text-2xl font-bold text-slate-300">{{ category.grouper }}</h2>
+
+            <!-- Grid for the achievements in this category -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for ach in category.list %}
+                    <!-- 
+                      This is the main container for a single achievement.
+                      It is dimmed if the achievement is not unlocked.
+                    -->
+                    <div class="flex items-start gap-4 p-4 bg-slate-700/50 rounded-lg 
+                                {% if not ach.is_unlocked %}opacity-40 grayscale{% endif %}">
+                        
+                        <!-- Achievement Icon -->
+                        <div class="relative flex-shrink-0 w-16 h-16 bg-slate-800 rounded-lg">
+                            {% if ach.achievement_icon %}
+                                <img src="{% url 'serve_achievement_image' achievement_id=ach.achievement_id %}" class="w-full h-full object-cover rounded-lg">
+                            {% endif %}
+                            
+                            <!-- If not unlocked, show a lock icon overlay -->
+                            {% if not ach.is_unlocked %}
+                                <div class="absolute inset-0 flex items-center justify-center bg-black/60 rounded-lg">
+                                    <svg class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Achievement Details -->
+                        <div class="flex-grow">
+                            <h3 class="font-bold text-white">{{ ach.achievement_name }}</h3>
+                            <p class="text-sm text-slate-300">{{ ach.achievement_description }}</p>
+                            
+                            <!-- If unlocked, show the date it was unlocked -->
+                            {% if ach.is_unlocked %}
+                                <p class="text-xs text-cyan-400 mt-1">
+                                    Unlocked on: {{ ach.unlocked_on|date:"Y-m-d" }}
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endfor %}
+</div>
