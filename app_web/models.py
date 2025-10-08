@@ -191,6 +191,10 @@ class GachaPreset(models.Model):
             raise ValidationError("Rate values cannot be negative.")
     
     @property
+    def name(self) -> str:
+        return self.preset_name
+
+    @property
     def pickup_rate(self) -> float:
         return float(self.preset_pickup_rate)
     
@@ -406,8 +410,8 @@ class UserInventory(models.Model):
         
 class Achievement(models.Model):
     achievement_id = models.AutoField(primary_key=True, auto_created=True, editable=False, verbose_name='ID')
-    achievement_name = models.CharField(max_length=100, unique=True)
-    achievement_description = models.TextField()
+    achievement_name = models.CharField(max_length=100, unique=True, verbose_name='Name')
+    achievement_description = models.TextField(null=True, blank=True, verbose_name='Description')
     achievement_image = models.BinaryField(null=True, blank=True, verbose_name='Image')
     
     # You can add a category for easier filtering in the UI
@@ -416,10 +420,10 @@ class Achievement(models.Model):
         ('MILESTONE', 'Milestone'),
         ('LUCK', 'Feats of Luck'),
     ]
-    achievement_category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='MILESTONE')
+    achievement_category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='MILESTONE', verbose_name='Category')
     
     # A hidden field to link this achievement to the logic that unlocks it.
-    achievement_key = models.CharField(max_length=50, unique=True, editable=False)
+    achievement_key = models.CharField(max_length=50, unique=True, editable=False, verbose_name='Key')
 
     def __str__(self):
         return self.achievement_name
@@ -437,9 +441,9 @@ class Achievement(models.Model):
     
 class UnlockAchievement(models.Model):
     unlock_id = models.AutoField(primary_key=True, auto_created=True, editable=False, verbose_name='ID')
-    unlock_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='achievements')
-    achievement_id = models.ForeignKey(Achievement, on_delete=models.CASCADE)
-    unlock_on = models.DateTimeField(auto_now_add=True, editable=False)
+    unlock_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='achievements', verbose_name='user')
+    achievement_id = models.ForeignKey(Achievement, on_delete=models.CASCADE, verbose_name='Description')
+    unlock_on = models.DateTimeField(auto_now_add=True, editable=False, verbose_name='Description')
     
     class Meta:
         db_table = 'unlock_achievement_table'

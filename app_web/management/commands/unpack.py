@@ -5,344 +5,210 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from app_web.models import Version, School, Student, ImageAsset, GachaPreset, GachaBanner, Achievement
-# from gacha_app.models import GachaRatePreset
 from .utils.Converter import Converter
 from .utils.TextProgressBar import TextProgressBar
 from .utils.DirectoryProcessor import DirectoryProcessor
 
 class Command(BaseCommand):
-    help = 'Import data from JSON files into model'
+    """
+    A Django management command to import all initial data for the application
+    from a structured directory of JSON files. The entire import process is
+    wrapped in a single atomic transaction to ensure data integrity.
+    """
+    help = 'Import data from JSON files into the database.'
 
+    # ===================================================================
+    # --- MAIN HANDLER ---
+    # ===================================================================
     @transaction.atomic
     def handle(self, *args, **options):
+        """Main entry point for the command."""
         ROOT_DIR = os.path.join(settings.BASE_DIR, 'app_web', 'management', 'data', 'json')
-
-        preset_dir = os.path.join(ROOT_DIR, 'presets')        
-        banner_dir = os.path.join(ROOT_DIR, 'banners')        
-        school_dir = os.path.join(ROOT_DIR, 'schools')
-        student_dir = os.path.join(ROOT_DIR, 'students')
-        achievement_dir = os.path.join(ROOT_DIR, 'achievement')
-
-        self.stdout.write(self.style.SUCCESS('Start unpack'))
-
-        self.unpack_preset(preset_dir)
-        self.unpack_school(school_dir)
-        self.unpack_student(student_dir)
-        self.unpack_banner(banner_dir)
-        self.unpack_achievement(achievement_dir)
-
-        self.stdout.write(self.style.SUCCESS('Data unpack complete'))
-
-    def unpack_preset(self, dir):
-
-        json_file = os.path.join(dir, 'preset.json')
-
-        with open(json_file) as file:
-            data_list = json.load(file)
-
-        data_count = len(data_list)
-        self.stdout.write(self.style.NOTICE(f'Unpacking {data_count} gacha preset records...'))
-        prog_bar = TextProgressBar(data_count)
-
-        for data in data_list:
-            preset_name = data['name']
-            preset_pickup = data['pickup']
-            preset_r3 = data['r3']
-            preset_r2 = data['r2']
-            preset_r1 = data['r1']
-
-            try:
-                preset_obj:GachaPreset = GachaPreset.objects.get(preset_name=preset_name)
-                        
-            except ObjectDoesNotExist:
-                GachaPreset.objects.create(
-                    preset_name=preset_name,
-                    preset_pickup_rate=preset_pickup,
-                    preset_r3_rate=preset_r3,
-                    preset_r2_rate=preset_r2,
-                    preset_r1_rate=preset_r1,
-                )
-
-            prog_bar.add_step()
-
-        self.stdout.write(self.style.SUCCESS(f'\nUnpack gacha preset data total {data_count}'))
-
-    def unpack_banner(self, dir):
-        """
-        Unpacks all banner data from a directory of JSON files, including the new
-        version and limited student rules.
-        """
-        json_file_list = DirectoryProcessor.get_only_files(dir, ['.json'])
-        if not json_file_list:
-            self.stdout.write(self.style.WARNING('No banner JSON files found to unpack.'))
-            return
-
-        # --- Step 1: Sort files to ensure "Standard.json" is always processed first ---
-        sorted_files = sorted(
-            json_file_list,
-            key=lambda path: (0, path) if "Standard.json" in path else (1, path)
-        )
-
-        # --- Step 2: Cache all GachaPresets and Versions for high performance ---
-        self.stdout.write(self.style.NOTICE('Caching gacha presets and versions...'))
-        presets_cache = {preset.preset_name: preset for preset in GachaPreset.objects.all()}
-        versions_cache = {version.version_name: version for version in Version.objects.all()}
         
-        # --- Step 3: Process all files in a single, unified loop ---
-        self.stdout.write(self.style.NOTICE(f'Unpacking {len(sorted_files)} banners...'))
-        prog_bar = TextProgressBar(len(sorted_files))
-        created_count = 0
-        updated_count = 0
+        # Define directories for each data type
+        dirs = {
+            'presets': os.path.join(ROOT_DIR, 'presets'),
+            'banners': os.path.join(ROOT_DIR, 'banners'),
+            'schools': os.path.join(ROOT_DIR, 'schools'),
+            'students': os.path.join(ROOT_DIR, 'students'),
+            'achievements': os.path.join(ROOT_DIR, 'achievements'),
+        }
 
-        for json_file in sorted_files:
-            try:
-                with open(json_file) as file:
-                    data = json.load(file)
+        self.stdout.write(self.style.SUCCESS('--- Starting Data Unpack ---'))
+        
+        # Execute unpackers in an order that respects model dependencies
+        self.unpack_presets(dirs['presets'])
+        self.unpack_schools(dirs['schools'])
+        self.unpack_students_and_versions(dirs['students']) # This also handles Versions
+        self.unpack_banners(dirs['banners'])
+        self.unpack_achievements(dirs['achievements'])
 
-                # --- Extract all data from the JSON file ---
-                banner_name = data["name"]
-                preset_name = data["preset"]
-                version_names = data["version"]  # This is now a list of strings
-                include_limited = data["limited"] # This is a boolean
-                pickup_list = data["pickup"]
-                image_bytes = Converter.base64_to_byte(data['image_base64'])
+        self.stdout.write(self.style.SUCCESS('\n--- Data Unpack Complete ---'))
 
-                # --- Get the preset object from our fast in-memory cache ---
-                preset_obj = presets_cache.get(preset_name)
-                if not preset_obj:
-                    self.stdout.write(self.style.ERROR(f"\nPreset '{preset_name}' not found for banner '{banner_name}'. Skipping."))
-                    prog_bar.add_step()
-                    continue
-                
-                # --- Create or update the main GachaBanner object ---
-                # The ManyToManyField is handled separately after this.
-                banner_obj, created = GachaBanner.objects.update_or_create(
-                    banner_name=banner_name,
+    # ===================================================================
+    # --- UNPACKER METHODS ---
+    # ===================================================================
+    def unpack_presets(self, dir_path):
+        """Unpacks GachaPreset data from a single JSON file."""
+        self.stdout.write(self.style.NOTICE('\nUnpacking Gacha Presets...'))
+        json_file = os.path.join(dir_path, 'presets.json')
+        try:
+            with open(json_file) as f:
+                data_list = json.load(f)
+            
+            prog_bar = TextProgressBar(len(data_list))
+            for data in data_list:
+                GachaPreset.objects.update_or_create(
+                    preset_name=data['name'],
                     defaults={
-                        'preset_id': preset_obj,
-                        'banner_image': image_bytes,
-                        'banner_include_limited': include_limited # Set the new boolean field
+                        'preset_pickup_rate': data['pickup'],
+                        'preset_r3_rate': data['r3'],
+                        'preset_r2_rate': data['r2'],
+                        'preset_r1_rate': data['r1'],
                     }
                 )
+                prog_bar.add_step()
+            self.stdout.write(self.style.SUCCESS(f'\nSuccessfully unpacked {len(data_list)} presets.'))
+        except FileNotFoundError:
+            self.stdout.write(self.style.WARNING('presets.json not found. Skipping.'))
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f'\nAn error occurred: {e}'))
 
-                # --- THE CRITICAL NEW LOGIC FOR THE MANY-TO-MANY FIELD ---
-                # 1. Look up the Version objects from our cache based on the names.
-                version_objects_to_set = []
-                for v_name in version_names:
-                    version_obj = versions_cache.get(v_name)
-                    if version_obj:
-                        version_objects_to_set.append(version_obj)
-                    else:
-                        self.stdout.write(self.style.WARNING(f"\nWarning: Version '{v_name}' for banner '{banner_name}' not found in database. It will be skipped."))
+    def unpack_schools(self, dir_path):
+        """Unpacks School data from a single JSON file."""
+        self.stdout.write(self.style.NOTICE('\nUnpacking Schools...'))
+        json_file = os.path.join(dir_path, 'schools.json')
+        try:
+            with open(json_file) as f:
+                data_list = json.load(f)
 
-                # 2. Use the .set() method. This is the recommended way to update a
-                # ManyToMany relationship. It clears all existing versions from the banner
-                # and replaces them with the new list in a single, efficient operation.
-                if version_objects_to_set:
-                    banner_obj.banner_include_version.set(version_objects_to_set)
-                else:
-                    # Handle the case where no valid versions were found.
-                    self.stdout.write(self.style.ERROR(f"\nError: No valid versions found for banner '{banner_name}'. The 'include versions' list will be empty."))
-                    banner_obj.banner_include_version.clear()
-
-                # 3. Add pickup students
-                for pickup in pickup_list:
-                    student_obj = Student.objects.get(student_name=pickup["name"], version_id__version_name=pickup["version"])
-                    banner_obj.banner_pickup.add(student_obj)
-
-                # --- Update counters ---
-                if created:
-                    created_count += 1
-                else:
-                    updated_count += 1
-            
-            except KeyError as e:
-                # Handle cases where a key is missing from the JSON file.
-                self.stdout.write(self.style.ERROR(f"\nJSON file {json_file} is missing required key: {e}"))
-            except Exception as e:
-                banner_name_for_error = data.get("name", json_file)
-                self.stdout.write(self.style.ERROR(f"\nFailed to process banner '{banner_name_for_error}': {e}"))
-            
-            prog_bar.add_step()
-
-        self.stdout.write(self.style.SUCCESS(f'\nBanner unpacking complete.'))
-        self.stdout.write(self.style.SUCCESS(f'Summary: {created_count} created, {updated_count} found/updated.'))
-        
-    def unpack_school(self, dir):
-
-        json_file = os.path.join(dir, 'school.json')
-
-        with open(json_file) as file:
-            data_list = json.load(file)
-            
-        data_count = len(data_list)
-        self.stdout.write(self.style.NOTICE(f'Unpacking {data_count} school records...'))
-        prog_bar = TextProgressBar(data_count)
-        
-        for data in data_list:
-            school_name = data['name']
-            school_image_bytes = Converter.base64_to_byte(data['image_base64'])
-
-            try:
-                school_obj:School = School.objects.get(school_name=school_name)
-
-                # Check if the existing school's image is different
-                if school_obj.image != school_image_bytes:
-                    school_obj.school_image = school_image_bytes
-                    school_obj.save()
-                        
-            except ObjectDoesNotExist:
-                School.objects.create(
-                    school_name=school_name,
-                    school_image=school_image_bytes,
+            prog_bar = TextProgressBar(len(data_list))
+            for data in data_list:
+                School.objects.update_or_create(
+                    school_name=data['name'],
+                    defaults={'school_image': Converter.base64_to_byte(data['image_base64'])}
                 )
+                prog_bar.add_step()
+            self.stdout.write(self.style.SUCCESS(f'\nSuccessfully unpacked {len(data_list)} schools.'))
+        except FileNotFoundError:
+            self.stdout.write(self.style.WARNING('schools.json not found. Skipping.'))
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f'\nAn error occurred: {e}'))
 
-            prog_bar.add_step()
-
-        self.stdout.write(self.style.SUCCESS(f'\nUnpack school data total {data_count}'))
-
-    def unpack_student(self, dir):
-        json_file_list = DirectoryProcessor.get_only_files(dir, ['.json'])
-        data_count = len(json_file_list)
-        if data_count == 0:
-            self.stdout.write(self.style.WARNING('No JSON files found to unpack.'))
+    def unpack_students_and_versions(self, dir_path):
+        """Unpacks Version and Student data from a directory of JSON files."""
+        self.stdout.write(self.style.NOTICE('\nUnpacking Students and Versions...'))
+        json_files = DirectoryProcessor.get_only_files(dir_path, ['.json'])
+        if not json_files:
+            self.stdout.write(self.style.WARNING('No student JSON files found. Skipping.'))
             return
-
-        # ===================================================================
-        # STAGE 1: Discover and create all Version objects in the correct order.
-        # ===================================================================
-        self.stdout.write(self.style.NOTICE('First pass: Discovering all student versions...'))
+            
+        # --- Stage 1: Discover and create all Version objects in sorted order ---
+        all_version_names = {json.load(open(f))['version'] for f in json_files}
+        final_version_list = ['Original'] + sorted(list(all_version_names - {'Original'}))
         
-        # Use a set to efficiently collect all unique version names.
-        all_version_names = set()
-        for json_file in json_file_list:
-            with open(json_file) as file:
-                data = json.load(file)
-            all_version_names.add(data['version'])
-
-        # --- Enforce the "Original" first, then sorted order ---
-        # 1. Start with 'Original' if it exists.
-        final_version_list = []
-        if 'Original' in all_version_names:
-            final_version_list.append('Original')
-            all_version_names.remove('Original')
-        
-        # 2. Add the rest of the versions, sorted alphabetically.
-        final_version_list.extend(sorted(list(all_version_names)))
-        
-        # Now, create the Version objects in the database in this specific order.
-        # This ensures 'Original' gets ID=1, followed by the others.
-        self.stdout.write(self.style.NOTICE(f'Creating {len(final_version_list)} version records...'))
         versions_cache = {}
         for version_name in final_version_list:
-            # Using get_or_create is still efficient here. It will create them in our desired order.
             version_obj, _ = Version.objects.get_or_create(version_name=version_name)
-            versions_cache[version_name] = version_obj # Cache the result for Stage 2.
-
-        self.stdout.write(self.style.SUCCESS('Version creation complete.'))
-
-        # ===================================================================
-        # STAGE 2: Create all Student objects, using the cached versions.
-        # ===================================================================
-        self.stdout.write(self.style.NOTICE(f'Second pass: Unpacking {data_count} student records...'))
-        prog_bar = TextProgressBar(data_count)
-
-        for json_file in json_file_list:
+            versions_cache[version_name] = version_obj
+        self.stdout.write(self.style.SUCCESS(f'Created/verified {len(versions_cache)} versions.'))
+        
+        # --- Stage 2: Create all Student objects ---
+        schools_cache = {school.school_name: school for school in School.objects.all()}
+        prog_bar = TextProgressBar(len(json_files))
+        for json_file in json_files:
             try:
-                with open(json_file) as file:
-                    data = json.load(file)
-            
-                student_name = data['name']
-                student_version_name = data['version']
-                student_school_name = data['school']
-                student_rarity = data['rarity']
-                student_is_limited = data['is_limited']
-                student_portrait = Converter.base64_to_byte(data['base64']['portrait'])
-                student_artwork = Converter.base64_to_byte(data['base64']['artwork'])
-
-                # Retrieve the already created version object from our cache.
-                version_obj = versions_cache[student_version_name]
+                with open(json_file) as f:
+                    data = json.load(f)
                 
-                # We assume this is a one-time script, so we use create().
-                # Using get_or_create is safer if you might re-run it.
-                student_obj, created = Student.objects.get_or_create(
-                    student_name=student_name,
-                    version_id=version_obj,
+                student_obj, created = Student.objects.update_or_create(
+                    student_name=data['name'],
+                    version_id=versions_cache[data['version']],
                     defaults={
-                        'student_rarity': student_rarity,
-                        'school_id': School.objects.get(school_name=student_school_name),
-                        'student_is_limited': student_is_limited,
+                        'student_rarity': data['rarity'],
+                        'school_id': schools_cache[data['school']],
+                        'student_is_limited': data['is_limited'],
                     }
                 )
 
-                # Only create assets for newly created students.
                 if created:
                     asset_obj = ImageAsset.objects.create(
-                        asset_portrait_data=student_portrait,
-                        asset_artwork_data=student_artwork
+                        asset_portrait_data=Converter.base64_to_byte(data['base64']['portrait']),
+                        asset_artwork_data=Converter.base64_to_byte(data['base64']['artwork'])
                     )
                     student_obj.asset_id = asset_obj
                     student_obj.save()
-
             except Exception as e:
-                student_name_for_error = data.get('name', 'N/A')
-                self.stdout.write(self.style.ERROR(f"\nAn unexpected error occurred for student data '{student_name_for_error}': {e}"))
-            
+                self.stdout.write(self.style.ERROR(f"\nError processing student file {os.path.basename(json_file)}: {e}"))
             prog_bar.add_step()
-        
-        self.stdout.write(self.style.SUCCESS(f'\nUnpack student data COMPLETE'))
+        self.stdout.write(self.style.SUCCESS(f'\nSuccessfully unpacked {len(json_files)} students.'))
 
-    def unpack_achievement(self, dir):
-        """
-        Unpacks all achievement definitions from JSON files into the Achievement table.
-        It does not handle the achievement logic (e.g., student lists), only the
-        definitional data like name, description, and icon.
-        """
-        json_file_list = DirectoryProcessor.get_only_files(dir, ['.json'])
-        if not json_file_list:
-            self.stdout.write(self.style.WARNING('No achievement JSON files found to unpack.'))
+    def unpack_banners(self, dir_path):
+        """Unpacks GachaBanner data from a directory of JSON files."""
+        self.stdout.write(self.style.NOTICE('\nUnpacking Banners...'))
+        json_files = DirectoryProcessor.get_only_files(dir_path, ['.json'])
+        if not json_files:
+            self.stdout.write(self.style.WARNING('No banner JSON files found. Skipping.'))
             return
 
-        self.stdout.write(self.style.NOTICE(f'Unpacking {len(json_file_list)} achievements...'))
-        prog_bar = TextProgressBar(len(json_file_list))
-        created_count = 0
-        updated_count = 0
-
-        for json_file in json_file_list:
+        sorted_files = sorted(json_files, key=lambda p: (0, p) if "Standard.json" in p else (1, p))
+        
+        # --- Cache all necessary related data for high performance ---
+        presets_cache = {p.name: p for p in GachaPreset.objects.all()}
+        versions_cache = {v.name: v for v in Version.objects.all()}
+        students_cache = {(s.name, s.version): s for s in Student.objects.select_related('version_id')}
+        
+        prog_bar = TextProgressBar(len(sorted_files))
+        for json_file in sorted_files:
             try:
-                with open(json_file) as file:
-                    # Your JSON is a list of objects, so we loop through it
-                    data = json.load(file)
+                with open(json_file) as f:
+                    data = json.load(f)
 
-                key = data["key"]
-                name = data["name"]
-                description = data["description"]
-                category = data["category"]
-                image_bytes = Converter.base64_to_byte(data['image_base64'])
-
-                # Use update_or_create to safely insert or update achievements
-                # based on their unique key. This makes the script re-runnable.
-                _, created = Achievement.objects.update_or_create(
-                    achievement_key=key,
+                banner_obj, _ = GachaBanner.objects.update_or_create(
+                    banner_name=data["name"],
                     defaults={
-                        'achievement_name': name,
-                        'achievement_description': description,
-                        'achievement_category': category,
-                        'achievement_image': image_bytes
+                        'preset_id': presets_cache[data["preset"]],
+                        'banner_image': Converter.base64_to_byte(data['image_base64']),
+                        'banner_include_limited': data["limited"]
                     }
                 )
                 
-                if created:
-                    created_count += 1
-                else:
-                    updated_count += 1
+                # --- Set Many-to-Many relationships using the cache ---
+                version_objects = [versions_cache[v_name] for v_name in data["version"] if v_name in versions_cache]
+                banner_obj.banner_include_version.set(version_objects)
+                
+                pickup_objects = [students_cache[(p["name"], p["version"])] for p in data["pickup"] if (p["name"], p["version"]) in students_cache]
+                banner_obj.banner_pickup.set(pickup_objects)
 
-            except KeyError as e:
-                self.stdout.write(self.style.ERROR(f"\nJSON file {os.path.basename(json_file)} is missing a required key: {e}"))
             except Exception as e:
-                self.stdout.write(self.style.ERROR(f"\nFailed to process achievement file '{os.path.basename(json_file)}': {e}"))
-
+                self.stdout.write(self.style.ERROR(f"\nError processing banner file {os.path.basename(json_file)}: {e}"))
             prog_bar.add_step()
-        
-        self.stdout.write(self.style.SUCCESS(f'\nAchievement unpacking complete.'))
-        self.stdout.write(self.style.SUCCESS(f'Summary: {created_count} created, {updated_count} found/updated.'))
+        self.stdout.write(self.style.SUCCESS(f'\nSuccessfully unpacked {len(sorted_files)} banners.'))
+
+    def unpack_achievements(self, dir_path):
+        """Unpacks Achievement definitions from a directory of JSON files."""
+        self.stdout.write(self.style.NOTICE('\nUnpacking Achievements...'))
+        json_files = DirectoryProcessor.get_only_files(dir_path, ['.json'])
+        if not json_files:
+            self.stdout.write(self.style.WARNING('No achievement JSON files found. Skipping.'))
+            return
+
+        prog_bar = TextProgressBar(len(json_files))
+        for json_file in json_files:
+            try:
+                with open(json_file) as file:
+                    data = json.load(file)
+                
+                Achievement.objects.update_or_create(
+                    achievement_key=data["key"],
+                    defaults={
+                        'achievement_name': data["name"],
+                        'achievement_description': data["description"],
+                        'achievement_category': data["category"],
+                        'achievement_image': Converter.base64_to_byte(data['image_base64'])
+                    }
+                )
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"\nError processing achievement file {os.path.basename(json_file)}: {e}"))
+            prog_bar.add_step()
+        self.stdout.write(self.style.SUCCESS(f'\nSuccessfully unpacked {len(json_files)} achievements.'))

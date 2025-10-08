@@ -8,13 +8,13 @@ from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles import finders
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, Min
+
 from django.http import JsonResponse, HttpRequest, HttpResponse, FileResponse, HttpResponseNotFound, HttpResponseBadRequest
 from django.shortcuts import render, get_object_or_404
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.views.decorators.http import require_POST, require_GET
-
 from collections import Counter, defaultdict
 
 from .models import School, Student, Version, GachaBanner, GachaTransaction, UserInventory, Achievement
@@ -182,10 +182,11 @@ def get_top_students_by_rarity(request: HttpRequest, rarity: int) -> HttpRespons
     if top_students is None:
         print(f"CACHE MISS for key: {cache_key}")
         # Fetch the top 3 students for the requested rarity.
-        top_students = Student.objects.filter(
-            gachatransaction__transaction_user=user, 
-            student_rarity=rarity
-        ).annotate(count=Count('pk')).order_by('-count')[:3]
+        top_students = (
+            Student.objects.filter(gachatransaction__transaction_user=user, student_rarity=rarity)
+            .annotate(count=Count('pk'), first_obtained=Min('gachatransaction__transaction_create_on'))
+            .order_by( '-count', 'first_obtained')[:3]
+        )
         cache.set(cache_key, top_students, timeout=CACHE_IMAGE_TIMEOUT)
 
     context = {
@@ -233,15 +234,17 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
 
             # --- 1. Default Top 3 Most Pulled Students Rarity 3 ---
             # for other will be fetch by get_top_students_by_rarity() later
-            context['top_r3_students'] = Student.objects.filter(gachatransaction__transaction_user=user, student_rarity=3).annotate(count=Count('pk')).order_by('-count')[:3]
+            context['top_r3_students'] = (
+                Student.objects.filter(gachatransaction__transaction_user=user, student_rarity=3)
+                .annotate(count=Count('pk'), first_obtained=Min('gachatransaction__transaction_create_on'))
+                .order_by( '-count', 'first_obtained')[:3]
+            )
 
             # --- 2. Rarity Breakdown for Chart ---
             rarity_counter = Counter(pull.student_id.student_rarity for pull in all_pulls)
             context['r3_count'] = rarity_counter.get(3, 0)
             context['r2_count'] = rarity_counter.get(2, 0)
             context['r1_count'] = rarity_counter.get(1, 0)
-
-            
 
             # --- 3. Banner Distribution for Chart ---
             banner_counter = Counter(pull.banner_id.banner_name for pull in all_pulls)
@@ -268,8 +271,6 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
             
             # Pass this data to the template as a JSON string for easy use in JavaScript.
             context['per_banner_rarity_json'] = json.dumps(per_banner_rarity_data)
-
-  
 
             banner_analysis = []
             for banner_name, pulls_in_banner in pulls_by_banner.items():
@@ -544,60 +545,100 @@ def serve_school_image(request:HttpRequest, school_id:int):
 
     return response
 
-def serve_banner_image(request:HttpRequest, banner_id:int):
+def serve_banner_image(request: HttpRequest, banner_id: int) -> HttpResponse:
+    """
+    Serves the banner_image for a given GachaBanner, using an efficient
+    caching strategy that stores raw data.
+    """
+    cache_key = f"banner_image:{banner_id}"
+    image_data = cache.get(cache_key)
 
-    try:
-        banner_obj = GachaBanner.objects.get(banner_id=banner_id)
-        banner_name = banner_obj.name
-        banner_bytes = banner_obj.image
+    if image_data is None:
+        print(f"CACHE MISS for key: {cache_key}")
+        try:
+            # Query the database for only the necessary fields.
+            banner = GachaBanner.objects.values('banner_name', 'banner_image').get(pk=banner_id)
+            
+            if not banner['banner_image']:
+                raise GachaBanner.DoesNotExist
 
-        if banner_bytes is None:
-            raise GachaBanner.DoesNotExist
-        
-    except GachaBanner.DoesNotExist:
-        # Find the SVG file in the static folder
-        svg_path = finders.find("icon/website/portrait_404.png")  # Replace with your SVG's path in static
-        if not svg_path:
-            return HttpResponseNotFound("SVG not found in static files.")
-        
-        return FileResponse(open(svg_path, "rb"), content_type="image/png")
+            # Create a lightweight dictionary with the raw data to cache.
+            image_data = {
+                'name': banner['banner_name'],
+                'image_bytes': banner['banner_image']
+            }
+            # Cache this dictionary for one hour.
+            cache.set(cache_key, image_data, timeout=3600)
+
+        except GachaBanner.DoesNotExist:
+            # Cache a "not found" marker to prevent repeated invalid queries.
+            image_data = "NOT_FOUND"
+            cache.set(cache_key, image_data, timeout=60)
+    else:
+        print(f"CACHE HIT for key: {cache_key}")
+
+    # --- Serve the response based on the retrieved data ---
+
+    if image_data == "NOT_FOUND":
+        # If the image doesn't exist, serve a static fallback image.
+        fallback_path = finders.find("icon/website/portrait_404.png")
+        if fallback_path:
+            return FileResponse(open(fallback_path, "rb"), content_type="image/png")
+        else:
+            return HttpResponseNotFound("Banner image and fallback image not found.")
+
+    # If data was found, build the response directly from the bytes in memory.
+    response = HttpResponse(image_data['image_bytes'], content_type='image/png')
+    response['Content-Disposition'] = f'inline; filename="{image_data["name"]}.png"'
     
-    # Create a temporary file
-    temp_file = tempfile.NamedTemporaryFile(delete=False)
-    temp_file.write(banner_bytes)
-    temp_file.seek(0)
-
-    response = FileResponse(temp_file, content_type='image/png')
-    response['Content-Disposition'] = f'inline; filename="{banner_name}.png"'
-
     return response
 
-def serve_achievement_image(request:HttpRequest, achievement_id:int):
+def serve_achievement_image(request: HttpRequest, achievement_id: int) -> HttpResponse:
+    """
+    Serves the achievement_image for a given Achievement, using an efficient
+    caching strategy that stores raw data.
+    """
+    cache_key = f"achievement_image:{achievement_id}"
+    image_data = cache.get(cache_key)
 
-    try:
-        achievement_obj = Achievement.objects.get(achievement_id=achievement_id)
-        achievement_name = achievement_obj.name
-        achievement_bytes = achievement_obj.image
+    if image_data is None:
+        print(f"CACHE MISS for key: {cache_key}")
+        try:
+            # Query the database for only the necessary fields.
+            achievement = Achievement.objects.values('achievement_name', 'achievement_image').get(pk=achievement_id)
+            
+            if not achievement['achievement_image']:
+                raise Achievement.DoesNotExist
 
-        if achievement_bytes is None:
-            raise Achievement.DoesNotExist
-        
-    except Achievement.DoesNotExist:
-        # Find the SVG file in the static folder
-        svg_path = finders.find("icon/website/portrait_404.png")  # Replace with your SVG's path in static
-        if not svg_path:
-            return HttpResponseNotFound("SVG not found in static files.")
-        
-        return FileResponse(open(svg_path, "rb"), content_type="image/png")
+            # Create a lightweight dictionary to cache.
+            image_data = {
+                'name': achievement['achievement_name'],
+                'image_bytes': achievement['achievement_image']
+            }
+            # Cache the dictionary.
+            cache.set(cache_key, image_data, timeout=60)
+
+        except Achievement.DoesNotExist:
+            # Cache a "not found" marker to prevent repeated invalid queries.
+            image_data = "NOT_FOUND"
+            cache.set(cache_key, image_data, timeout=60)
+    else:
+        print(f"CACHE HIT for key: {cache_key}")
+
+    # --- Serve the response based on the retrieved data ---
     
-    # Create a temporary file
-    temp_file = tempfile.NamedTemporaryFile(delete=False)
-    temp_file.write(achievement_bytes)
-    temp_file.seek(0)
+    if image_data == "NOT_FOUND":
+        # If the image doesn't exist, serve a static fallback image.
+        fallback_path = finders.find("icon/website/portrait_404.png")
+        if fallback_path:
+            return FileResponse(open(fallback_path, "rb"), content_type="image/png")
+        else:
+            return HttpResponseNotFound("Achievement image and fallback image not found.")
 
-    response = FileResponse(temp_file, content_type='image/png')
-    response['Content-Disposition'] = f'inline; filename="{achievement_name}.png"'
-
+    # If data was found, build the response directly from the bytes in memory.
+    response = HttpResponse(image_data['image_bytes'], content_type='image/png')
+    response['Content-Disposition'] = f'inline; filename="{image_data["name"]}.png"'
+    
     return response
 
 def serve_student_image(request: HttpRequest, student_id: int, image_type: str):

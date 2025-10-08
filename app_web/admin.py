@@ -203,12 +203,16 @@ class UserInventoryAdmin(admin.ModelAdmin):
 class AchievementAdmin(admin.ModelAdmin):
     list_display = [
         'achievement_id',
+        'achievement_category',
         'achievement_icon_custom',
         'achievement_name',
         'achievement_description',
+        'achievement_key',
     ]
 
     list_per_page = 10
+
+    ordering = ['achievement_id']
 
     @admin.display(description='Image')
     def achievement_icon_custom(self, obj:Achievement):
