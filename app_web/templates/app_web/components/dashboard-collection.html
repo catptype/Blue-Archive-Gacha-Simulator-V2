@@ -1,5 +1,6 @@
 <!-- app_web/components/_collection.html -->
 <!-- This template is now a self-contained component with its own filtering logic. -->
+{% load static %}
 
 <div class="tab-html-content">
   <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
@@ -26,23 +27,49 @@
       </div>
   </div>
 
-  <!-- The main grid container for all student cards. -->
-  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+  <!-- =============================================================== -->
+  <!-- GROUPED STUDENT DISPLAY                                         -->
+  <!-- =============================================================== -->
+  {% regroup all_students by student_rarity as students_by_rarity %}
+
+  <div class="flex flex-col gap-8">
       
-      {% for student in all_students %}
-          <div class="student-item relative" data-status="{% if student.is_obtained %}obtained{% else %}not-obtained{% endif %}">
-              
-              <div class="transition-all duration-300 {% if not student.is_obtained %}opacity-30 grayscale{% endif %}">
-                  {% include 'app_web/components/student-card-static.html' with student=student %}
+      {% for rarity_group in students_by_rarity %}
+          <div>
+              <!-- Rarity Group Header -->
+              <h3 class="text-2xl font-bold mb-4 flex items-center">
+                  {% for i in "x"|rjust:rarity_group.grouper %}
+                  <img src="{% static 'images/web/star_yellow.png' %}" alt="star" class="w-8 h-8">
+                  {% endfor %}
+              </h3>
+
+              <!-- The grid container for the students in this rarity group. -->
+              <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  
+                  {% for student in rarity_group.list %}
+                      <!-- 
+                        THE FIX: The 'opacity' and 'grayscale' classes are REMOVED from this div.
+                        The 'data-status' attribute remains for the filter to work.
+                      -->
+                      <div class="student-item relative" data-status="{% if student.is_obtained %}obtained{% else %}not-obtained{% endif %}">
+                          
+                          <!-- The student card is now always rendered at full opacity. -->
+                          {% include 'app_web/components/student-card-static.html' with student=student %}
+                          
+                          <!-- 
+                            THE FIX: The lock icon overlay is still present for un-obtained students.
+                            It is NOT dimmed or grayscaled.
+                          -->
+                          {% if not student.is_obtained %}
+                          <div class="absolute inset-0 flex items-center justify-center bg-black/80 rounded-lg pointer-events-none">
+                              <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+                              </svg>
+                          </div>
+                          {% endif %}
+                      </div>
+                  {% endfor %}
               </div>
-              
-              {% if not student.is_obtained %}
-              <div class="absolute w-[220px] inset-0 flex items-center justify-center bg-black/60 rounded-lg pointer-events-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 text-white" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
-                  </svg>
-              </div>
-              {% endif %}
           </div>
       {% endfor %}
   </div>
