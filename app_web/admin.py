@@ -211,7 +211,7 @@ class AchievementAdmin(admin.ModelAdmin):
     ]
 
     list_per_page = 10
-
+    list_filter = ['achievement_category']
     ordering = ['achievement_id']
 
     @admin.display(description='Image')
