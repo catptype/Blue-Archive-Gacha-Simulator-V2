@@ -408,14 +408,13 @@ class Achievement(models.Model):
     achievement_id = models.AutoField(primary_key=True, auto_created=True, editable=False, verbose_name='ID')
     achievement_name = models.CharField(max_length=100, unique=True)
     achievement_description = models.TextField()
-    achievement_icon = models.BinaryField(null=True, blank=True, verbose_name='Image')
+    achievement_image = models.BinaryField(null=True, blank=True, verbose_name='Image')
     
     # You can add a category for easier filtering in the UI
     CATEGORY_CHOICES = [
         ('COLLECTION', 'Collection'),
         ('MILESTONE', 'Milestone'),
         ('LUCK', 'Feats of Luck'),
-        ('CONSISTENCY', 'Consistency'),
     ]
     achievement_category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='MILESTONE')
     
@@ -429,6 +428,13 @@ class Achievement(models.Model):
     def name(self):
         return self.achievement_name
     
+    @property
+    def image(self):
+        return self.achievement_image
+    
+    class Meta:
+        db_table = 'achievement_table'
+    
 class UnlockAchievement(models.Model):
     unlock_id = models.AutoField(primary_key=True, auto_created=True, editable=False, verbose_name='ID')
     unlock_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='achievements')
@@ -436,6 +442,7 @@ class UnlockAchievement(models.Model):
     unlock_on = models.DateTimeField(auto_now_add=True, editable=False)
     
     class Meta:
+        db_table = 'unlock_achievement_table'
         unique_together = ('unlock_user', 'achievement_id') # A user can only get an achievement once.
 
     def __str__(self):

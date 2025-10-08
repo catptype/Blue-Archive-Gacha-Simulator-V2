@@ -3,7 +3,8 @@ import os
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.management.base import BaseCommand
-from app_web.models import Version, School, Student, ImageAsset, GachaPreset, GachaBanner
+from django.db import transaction
+from app_web.models import Version, School, Student, ImageAsset, GachaPreset, GachaBanner, Achievement
 # from gacha_app.models import GachaRatePreset
 from .utils.Converter import Converter
 from .utils.TextProgressBar import TextProgressBar
@@ -11,6 +12,8 @@ from .utils.DirectoryProcessor import DirectoryProcessor
 
 class Command(BaseCommand):
     help = 'Import data from JSON files into model'
+
+    @transaction.atomic
     def handle(self, *args, **options):
         ROOT_DIR = os.path.join(settings.BASE_DIR, 'app_web', 'management', 'data', 'json')
 
@@ -18,14 +21,15 @@ class Command(BaseCommand):
         banner_dir = os.path.join(ROOT_DIR, 'banners')        
         school_dir = os.path.join(ROOT_DIR, 'schools')
         student_dir = os.path.join(ROOT_DIR, 'students')
+        achievement_dir = os.path.join(ROOT_DIR, 'achievement')
 
         self.stdout.write(self.style.SUCCESS('Start unpack'))
 
-        # self.unpack_gacha_preset(gacha_preset_json)
         self.unpack_preset(preset_dir)
         self.unpack_school(school_dir)
         self.unpack_student(student_dir)
         self.unpack_banner(banner_dir)
+        self.unpack_achievement(achievement_dir)
 
         self.stdout.write(self.style.SUCCESS('Data unpack complete'))
 
@@ -288,4 +292,57 @@ class Command(BaseCommand):
         
         self.stdout.write(self.style.SUCCESS(f'\nUnpack student data COMPLETE'))
 
-    
+    def unpack_achievement(self, dir):
+        """
+        Unpacks all achievement definitions from JSON files into the Achievement table.
+        It does not handle the achievement logic (e.g., student lists), only the
+        definitional data like name, description, and icon.
+        """
+        json_file_list = DirectoryProcessor.get_only_files(dir, ['.json'])
+        if not json_file_list:
+            self.stdout.write(self.style.WARNING('No achievement JSON files found to unpack.'))
+            return
+
+        self.stdout.write(self.style.NOTICE(f'Unpacking {len(json_file_list)} achievements...'))
+        prog_bar = TextProgressBar(len(json_file_list))
+        created_count = 0
+        updated_count = 0
+
+        for json_file in json_file_list:
+            try:
+                with open(json_file) as file:
+                    # Your JSON is a list of objects, so we loop through it
+                    data = json.load(file)
+
+                key = data["key"]
+                name = data["name"]
+                description = data["description"]
+                category = data["category"]
+                image_bytes = Converter.base64_to_byte(data['image_base64'])
+
+                # Use update_or_create to safely insert or update achievements
+                # based on their unique key. This makes the script re-runnable.
+                _, created = Achievement.objects.update_or_create(
+                    achievement_key=key,
+                    defaults={
+                        'achievement_name': name,
+                        'achievement_description': description,
+                        'achievement_category': category,
+                        'achievement_image': image_bytes
+                    }
+                )
+                
+                if created:
+                    created_count += 1
+                else:
+                    updated_count += 1
+
+            except KeyError as e:
+                self.stdout.write(self.style.ERROR(f"\nJSON file {os.path.basename(json_file)} is missing a required key: {e}"))
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"\nFailed to process achievement file '{os.path.basename(json_file)}': {e}"))
+
+            prog_bar.add_step()
+        
+        self.stdout.write(self.style.SUCCESS(f'\nAchievement unpacking complete.'))
+        self.stdout.write(self.style.SUCCESS(f'Summary: {created_count} created, {updated_count} found/updated.'))

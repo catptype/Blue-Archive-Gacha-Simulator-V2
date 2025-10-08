@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.template.loader import render_to_string
 
-from .models import Student, School, Version, GachaBanner, GachaPreset, GachaTransaction, UserInventory
+from .models import Student, School, Version, GachaBanner, GachaPreset, GachaTransaction, UserInventory, Achievement
 
 def create_image_display(image_type, description):
     """
@@ -198,3 +198,22 @@ class UserInventoryAdmin(admin.ModelAdmin):
     list_per_page = 10
     
     list_filter = ['student_id']
+
+@admin.register(Achievement)
+class AchievementAdmin(admin.ModelAdmin):
+    list_display = [
+        'achievement_id',
+        'achievement_icon_custom',
+        'achievement_name',
+        'achievement_description',
+    ]
+
+    list_per_page = 10
+
+    @admin.display(description='Image')
+    def achievement_icon_custom(self, obj:Achievement):
+        context = {
+            'achievement_id': obj.pk,
+            'achievement_name': obj.name
+        }
+        return render_to_string('admin/achievement-image.html', context)

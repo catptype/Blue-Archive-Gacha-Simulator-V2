@@ -17,7 +17,7 @@ from django.views.decorators.http import require_POST, require_GET
 
 from collections import Counter, defaultdict
 
-from .models import School, Student, Version, GachaBanner, GachaTransaction, UserInventory
+from .models import School, Student, Version, GachaBanner, GachaTransaction, UserInventory, Achievement
 from .util.GachaEngine import GachaEngine
 
 CACHE_IMAGE_TIMEOUT = 300 # 5 minutes 
@@ -569,6 +569,34 @@ def serve_banner_image(request:HttpRequest, banner_id:int):
 
     response = FileResponse(temp_file, content_type='image/png')
     response['Content-Disposition'] = f'inline; filename="{banner_name}.png"'
+
+    return response
+
+def serve_achievement_image(request:HttpRequest, achievement_id:int):
+
+    try:
+        achievement_obj = Achievement.objects.get(achievement_id=achievement_id)
+        achievement_name = achievement_obj.name
+        achievement_bytes = achievement_obj.image
+
+        if achievement_bytes is None:
+            raise Achievement.DoesNotExist
+        
+    except Achievement.DoesNotExist:
+        # Find the SVG file in the static folder
+        svg_path = finders.find("icon/website/portrait_404.png")  # Replace with your SVG's path in static
+        if not svg_path:
+            return HttpResponseNotFound("SVG not found in static files.")
+        
+        return FileResponse(open(svg_path, "rb"), content_type="image/png")
+    
+    # Create a temporary file
+    temp_file = tempfile.NamedTemporaryFile(delete=False)
+    temp_file.write(achievement_bytes)
+    temp_file.seek(0)
+
+    response = FileResponse(temp_file, content_type='image/png')
+    response['Content-Disposition'] = f'inline; filename="{achievement_name}.png"'
 
     return response
 

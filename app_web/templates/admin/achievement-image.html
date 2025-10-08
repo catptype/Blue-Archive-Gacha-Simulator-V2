@@ -1,0 +1,7 @@
+{% load static %}
+<img 
+  src="{% url 'serve_achievement_image' achievement_id=achievement_id %}" 
+  alt="{{ achievement_name }}" 
+  loading="lazy" 
+  height="100px"
+>
