@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- 3. Fetch New Content ---
         try {
             const response = await fetch(`/dashboard/${tabName}`);
-            if (!response.ok) throw new Error('Failed to load content.');
+            if (!response.ok) throw new Error(`Failed to load content. /dashboard/${tabName}`);
             const responseText = await response.text();
 
             // Only inject the content if the user hasn't already clicked another tab.

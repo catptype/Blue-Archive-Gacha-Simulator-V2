@@ -31,7 +31,7 @@
                         <!-- Achievement Icon -->
                         <div class="relative flex-shrink-0 w-16 h-16 bg-slate-800 rounded-lg">
                             {% if ach.achievement_icon %}
-                                <img src="{% url 'serve_achievement_image' achievement_id=ach.achievement_id %}" class="w-full h-full object-cover rounded-lg">
+                                <img src="{% url 'serve_achievement_image' achievement_id=ach.achievement_id %}" class="w-full h-full object-contain rounded-lg">
                             {% endif %}
                             
                             <!-- If not unlocked, show a lock icon overlay -->

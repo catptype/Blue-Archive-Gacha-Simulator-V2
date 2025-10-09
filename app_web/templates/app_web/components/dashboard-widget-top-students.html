@@ -1,0 +1,78 @@
+<!-- This is the complete shell for the Top Students widget, with its own script. -->
+{% load static %}
+
+<!-- This is the same robust Flexbox layout from our previous discussions -->
+<div class="relative flex h-full">
+    <!-- Column 1: Vertical Rarity Tabs -->
+    <div class="flex flex-col gap-1 z-20 pt-2">
+        <button class="rarity-tab w-10 h-24 flex items-center justify-center rounded-l-lg transition-colors duration-200 border-l border-t border-b" data-rarity="3">
+            <span class="transform -rotate-90 whitespace-nowrap font-semibold">★★★</span>
+        </button>
+        <button class="rarity-tab w-10 h-24 flex items-center justify-center rounded-l-lg transition-colors duration-200 border-l border-t border-b" data-rarity="2">
+            <span class="transform -rotate-90 whitespace-nowrap font-semibold">★★</span>
+        </button>
+        <button class="rarity-tab w-10 h-24 flex items-center justify-center rounded-l-lg transition-colors duration-200 border-l border-t border-b" data-rarity="1">
+            <span class="transform -rotate-90 whitespace-nowrap font-semibold">★</span>
+        </button>
+    </div>
+
+    <!-- Column 2: Podium Content Panel -->
+    <div id="podium-content-wrapper" class="relative w-[90%] h-full z-10 flex-grow p-4 bg-slate-700/50 rounded-lg overflow-x-auto">
+        <h3 class="text-xl font-semibold mb-2">Most Pulled Students</h3>
+        <div id="podium-content" class="transform scale-90 origin-top">
+            <!-- The initial 3-star podium is rendered here on first load -->
+            {% include 'app_web/components/dashboard-podium.html' with top_students=top_r3_students %}
+        </div>
+    </div>
+</div>
+
+<!-- This script is now self-contained within this widget -->
+<script class="tab-js-script">
+    (function() {
+        const rarityTabs = contentWrapper.querySelectorAll('.rarity-tab');
+        const podiumContainer = contentWrapper.querySelector('#podium-content');
+        let isLoadingPodium = false;
+
+        async function loadPodiumContent(rarity) {
+            if (isLoadingPodium) return;
+            isLoadingPodium = true;
+
+            // Update tab styles
+            rarityTabs.forEach(tab => {
+                if (tab.dataset.rarity == rarity) {
+                    // tab.classList.add('bg-cyan-600', 'text-white');
+                    // tab.classList.remove('bg-slate-700/50', 'text-slate-400');
+                    tab.classList.add('bg-sky-800/80', 'border-slate-700', 'text-white', 'font-semibold');
+                    tab.classList.remove('text-slate-400', 'hover:bg-slate-700/50');
+                } else {
+                    // tab.classList.remove('bg-cyan-600', 'text-white');
+                    // tab.classList.add('bg-slate-700/50', 'text-slate-400');
+                    tab.classList.remove('bg-sky-800/80', 'border-slate-700', 'text-white', 'font-semibold');
+                    tab.classList.add('text-slate-400', 'hover:bg-slate-700/50');
+                }
+            });
+
+            // Show loading state
+            podiumContainer.style.opacity = 0.5;
+
+            try {
+                const response = await fetch(`/dashboard/widget/top-students/${rarity}/`);
+                if (!response.ok) throw new Error('Failed to load podium data.');
+                podiumContainer.innerHTML = await response.text();
+            } catch (error) {
+                podiumContainer.innerHTML = `<p class="text-red-400">${error.message}</p>`;
+            } finally {
+                isLoadingPodium = false;
+                podiumContainer.style.opacity = 1;
+            }
+        }
+
+        // Attach listeners
+        rarityTabs.forEach(tab => {
+            tab.addEventListener('click', () => loadPodiumContent(tab.dataset.rarity));
+        });
+
+        // Set initial active state for the default (3-star) tab
+        rarityTabs[0].click();
+    })();
+</script>

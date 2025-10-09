@@ -1,0 +1,12 @@
+<!-- This is a simple, self-contained template for the First Pull widget. -->
+{% load static %}
+
+    <h3 class="text-xl font-semibold mb-2 text-center">Your First ★★★ Pull</h3>
+    {% if first_r3_pull %}
+        <div class="transform scale-90">
+            {% include 'app_web/components/student-card-static.html' with student=first_r3_pull.student_id %}
+        </div>
+        <p class="text-sm text-slate-400 mt-2">Pulled on {{ first_r3_pull.transaction_create_on|date:"Y-m-d" }}</p>
+    {% else %}
+        <p class="text-slate-400 text-center">Keep pulling to find your first 3-star!</p>
+    {% endif %}

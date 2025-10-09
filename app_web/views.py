@@ -201,6 +201,59 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     return render(request, 'app_web/dashboard.html')
 
 @login_required
+def dashboard_widget_kpis(request: HttpRequest) -> HttpResponse:
+    """
+    API endpoint that calculates all KPI metrics and renders the partial
+    HTML template for the KPI widget.
+    """
+    user = request.user
+    
+    # --- Perform all necessary calculations ---
+    total_pulls = GachaTransaction.objects.filter(transaction_user=user).count()
+    
+    # Use a single, efficient query to get all rarity counts at once.
+    rarity_counts_query = GachaTransaction.objects.filter(transaction_user=user).values('student_id__student_rarity').annotate(count=Count('pk'))
+    # Convert the queryset into a simple dictionary for easy access.
+    counts = {item['student_id__student_rarity']: item['count'] for item in rarity_counts_query}
+
+    context = {
+        'total_pulls': total_pulls,
+        'total_pyroxene_spent': total_pulls * 120,
+        'r3_count': counts.get(3, 0),
+        'r2_count': counts.get(2, 0),
+        'r1_count': counts.get(1, 0),
+    }
+    
+    # Render the specific partial template for this widget.
+    return render(request, 'app_web/components/dashboard-widget-kpi.html', context)
+
+@login_required
+def dashboard_widget_top_students(request: HttpRequest) -> HttpResponse:
+    """
+    Renders the HTML shell for the 'Top Students' podium widget, including
+    the tabs. The initial podium content (for 3-stars) is also pre-rendered.
+    """
+    top_r3_students = (
+        Student.objects.filter(gachatransaction__transaction_user=request.user, student_rarity=3)
+        .annotate(count=Count('pk'), first_obtained=Min('gachatransaction__transaction_create_on'))
+        .order_by('-count', 'first_obtained')[:3]
+    )
+
+    context = {'top_r3_students': top_r3_students}
+    
+    return render(request, 'app_web/components/dashboard-widget-top-students.html', context)
+
+@login_required
+def dashboard_widget_first_r3_pull(request: HttpRequest) -> HttpResponse:
+    """
+    Renders the HTML for the 'First 3-Star Pull' widget.
+    """
+    first_pull = GachaTransaction.objects.filter(transaction_user=request.user, student_id__student_rarity=3).select_related('student_id').order_by('transaction_create_on').first()
+    context = {'first_r3_pull': first_pull}
+    
+    return render(request, 'app_web/components/dashboard-widget-first-r3-pull.html', context)
+
+@login_required
 def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
     """
     API endpoint that fetches the correct data based on the requested tab
