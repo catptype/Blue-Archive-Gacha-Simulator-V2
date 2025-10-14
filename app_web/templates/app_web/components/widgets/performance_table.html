@@ -1,0 +1,46 @@
+{% load humanize %}
+
+<div class="p-4 bg-slate-700/50 rounded-lg">
+    <h3 class="text-xl font-semibold mb-4">Banner Performance</h3>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+            <thead class="border-b border-slate-600">
+                <tr>
+                    <th class="p-2">Banner</th>
+                    <th class="p-2 text-center">Total Pulls</th>
+                    <th class="p-2 text-center">★★★ Count</th>
+                    <th class="p-2 text-center">Your Rate</th>
+                    <th class="p-2 text-center">Banner Rate</th>
+                    <th class="p-2 text-center">Luck Variance</th>
+                    <th class="p-2 text-center">Shortest Gap</th>
+                    <th class="p-2 text-center">Longest Gap</th>
+                    <th class="p-2 text-center">Average Gap</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for analysis in banner_analysis %}
+                <tr class="border-b border-slate-700/50">
+                    <td class="p-2 font-semibold">{{ analysis.banner_name }}</td>
+                    <td class="p-2 text-center">{{ analysis.total_pulls|intcomma }}</td>
+                    <td class="p-2 text-center text-yellow-300 font-bold">{{ analysis.r3_count|intcomma }}</td>
+                    <td class="p-2 text-center font-mono">{{ analysis.user_rate }}</td>
+                    <td class="p-2 text-center font-mono">{{ analysis.banner_rate }}</td>
+                    <td class="p-2 text-center font-bold 
+                        {% if analysis.luck_variance|slice:':1' == '+' %}text-green-400
+                        {% elif analysis.luck_variance|slice:':1' == '-' %}text-red-400
+                        {% else %}text-slate-400{% endif %}">
+                        {{ analysis.luck_variance }}
+                    </td>
+                    <td class="p-2 text-center">{{ analysis.gaps.min|default:"N/A" }}</td>
+                    <td class="p-2 text-center">{{ analysis.gaps.max|default:"N/A" }}</td>
+                    <td class="p-2 text-center">{{ analysis.gaps.avg|default:"N/A" }}</td>
+                </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center p-4 text-slate-400">No pull data available yet.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

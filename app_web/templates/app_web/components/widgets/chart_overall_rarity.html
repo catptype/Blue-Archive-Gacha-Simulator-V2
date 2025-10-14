@@ -1,0 +1,78 @@
+<div class="p-4 bg-slate-700/50 rounded-lg">
+    <h3 class="text-xl font-semibold mb-4">Overall Rarity</h3>
+    <div class="relative h-full">
+        <canvas id="rarityPieChart"></canvas>
+    </div>
+</div>
+
+<script class="tab-js-script">
+    (function() {
+        /**
+         * Helper function to ensure Chart.js is loaded before use.
+         */
+        const whenChartJsReady = (callback) => {
+            if (typeof Chart !== 'undefined') {
+                callback();
+            } else {
+                let script = document.getElementById('chartjs-script');
+                if (!script) {
+                    script = document.createElement('script');
+                    script.id = 'chartjs-script';
+                    script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+                    document.head.appendChild(script);
+                }
+                script.addEventListener('load', callback);
+            }
+        };
+
+        /**
+         * The main function to create this specific chart.
+         */
+        const createOverallRarityChart = () => {
+            const pieCtx = document.getElementById('rarityPieChart');
+            if (!pieCtx) return;
+
+            // THE FIX: The data is now safely embedded in the template.
+            // We parse the JSON string passed from the Django view.
+            const chartData = JSON.parse('{{ chart_data_json|escapejs }}');
+
+            new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['★★★', '★★', '★'],
+                    datasets: [{
+                        label: 'Pulls',
+                        // These values are passed directly from the Django view.
+                        data: [chartData.r3, chartData.r2, chartData.r1],
+                        backgroundColor: [
+                            'rgba(250, 204, 21, 0.7)',  // Yellow
+                            'rgba(192, 132, 252, 0.7)', // Purple
+                            'rgba(96, 165, 250, 0.7)'   // Blue
+                        ],
+                        borderColor: [
+                            '#FBBF24',
+                            '#C084FC',
+                            '#60A5FA'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, 
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#cbd5e1' // slate-300
+                            }
+                        }
+                    }
+                }
+            });
+        };
+
+        // --- Execute the logic ---
+        whenChartJsReady(createOverallRarityChart);
+    })();
+</script>

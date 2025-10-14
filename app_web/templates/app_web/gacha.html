@@ -377,7 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!pullData.success) throw new Error('Server indicated a pull failure.');
 
             // Step 2: Call the rendering endpoint to get the HTML + Script content.
-            const renderResponse = await fetch('/banner-result', {
+            const renderResponse = await fetch('/banner-result/', {
                 method: 'POST',
                 headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ student_ids: pullData.results })

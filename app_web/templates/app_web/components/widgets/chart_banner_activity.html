@@ -1,0 +1,68 @@
+<div class="p-4 bg-slate-700/50 rounded-lg flex flex-col h-full">
+    <h3 class="text-xl font-semibold mb-4 flex-shrink-0">Banner Activity</h3>
+    
+    <!-- This is the 'bounding box' that gives the canvas its dimensions. -->
+    <div class="relative h-full">
+        <canvas id="bannerBarChart"></canvas>
+    </div>
+</div>
+
+<script class="tab-js-script">
+    (function() {
+        // Helper function to ensure Chart.js is loaded
+        const whenChartJsReady = (callback) => {
+            if (typeof Chart !== 'undefined') {
+                callback();
+            } else {
+                let script = document.getElementById('chartjs-script');
+                if (!script) {
+                    script = document.createElement('script');
+                    script.id = 'chartjs-script';
+                    script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+                    document.head.appendChild(script);
+                }
+                script.addEventListener('load', callback);
+            }
+        };
+
+        const createBannerActivityChart = () => {
+            const ctx = document.getElementById('bannerBarChart');
+            if (!ctx) return;
+
+            // Get the data that was passed from the Django view.
+            const chartData = JSON.parse('{{ chart_data_json|escapejs|default:"[]" }}');
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    // The labels are the banner names.
+                    labels: chartData.map(item => item.banner_id__banner_name),
+                    datasets: [{
+                        label: 'Pulls',
+                        // The data is the pull counts.
+                        data: chartData.map(item => item.count),
+                        backgroundColor: 'rgba(56, 189, 248, 0.7)',
+                        borderColor: '#38BDF8',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    // This makes the bar chart horizontal, which is ideal for long labels.
+                    indexAxis: 'y', 
+                    responsive: true,
+                    maintainAspectRatio: false, // Crucial for fitting in the container
+                    plugins: {
+                        legend: { display: false }, // The legend is redundant here.
+                    },
+                    scales: {
+                        // Style the axis labels to match the dark theme.
+                        y: { ticks: { color: '#cbd5e1' } },
+                        x: { ticks: { color: '#cbd5e1' } }
+                    }
+                }
+            });
+        };
+
+        whenChartJsReady(createBannerActivityChart);
+    })();
+</script>

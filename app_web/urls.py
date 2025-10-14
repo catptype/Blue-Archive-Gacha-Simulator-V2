@@ -18,6 +18,11 @@ urlpatterns = [
     path('dashboard/widget/top-students/', views.dashboard_widget_top_students, name='dashboard_widget_top_students'),
     path('dashboard/widget/top-students/<int:rarity>/', views.get_top_students_by_rarity, name='get_top_students_by_rarity'),
     path('dashboard/widget/first-r3-pull/', views.dashboard_widget_first_r3_pull, name='dashboard_widget_first_r3_pull'),
+    path('dashboard/widget/chart-overall-rarity/', views.dashboard_widget_chart_overall_rarity, name='dashboard_widget_chart_overall_rarity'),
+    path('dashboard/widget/chart-banner-breakdown/', views.dashboard_widget_chart_banner_breakdown, name='dashboard_widget_chart_banner_breakdown'),
+    path('dashboard/widget/chart-banner-activity/', views.dashboard_widget_chart_banner_activity, name='dashboard_widget_chart_banner_activity'),
+    path('dashboard/widget/performance-table/', views.dashboard_widget_performance_table, name='dashboard_widget_performance_table'),
+
     path('', views.home, name='register'),
 
     # --- NEW API ENDPOINT ---

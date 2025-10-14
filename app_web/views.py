@@ -131,7 +131,7 @@ def banner_details(request, banner_id):
         'rates': rates
     }
 
-    return render(request, 'app_web/components/banner-details.html', context)
+    return render(request, 'app_web/components/banner_details.html', context)
 
 @require_POST
 def gacha_results(request: HttpRequest) -> HttpResponse:
@@ -163,7 +163,7 @@ def gacha_results(request: HttpRequest) -> HttpResponse:
         context = {
             'pulled_students': pulled_students_in_order
         }
-        return render(request, 'app_web/components/banner-result.html', context)
+        return render(request, 'app_web/components/banner_result.html', context)
 
     except (json.JSONDecodeError, TypeError):
         return HttpResponseBadRequest("Invalid request body.")
@@ -194,7 +194,7 @@ def get_top_students_by_rarity(request: HttpRequest, rarity: int) -> HttpRespons
         'rarity': rarity, # Pass the rarity for styling in the template
     }
     # Render a NEW partial template just for the podium.
-    return render(request, 'app_web/components/dashboard-podium.html', context)
+    return render(request, 'app_web/components/dashboard_podium.html', context)
 
 @login_required
 def dashboard(request: HttpRequest) -> HttpResponse:
@@ -225,7 +225,7 @@ def dashboard_widget_kpis(request: HttpRequest) -> HttpResponse:
     }
     
     # Render the specific partial template for this widget.
-    return render(request, 'app_web/components/dashboard-widget-kpi.html', context)
+    return render(request, 'app_web/components/widgets/kpi.html', context)
 
 @login_required
 def dashboard_widget_top_students(request: HttpRequest) -> HttpResponse:
@@ -241,7 +241,7 @@ def dashboard_widget_top_students(request: HttpRequest) -> HttpResponse:
 
     context = {'top_r3_students': top_r3_students}
     
-    return render(request, 'app_web/components/dashboard-widget-top-students.html', context)
+    return render(request, 'app_web/components/widgets/top_students.html', context)
 
 @login_required
 def dashboard_widget_first_r3_pull(request: HttpRequest) -> HttpResponse:
@@ -251,7 +251,147 @@ def dashboard_widget_first_r3_pull(request: HttpRequest) -> HttpResponse:
     first_pull = GachaTransaction.objects.filter(transaction_user=request.user, student_id__student_rarity=3).select_related('student_id').order_by('transaction_create_on').first()
     context = {'first_r3_pull': first_pull}
     
-    return render(request, 'app_web/components/dashboard-widget-first-r3-pull.html', context)
+    return render(request, 'app_web/components/widgets/first_r3_pull.html', context)
+
+@login_required
+def dashboard_widget_chart_overall_rarity(request: HttpRequest) -> HttpResponse:
+    """
+    API endpoint that calculates the overall rarity distribution and renders the
+    complete HTML widget, including the <script> block with the data.
+    """
+    user = request.user
+    
+    # Perform one efficient query to get all counts.
+    rarity_counts_query = GachaTransaction.objects.filter(transaction_user=user).values('student_id__student_rarity').annotate(count=Count('pk'))
+    counts = {item['student_id__student_rarity']: item['count'] for item in rarity_counts_query}
+    
+    # Prepare the data in a dictionary.
+    chart_data = {
+        'r3': counts.get(3, 0),
+        'r2': counts.get(2, 0),
+        'r1': counts.get(1, 0),
+    }
+
+    context = {
+        # THE FIX: We pass the data to the template as a JSON string.
+        'chart_data_json': json.dumps(chart_data)
+    }
+    
+    # Render the self-contained widget template.
+    return render(request, 'app_web/components/widgets/chart_overall_rarity.html', context)
+
+@login_required
+def dashboard_widget_chart_banner_breakdown(request: HttpRequest) -> HttpResponse:
+    """
+    API endpoint that calculates per-banner rarity stats and renders the
+    complete HTML widget for the interactive 'Banner Breakdown' chart.
+    """
+    user = request.user
+    all_pulls = GachaTransaction.objects.filter(transaction_user=user).select_related('student_id', 'banner_id')
+
+    # Group pulls by banner to perform calculations
+    pulls_by_banner = defaultdict(list)
+    for pull in all_pulls:
+        pulls_by_banner[pull.banner_id.name].append(pull)
+
+    # Calculate rarity distribution for each banner
+    per_banner_rarity_data = {}
+    for banner_name, pulls in pulls_by_banner.items():
+        rarity_counter = Counter(p.student_id.student_rarity for p in pulls)
+        per_banner_rarity_data[banner_name] = {
+            'r3': rarity_counter.get(3, 0),
+            'r2': rarity_counter.get(2, 0),
+            'r1': rarity_counter.get(1, 0),
+        }
+    
+    # Get a sorted list of banner names for the dropdown
+    banner_names = sorted(pulls_by_banner.keys())
+
+    context = {
+        # Pass the banner names for the <select> options
+        'banner_names': banner_names,
+        # Pass the full data payload as a JSON string for the chart script
+        'per_banner_rarity_json': json.dumps(per_banner_rarity_data)
+    }
+    
+    return render(request, 'app_web/components/widgets/chart_banner_breakdown.html', context)
+
+@login_required
+def dashboard_widget_chart_banner_activity(request: HttpRequest) -> HttpResponse:
+    """
+    API endpoint that calculates the total pulls per banner and renders the
+    complete HTML widget for the 'Banner Activity' chart.
+    """
+    user = request.user
+    
+    # Perform one efficient query to get the pull count for each banner.
+    banner_counts = GachaTransaction.objects.filter(transaction_user=user).values('banner_id__banner_name').annotate(count=Count('banner_id')).order_by('-count') # Order by most pulls first
+
+    # The data is already in the perfect format for Chart.js.
+    # We'll pass it to the template as a JSON string.
+    context = {
+        'chart_data_json': json.dumps(list(banner_counts))
+    }
+    
+    return render(request, 'app_web/components/widgets/chart_banner_activity.html', context)
+
+
+@login_required
+def dashboard_widget_performance_table(request: HttpRequest) -> HttpResponse:
+    """
+    API endpoint that performs the per-banner luck and gap analysis and
+    renders the complete HTML widget for the performance table.
+    """
+    user = request.user
+    
+    # Fetch all pulls with related data once.
+    all_pulls = list(GachaTransaction.objects.filter(transaction_user=user).select_related(
+        'student_id', 'banner_id'
+    ).order_by('transaction_create_on'))
+
+    # Group pulls by banner for analysis.
+    pulls_by_banner = defaultdict(list)
+    for pull in all_pulls:
+        pulls_by_banner[pull.banner].append(pull)
+
+    banner_analysis = []
+    for banner_name, pulls_in_banner in pulls_by_banner.items():
+
+        r3_indices = [i + 1 for i, pull in enumerate(pulls_in_banner) if pull.student_id.student_rarity == 3]
+        r3_count = len(r3_indices)
+        total_banner_pulls = len(pulls_in_banner)
+
+        # Calculate user's actual rate for this banner
+        user_rate = (Decimal(r3_count) / Decimal(total_banner_pulls)) * 100 if total_banner_pulls > 0 else Decimal('0.0')
+
+        # Get the banner's advertised rate from its preset
+        if len(pulls_in_banner) > 0:
+            banner_rate = pulls_in_banner[0].banner_id.preset_id.preset_r3_rate
+        else:
+            banner_rate = Decimal('0.0')
+
+        analysis_data = {
+            'banner_name': banner_name,
+            'total_pulls': total_banner_pulls,
+            'r3_count': r3_count,
+            'user_rate': f"{user_rate:.2f}%",
+            'banner_rate': f"{banner_rate:.2f}%",
+            'luck_variance': f"{user_rate - banner_rate:+.2f}%",
+            'gaps': None
+        }
+
+        if r3_count > 1:
+            gaps = [r3_indices[i] - r3_indices[i-1] for i in range(1, r3_count)]
+            analysis_data['gaps'] = {
+                'min': min(gaps), 'max': max(gaps), 'avg': f"{statistics.mean(gaps):.1f}",
+                'stdev': f"{statistics.stdev(gaps):.2f}" if len(gaps) > 1 else "N/A"
+            }
+        
+        banner_analysis.append(analysis_data)
+
+    context = {'banner_analysis': banner_analysis}
+    
+    return render(request, 'app_web/components/widgets/performance_table.html', context)
 
 @login_required
 def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
@@ -265,116 +405,7 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
 
     if tab_name == 'summary': # I've renamed this from 'summary' for clarity
         
-        # Fetch all transactions and all related data in one go.
-        all_pulls_queryset = GachaTransaction.objects.filter(transaction_user=user).select_related(
-            'student_id', 'banner_id'
-        ).order_by('transaction_create_on')
-
-        # All subsequent operations will be on this in-memory list, with ZERO extra DB hits.
-        all_pulls = list(all_pulls_queryset)
-        
-        total_pulls = len(all_pulls)
-        context['total_pulls'] = total_pulls
-
-        # --- NEW: Calculate Total Pyroxene Usage ---
-        context['total_pyroxene_spent'] = total_pulls * 120
-
-        # --- NEW: Find the User's First-Ever 3-Star Pull ---
-        context['first_r3_pull'] = all_pulls_queryset.filter(student_id__student_rarity=3).first()
-        print(context['first_r3_pull'])
-
-        if total_pulls > 0:
-
-            # --- 1. Default Top 3 Most Pulled Students Rarity 3 ---
-            # for other will be fetch by get_top_students_by_rarity() later
-            context['top_r3_students'] = (
-                Student.objects.filter(gachatransaction__transaction_user=user, student_rarity=3)
-                .annotate(count=Count('pk'), first_obtained=Min('gachatransaction__transaction_create_on'))
-                .order_by( '-count', 'first_obtained')[:3]
-            )
-
-            # --- 2. Rarity Breakdown for Chart ---
-            rarity_counter = Counter(pull.student_id.student_rarity for pull in all_pulls)
-            context['r3_count'] = rarity_counter.get(3, 0)
-            context['r2_count'] = rarity_counter.get(2, 0)
-            context['r1_count'] = rarity_counter.get(1, 0)
-
-            # --- 3. Banner Distribution for Chart ---
-            banner_counter = Counter(pull.banner_id.banner_name for pull in all_pulls)
-            context['banner_distribution'] = [
-                {'banner_id__banner_name': name, 'count': count}
-                for name, count in banner_counter.most_common()
-            ]
-            
-            # --- 4. NEW: Per-Banner 3-Star Pull Analysis ---
-            pulls_by_banner = defaultdict(list)
-            for pull in all_pulls:
-                pulls_by_banner[pull.banner].append(pull)
-
-            
-            # --- NEW: Calculate Per-Banner Rarity Distribution ---
-            per_banner_rarity_data = {}
-            for banner_name, pulls in pulls_by_banner.items():
-                rarity_counter = Counter(p.student_id.student_rarity for p in pulls)
-                per_banner_rarity_data[banner_name] = {
-                    'r3': rarity_counter.get(3, 0),
-                    'r2': rarity_counter.get(2, 0),
-                    'r1': rarity_counter.get(1, 0),
-                }
-            
-            # Pass this data to the template as a JSON string for easy use in JavaScript.
-            context['per_banner_rarity_json'] = json.dumps(per_banner_rarity_data)
-
-            banner_analysis = []
-            for banner_name, pulls_in_banner in pulls_by_banner.items():
-                
-                r3_indices = [
-                    i + 1 
-                    for i, pull in enumerate(pulls_in_banner) 
-                    if pull.student_id.student_rarity == 3
-                ]
-
-                r3_count = len(r3_indices)
-                total_banner_pulls = len(pulls_in_banner)
-
-                analysis_data = {
-                    'banner_name': banner_name,
-                    'total_pulls': len(pulls_in_banner),
-                    'r3_count': len(r3_indices),
-                    'gaps': None
-                }
-
-                # Calculate user's actual rate for this banner
-                user_rate = (Decimal(r3_count) / Decimal(total_banner_pulls)) * 100 if total_banner_pulls > 0 else Decimal('0.0')
-
-                # Get the banner's advertised rate from its preset
-                if len(pulls_in_banner) > 0:
-                    banner_rate = pulls_in_banner[0].banner_id.preset_id.preset_r3_rate
-                else:
-                    banner_rate = Decimal('0.0')
-
-                analysis_data = {
-                    'banner_name': banner_name,
-                    'total_pulls': total_banner_pulls,
-                    'r3_count': r3_count,
-                    'user_rate': f"{user_rate:.2f}%",
-                    'banner_rate': f"{banner_rate:.2f}%",
-                    'luck_variance': f"{user_rate - banner_rate:+.2f}%", # The '+' sign shows +/-
-                    'gaps': None
-                }
-                
-                if r3_count > 1:
-                    gaps = [r3_indices[i] - r3_indices[i-1] for i in range(1, r3_count)]
-                    analysis_data['gaps'] = {
-                        'min': min(gaps), 'max': max(gaps), 'avg': f"{statistics.mean(gaps):.1f}",
-                        'stdev': f"{statistics.stdev(gaps):.2f}" if len(gaps) > 1 else "N/A"
-                    }
-
-                banner_analysis.append(analysis_data)
-            
-            context['banner_analysis'] = banner_analysis
-
-        template_name = 'app_web/components/dashboard-summary.html'
+        template_name = 'app_web/components/dashboard_summary.html'
 
     elif tab_name == 'history':
         # --- NEW, PAGINATED LOGIC FOR THE TRANSACTION HISTORY ---
@@ -396,7 +427,7 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
 
         context['transactions_page'] = transactions_page
 
-        template_name = 'app_web/components/dashboard-history.html'
+        template_name = 'app_web/components/dashboard_history.html'
 
     elif tab_name == 'collection':
         # --- NEW, SUPERIOR LOGIC FOR THE COLLECTION TAB ---
@@ -429,7 +460,7 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
         context['total_students'] = total_students
         context['completion_percentage'] = completion_percentage
 
-        template_name = 'app_web/components/dashboard-collection.html'
+        template_name = 'app_web/components/dashboard_collection.html'
 
     elif tab_name == 'achievements':
         # --- LOGIC FOR THE ACHIEVEMENTS TAB ---
@@ -452,7 +483,7 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
             ach.unlocked_on = user_unlocks.get(ach.achievement_id)
 
         context['all_achievements'] = all_achievements
-        template_name = 'app_web/components/dashboard-achievement.html'
+        template_name = 'app_web/components/dashboard_achievement.html'
 
     if template_name:
         # THE FIX: We now use render() to directly return the HTML fragment.

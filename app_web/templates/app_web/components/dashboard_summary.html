@@ -1,0 +1,119 @@
+<!-- This template is now a self-contained component with its own script for the chart. -->
+{% load static %}
+
+<!-- This div wraps all the visible HTML for parsing by eval(). -->
+<div class="tab-html-content">
+    
+    <!-- =============================================================== -->
+    <!-- KPI WIDGETS (Now a simple, empty shell)                         -->
+    <!-- =============================================================== -->
+    <div id="kpi-widget-container" class="mb-6">
+        <!-- Loading state. This will be replaced by the fetched HTML. -->
+        <div class="w-full h-40 flex items-center justify-center bg-slate-700/50 rounded-lg">
+            <p class="text-slate-400">Loading KPIs...</p>
+        </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- "HALL OF FAME" ROW (Now just empty shells)                      -->
+    <!-- =============================================================== -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+        
+        <!-- Top Students Widget Shell -->
+        <div id="top-students-widget-container" class="lg:col-span-3">
+            <div class="w-full flex items-center justify-center bg-slate-700/50 rounded-lg">Loading Top Students...</div>
+        </div>
+
+        <!-- First Pull Widget Shell -->
+        <div id="first-pull-widget-container" class="lg:col-span-1 p-4 bg-slate-700/50 rounded-lg flex flex-col items-center justify-between">
+            <div class="w-full flex items-center justify-center bg-slate-700/50 rounded-lg">Loading First Pull...</div>
+        </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- CHART & ANALYSIS GRID (Now just empty shells)                   -->
+    <!-- =============================================================== -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Overall Rarity Chart Shell -->
+         <div id="overall-rarity-chart-container">
+            <div class="w-full h-72 flex items-center justify-center bg-slate-700/50 rounded-lg">Loading Chart...</div>
+        </div>
+
+        <!-- Banner Breakdown Chart Shell -->
+        <div id="banner-breakdown-chart-container">
+            <div class="w-full h-72 flex items-center justify-center bg-slate-700/50 rounded-lg">Loading Chart...</div>
+        </div>
+        
+        <!-- Banner Activity Chart Shell -->
+        <div id="banner-activity-chart-container">
+            <div class="w-full h-72 flex items-center justify-center bg-slate-700/50 rounded-lg">Loading Chart...</div>
+        </div>
+        
+        <!-- Performance Table Shell -->
+        <div id="performance-table-container" class="md:col-span-3">
+            <div class="w-full h-72 flex items-center justify-center bg-slate-700/50 rounded-lg">Loading Performance Data...</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- The script to initialize the chart -->
+<script class="tab-js-script">
+    (function() {
+
+        // --- NEW: PODIUM TAB LOGIC ---
+        const contentWrapper = document.querySelector('.tab-html-content');
+        if (!contentWrapper) return;
+
+        // ---------- NEW WIDGET SYSTEM
+
+        /**
+         * A generic helper function to fetch HTML from a URL and inject it
+         * into a target element on the page.
+         * @param {string} url - The API endpoint to fetch the HTML from.
+         * @param {string} targetId - The ID of the container to inject the HTML into.
+         */
+        const loadHtmlWidget = async (url, targetId) => {
+            const targetElement = document.getElementById(targetId);
+            if (!targetElement) {
+                console.error(`Target element with ID "${targetId}" not found.`);
+                return;
+            }
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Failed to load widget from ${url}`);
+                
+                const html = await response.text();
+                targetElement.innerHTML = html;
+
+                // This part is for widgets that have their own scripts (like the podium).
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                const scriptContent = tempDiv.querySelector('.tab-js-script');
+                if (scriptContent) {
+                    eval(scriptContent.textContent);
+                }
+
+            } catch (error) {
+                targetElement.innerHTML = `<div class="p-4 bg-red-900/50 rounded-lg text-red-300">${error.message}</div>`;
+            }
+        };
+
+        // --- Main execution: Load all widgets in parallel ---
+        // For now, we are only loading the KPI widget.
+        // You will add the other widget calls here later.
+        Promise.all([
+            loadHtmlWidget('/dashboard/widget/kpis/', 'kpi-widget-container'),
+            loadHtmlWidget('/dashboard/widget/top-students/', 'top-students-widget-container'),
+            loadHtmlWidget('/dashboard/widget/first-r3-pull/', 'first-pull-widget-container'),
+
+            // --- NEW: Load the new chart and table widgets ---
+            loadHtmlWidget('/dashboard/widget/chart-overall-rarity/', 'overall-rarity-chart-container'),
+            loadHtmlWidget('/dashboard/widget/chart-banner-breakdown/', 'banner-breakdown-chart-container'),
+            loadHtmlWidget('/dashboard/widget/chart-banner-activity/', 'banner-activity-chart-container'),
+            loadHtmlWidget('/dashboard/widget/performance-table/', 'performance-table-container'),
+        ]);
+    })();
+</script>
