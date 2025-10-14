@@ -47,6 +47,37 @@ def _process_students_for_template(students_queryset):
             })
     return processed_groups
 
+def get_user_pull_data(user):
+    """
+    This is the core of the optimization. It fetches all of a user's pull data
+    once, caches it, and is reused by all widget views.
+    """
+    # Define a unique cache key for this user's data.
+    cache_key = f"user_dashboard_data:{user.id}"
+    
+    # Try to get the data from the cache first.
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        print(f"CACHE HIT for user {user.id}")
+        return cached_data
+
+    print(f"CACHE MISS for user {user.id}. Fetching from DB.")
+    
+    # If not in cache, perform the expensive query ONCE.
+    all_pulls = list(
+        GachaTransaction.objects.filter(transaction_user=user).select_related(
+            'student_id', 'banner_id'
+        ).order_by('transaction_create_on')
+    )
+    
+    # Store the result in a simple dictionary.
+    data_to_cache = {'all_pulls': all_pulls}
+    
+    # Set the data in the cache. A short timeout (e.g., 20 seconds) is good for dashboards.
+    cache.set(cache_key, data_to_cache, timeout=20)
+    
+    return data_to_cache
+
 #######################################
 #####        HTTPRESPONSE         #####
 #######################################
@@ -207,21 +238,19 @@ def dashboard_widget_kpis(request: HttpRequest) -> HttpResponse:
     HTML template for the KPI widget.
     """
     user = request.user
-    
-    # --- Perform all necessary calculations ---
-    total_pulls = GachaTransaction.objects.filter(transaction_user=user).count()
-    
-    # Use a single, efficient query to get all rarity counts at once.
-    rarity_counts_query = GachaTransaction.objects.filter(transaction_user=user).values('student_id__student_rarity').annotate(count=Count('pk'))
-    # Convert the queryset into a simple dictionary for easy access.
-    counts = {item['student_id__student_rarity']: item['count'] for item in rarity_counts_query}
+    cached_data = get_user_pull_data(user)
+    all_pulls = cached_data.get('all_pulls', [])
 
+    # --- Perform all necessary calculations ---
+    total_pulls = len(all_pulls)
+    rarity_counter = Counter(pull.student_id.student_rarity for pull in all_pulls)
+    
     context = {
         'total_pulls': total_pulls,
         'total_pyroxene_spent': total_pulls * 120,
-        'r3_count': counts.get(3, 0),
-        'r2_count': counts.get(2, 0),
-        'r1_count': counts.get(1, 0),
+        'r3_count': rarity_counter.get(3, 0),
+        'r2_count': rarity_counter.get(2, 0),
+        'r1_count': rarity_counter.get(1, 0),
     }
     
     # Render the specific partial template for this widget.
@@ -248,8 +277,13 @@ def dashboard_widget_first_r3_pull(request: HttpRequest) -> HttpResponse:
     """
     Renders the HTML for the 'First 3-Star Pull' widget.
     """
-    first_pull = GachaTransaction.objects.filter(transaction_user=request.user, student_id__student_rarity=3).select_related('student_id').order_by('transaction_create_on').first()
-    context = {'first_r3_pull': first_pull}
+    user = request.user
+    cached_data = get_user_pull_data(user)
+    all_pulls = cached_data.get('all_pulls', [])
+
+    first_r3_pull = next((pull for pull in all_pulls if pull.student_id.student_rarity == 3), None)
+
+    context = {'first_r3_pull': first_r3_pull}
     
     return render(request, 'app_web/components/widgets/first_r3_pull.html', context)
 
@@ -261,16 +295,23 @@ def dashboard_widget_chart_overall_rarity(request: HttpRequest) -> HttpResponse:
     """
     user = request.user
     
-    # Perform one efficient query to get all counts.
-    rarity_counts_query = GachaTransaction.objects.filter(transaction_user=user).values('student_id__student_rarity').annotate(count=Count('pk'))
-    counts = {item['student_id__student_rarity']: item['count'] for item in rarity_counts_query}
+    # --- Step 1: Get the data from our fast, central cache ---
+    # This call is now instantaneous after the first load.
+    cached_data = get_user_pull_data(user)
+    all_pulls = cached_data.get('all_pulls', [])
     
-    # Prepare the data in a dictionary.
-    chart_data = {
-        'r3': counts.get(3, 0),
-        'r2': counts.get(2, 0),
-        'r1': counts.get(1, 0),
-    }
+    # --- Step 2: Perform the calculation in Python (extremely fast) ---
+    # We no longer need a separate database query here.
+    if all_pulls:
+        rarity_counter = Counter(pull.student_id.student_rarity for pull in all_pulls)
+        chart_data = {
+            'r3': rarity_counter.get(3, 0),
+            'r2': rarity_counter.get(2, 0),
+            'r1': rarity_counter.get(1, 0),
+        }
+    else:
+        # Handle the case where the user has no pulls.
+        chart_data = {'r3': 0, 'r2': 0, 'r1': 0}
 
     context = {
         # THE FIX: We pass the data to the template as a JSON string.
@@ -287,14 +328,20 @@ def dashboard_widget_chart_banner_breakdown(request: HttpRequest) -> HttpRespons
     complete HTML widget for the interactive 'Banner Breakdown' chart.
     """
     user = request.user
-    all_pulls = GachaTransaction.objects.filter(transaction_user=user).select_related('student_id', 'banner_id')
+    # --- Step 1: Get the data from our fast, central cache ---
+    # This call is instantaneous after the first load.
+    cached_data = get_user_pull_data(user)
+    all_pulls = cached_data.get('all_pulls', [])
 
-    # Group pulls by banner to perform calculations
+    # --- Step 2: Perform all calculations in Python (extremely fast) ---
+    # We no longer need a separate database query here.
+    
+    # Group pulls by banner to perform calculations.
     pulls_by_banner = defaultdict(list)
     for pull in all_pulls:
-        pulls_by_banner[pull.banner_id.name].append(pull)
+        pulls_by_banner[pull.banner_id.banner_name].append(pull)
 
-    # Calculate rarity distribution for each banner
+    # Calculate rarity distribution for each banner.
     per_banner_rarity_data = {}
     for banner_name, pulls in pulls_by_banner.items():
         rarity_counter = Counter(p.student_id.student_rarity for p in pulls)
@@ -304,13 +351,11 @@ def dashboard_widget_chart_banner_breakdown(request: HttpRequest) -> HttpRespons
             'r1': rarity_counter.get(1, 0),
         }
     
-    # Get a sorted list of banner names for the dropdown
+    # Get a sorted list of banner names for the dropdown.
     banner_names = sorted(pulls_by_banner.keys())
 
     context = {
-        # Pass the banner names for the <select> options
         'banner_names': banner_names,
-        # Pass the full data payload as a JSON string for the chart script
         'per_banner_rarity_json': json.dumps(per_banner_rarity_data)
     }
     
@@ -324,13 +369,26 @@ def dashboard_widget_chart_banner_activity(request: HttpRequest) -> HttpResponse
     """
     user = request.user
     
-    # Perform one efficient query to get the pull count for each banner.
-    banner_counts = GachaTransaction.objects.filter(transaction_user=user).values('banner_id__banner_name').annotate(count=Count('banner_id')).order_by('-count') # Order by most pulls first
+    # --- Step 1: Get the data from our fast, central cache ---
+    cached_data = get_user_pull_data(user)
+    all_pulls = cached_data.get('all_pulls', [])
 
-    # The data is already in the perfect format for Chart.js.
-    # We'll pass it to the template as a JSON string.
+    # --- Step 2: Perform the calculation in Python (extremely fast) ---
+    # We no longer need a separate database query here.
+    if all_pulls:
+        # Use Counter to efficiently group and count pulls by banner name.
+        banner_counter = Counter(pull.banner_id.banner_name for pull in all_pulls)
+        
+        # Transform the Counter result into the list of dictionaries that the chart expects.
+        chart_data_list = [
+            {'banner_id__banner_name': name, 'count': count}
+            for name, count in banner_counter.most_common()
+        ]
+    else:
+        chart_data_list = []
+
     context = {
-        'chart_data_json': json.dumps(list(banner_counts))
+        'chart_data_json': json.dumps(chart_data_list)
     }
     
     return render(request, 'app_web/components/widgets/chart_banner_activity.html', context)
@@ -343,12 +401,9 @@ def dashboard_widget_performance_table(request: HttpRequest) -> HttpResponse:
     renders the complete HTML widget for the performance table.
     """
     user = request.user
+    cached_data = get_user_pull_data(user)
+    all_pulls = cached_data.get('all_pulls', [])
     
-    # Fetch all pulls with related data once.
-    all_pulls = list(GachaTransaction.objects.filter(transaction_user=user).select_related(
-        'student_id', 'banner_id'
-    ).order_by('transaction_create_on'))
-
     # Group pulls by banner for analysis.
     pulls_by_banner = defaultdict(list)
     for pull in all_pulls:
@@ -400,12 +455,11 @@ def dashboard_widget_milestone_timeline(request: HttpRequest) -> HttpResponse:
     renders the HTML for the milestone timeline widget.
     """
     user = request.user
-    
-    # 1. Get all of the user's pulls, ordered chronologically.
-    all_pulls = list(GachaTransaction.objects.filter(transaction_user=user).select_related(
-        'student_id'
-    ).order_by('transaction_create_on'))
 
+    # 1. Get all of the user's pulls, ordered chronologically.
+    cached_data = get_user_pull_data(user)
+    all_pulls = cached_data.get('all_pulls', [])
+    
     # 2. Process in Python to find the first time each unique 3-star was obtained.
     milestone_pulls = []
     seen_student_ids = set()
@@ -420,12 +474,9 @@ def dashboard_widget_milestone_timeline(request: HttpRequest) -> HttpResponse:
                 milestone_pulls.append(pull)
 
     # --- THE FIX: Calculate the adaptive width ---
-    # 1. Define the base width needed for each milestone item in pixels.
-    #    (w-20 is 80px, plus some gap, so ~100px is a good base).
     WIDTH_PER_MILESTONE = 100
     
-    # 2. Calculate the total width.
-    #    Ensure it's never less than a minimum (e.g., 800px) to look good.
+    # 2. Calculate the total width. Ensure it's never less than a minimum (e.g., 800px) to look good.
     timeline_width = max(800, len(milestone_pulls) * WIDTH_PER_MILESTONE)
 
     context = {
@@ -446,7 +497,8 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
     template_name = None
 
     if tab_name == 'summary': # I've renamed this from 'summary' for clarity
-        
+
+        get_user_pull_data(request.user) 
         template_name = 'app_web/components/dashboard_summary.html'
 
     elif tab_name == 'history':
