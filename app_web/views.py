@@ -419,8 +419,18 @@ def dashboard_widget_milestone_timeline(request: HttpRequest) -> HttpResponse:
                 pull.pull_number = i + 1 
                 milestone_pulls.append(pull)
 
+    # --- THE FIX: Calculate the adaptive width ---
+    # 1. Define the base width needed for each milestone item in pixels.
+    #    (w-20 is 80px, plus some gap, so ~100px is a good base).
+    WIDTH_PER_MILESTONE = 100
+    
+    # 2. Calculate the total width.
+    #    Ensure it's never less than a minimum (e.g., 800px) to look good.
+    timeline_width = max(800, len(milestone_pulls) * WIDTH_PER_MILESTONE)
+
     context = {
-        'milestone_pulls': milestone_pulls
+        'milestone_pulls': milestone_pulls,
+        'timeline_width': timeline_width, # Pass the calculated width to the template
     }
     
     return render(request, 'app_web/components/widgets/milestone_timeline.html', context)
