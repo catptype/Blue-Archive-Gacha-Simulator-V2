@@ -394,6 +394,38 @@ def dashboard_widget_performance_table(request: HttpRequest) -> HttpResponse:
     return render(request, 'app_web/components/widgets/performance_table.html', context)
 
 @login_required
+def dashboard_widget_milestone_timeline(request: HttpRequest) -> HttpResponse:
+    """
+    API endpoint that finds the user's first-time 3-star pulls and
+    renders the HTML for the milestone timeline widget.
+    """
+    user = request.user
+    
+    # 1. Get all of the user's pulls, ordered chronologically.
+    all_pulls = list(GachaTransaction.objects.filter(transaction_user=user).select_related(
+        'student_id'
+    ).order_by('transaction_create_on'))
+
+    # 2. Process in Python to find the first time each unique 3-star was obtained.
+    milestone_pulls = []
+    seen_student_ids = set()
+    for i, pull in enumerate(all_pulls):
+        if pull.student_id.student_rarity == 3:
+            if pull.student_id.student_id not in seen_student_ids:
+                # This is a milestone! Record it.
+                seen_student_ids.add(pull.student_id.student_id)
+                
+                # Augment the object with the pull number (index + 1)
+                pull.pull_number = i + 1 
+                milestone_pulls.append(pull)
+
+    context = {
+        'milestone_pulls': milestone_pulls
+    }
+    
+    return render(request, 'app_web/components/widgets/milestone_timeline.html', context)
+
+@login_required
 def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
     """
     API endpoint that fetches the correct data based on the requested tab

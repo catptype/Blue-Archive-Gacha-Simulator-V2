@@ -1,0 +1,64 @@
+{% load static %}
+
+<div class="p-4 bg-slate-700/50 rounded-lg h-full flex flex-col">
+    <h3 class="text-xl font-semibold mb-4 flex-shrink-0">★★★ First Pull Timeline</h3>
+    
+    {% if milestone_pulls %}
+        <!-- 
+            This container allows for horizontal scrolling on small screens.
+            It's the key to making the horizontal timeline mobile-friendly.
+        -->
+        <div class="flex-grow w-full overflow-x-auto overflow-y-hidden py-24">
+            <!-- 
+                The timeline itself. It has a minimum width to ensure it doesn't
+                get squished on small screens, allowing it to scroll instead.
+            -->
+            <div class="relative w-full h-full flex items-center">
+                
+                <!-- The Timeline Track (the horizontal line) -->
+                <div class="absolute top-1/2 -translate-y-1/2 w-full h-0.5 bg-slate-600"></div>
+
+                <!-- This flex container evenly spaces all the milestones -->
+                <div class="relative w-full h-full flex justify-between">
+                    {% for pull in milestone_pulls %}
+                        <!-- 
+                            Each milestone is now positioned relative to its space.
+                            'forloop.counter0|divisibleby:2' alternates the position.
+                        -->
+                        <div class="relative flex flex-col items-center
+                            {% if forloop.counter0|divisibleby:2 %}
+                                justify-start -translate-y-1/2
+                            {% else %}
+                                justify-end translate-y-1/2
+                            {% endif %}
+                        ">
+                            <!-- The circular marker on the timeline track -->
+                             <div class="absolute left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-800 border-2 border-cyan-400 rounded-full
+                                    {% if forloop.counter0|divisibleby:2 %}
+                                        bottom-1/8 -translate-y-1/2
+                                    {% else %}
+                                        top-1/4 -translate-y-1/2
+                                    {% endif %}
+                                "></div>
+                            
+                            <!-- The "Stem" connecting the portrait to the marker -->
+                            <div class="h-8 w-0.5 bg-slate-600 
+                                {% if forloop.counter0|divisibleby:2 %}order-2{% else %}order-1{% endif %}">
+                            </div>
+                            
+                            <!-- The Student Portrait and Info -->
+                            <div class="flex flex-col items-center text-center
+                                {% if forloop.counter0|divisibleby:2 %}order-1 mb-3{% else %}order-2 mt-3{% endif %}">
+                                <img src="{% url 'serve_student_image' student_id=pull.student_id.student_id image_type='portrait' %}" class="w-20 h-20 rounded-md object-cover border-2 border-slate-500">
+                                <p class="text-sm font-bold mt-1">{{ pull.student_id.student_name }}</p>
+                                <p class="text-xs text-slate-400">Pull #{{ pull.pull_number }}</p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <p class="text-center text-slate-400 py-16">Pull a 3-star student to start your timeline!</p>
+    {% endif %}
+</div>

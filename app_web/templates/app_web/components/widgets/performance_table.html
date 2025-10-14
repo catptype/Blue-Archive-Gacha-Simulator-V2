@@ -20,11 +20,11 @@
             <tbody>
                 {% for analysis in banner_analysis %}
                 <tr class="border-b border-slate-700/50">
-                    <td class="p-2 font-semibold">{{ analysis.banner_name }}</td>
+                    <td class="p-2 font-bold">{{ analysis.banner_name }}</td>
                     <td class="p-2 text-center">{{ analysis.total_pulls|intcomma }}</td>
                     <td class="p-2 text-center text-yellow-300 font-bold">{{ analysis.r3_count|intcomma }}</td>
-                    <td class="p-2 text-center font-mono">{{ analysis.user_rate }}</td>
-                    <td class="p-2 text-center font-mono">{{ analysis.banner_rate }}</td>
+                    <td class="p-2 text-center">{{ analysis.user_rate }}</td>
+                    <td class="p-2 text-center">{{ analysis.banner_rate }}</td>
                     <td class="p-2 text-center font-bold 
                         {% if analysis.luck_variance|slice:':1' == '+' %}text-green-400
                         {% elif analysis.luck_variance|slice:':1' == '-' %}text-red-400

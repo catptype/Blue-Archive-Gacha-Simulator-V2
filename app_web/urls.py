@@ -22,6 +22,7 @@ urlpatterns = [
     path('dashboard/widget/chart-banner-breakdown/', views.dashboard_widget_chart_banner_breakdown, name='dashboard_widget_chart_banner_breakdown'),
     path('dashboard/widget/chart-banner-activity/', views.dashboard_widget_chart_banner_activity, name='dashboard_widget_chart_banner_activity'),
     path('dashboard/widget/performance-table/', views.dashboard_widget_performance_table, name='dashboard_widget_performance_table'),
+    path('dashboard/widget/milestone-timeline/', views.dashboard_widget_milestone_timeline, name='dashboard_widget_milestone_timeline'),
 
     path('', views.home, name='register'),
 

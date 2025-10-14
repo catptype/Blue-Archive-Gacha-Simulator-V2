@@ -49,6 +49,11 @@
         <div id="banner-activity-chart-container">
             <div class="w-full h-72 flex items-center justify-center bg-slate-700/50 rounded-lg">Loading Chart...</div>
         </div>
+
+        <!-- NEW: The Milestone Timeline now takes up a full row -->
+        <div id="milestone-timeline-container" class="md:col-span-3">
+            <div class="w-full h-48 flex items-center justify-center bg-slate-700/50 rounded-lg">Loading Timeline...</div>
+        </div>
         
         <!-- Performance Table Shell -->
         <div id="performance-table-container" class="md:col-span-3">
@@ -113,6 +118,7 @@
             loadHtmlWidget('/dashboard/widget/chart-overall-rarity/', 'overall-rarity-chart-container'),
             loadHtmlWidget('/dashboard/widget/chart-banner-breakdown/', 'banner-breakdown-chart-container'),
             loadHtmlWidget('/dashboard/widget/chart-banner-activity/', 'banner-activity-chart-container'),
+            loadHtmlWidget('/dashboard/widget/milestone-timeline/', 'milestone-timeline-container'),    
             loadHtmlWidget('/dashboard/widget/performance-table/', 'performance-table-container'),
         ]);
     })();
