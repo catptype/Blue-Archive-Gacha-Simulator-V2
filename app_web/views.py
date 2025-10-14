@@ -73,8 +73,8 @@ def get_user_pull_data(user):
     # Store the result in a simple dictionary.
     data_to_cache = {'all_pulls': all_pulls}
     
-    # Set the data in the cache. A short timeout (e.g., 20 seconds) is good for dashboards.
-    cache.set(cache_key, data_to_cache, timeout=20)
+    # Set the data in the cache. A short timeout (e.g., 10 seconds) is good for dashboards.
+    cache.set(cache_key, data_to_cache, timeout=10)
     
     return data_to_cache
 
