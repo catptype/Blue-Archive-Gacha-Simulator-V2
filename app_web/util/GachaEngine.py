@@ -1,6 +1,7 @@
 # your_app/services/gacha_engine.py
 
 import random
+from typing import List
 from app_web.models import GachaBanner, Student
 
 class GachaEngine:
@@ -79,26 +80,15 @@ class GachaEngine:
             if not self.pools["r1"]:
                 raise Exception("Gacha Error: R1 Pool is empty.")
             return random.choices(self.pools["r1"], weights=self.weights["r1"], k=1)[0]
-        
-    def _serialize_student(self, student_obj: Student) -> dict:
-        """A helper to convert a Student object into the JSON dictionary format."""
-        return {
-            "id": student_obj.id,
-            "name": student_obj.name,
-            # FIXED: Correctly access related object properties
-            "version": student_obj.version,
-            "rarity": student_obj.rarity,
-            "school": student_obj.school
-        }
 
-    def draw_1(self) -> list[dict]:
+    def draw_1(self) -> List[Student]:
         """
         Performs a single standard pull and returns the result as a JSON-ready list.
         """
         pulled_student = self._draw_one(guarantee_r2_or_higher=False)
         return [pulled_student]
     
-    def draw_10(self) -> list[dict]:
+    def draw_10(self) -> List[Student]:
         """
         Performs 9 standard pulls and 1 guaranteed (R2 or higher) pull.
         The results are shuffled and returned as a JSON-ready list.
