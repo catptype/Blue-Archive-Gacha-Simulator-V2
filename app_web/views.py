@@ -672,12 +672,9 @@ def _perform_gacha_pull(request: HttpRequest, banner_id: int, pull_count: int) -
     # --- Step 2: Initialize the engine and perform the pulls ---
     engine = GachaEngine(banner)
 
-    if pull_count == 1:
-        pulled_students = engine.draw_1() # Return List of Student object in model
-    elif pull_count == 10:
-        pulled_students = engine.draw_10() # Return List of Student object in model
-    else:
-        return JsonResponse({'success': False, 'error': 'Invalid pull count'}, status=400)
+    if pull_count == 1:     pulled_students = engine.draw_1() # Return List of Student object in model
+    elif pull_count == 10:  pulled_students = engine.draw_10() # Return List of Student object in model
+    else:                   return JsonResponse({'success': False, 'error': 'Invalid pull count'}, status=400)
     
     # --- Step 3: Augment, Save, and Prepare JSON ---
     results_json = []
@@ -702,6 +699,9 @@ def _perform_gacha_pull(request: HttpRequest, banner_id: int, pull_count: int) -
             transactions_to_create.append(GachaTransaction(transaction_user=user, banner_id=banner, student_id=student))
     
     # --- Step 4: Save to the database if the user is logged in ---
+    # This list will hold all achievements unlocked during this transaction.
+    unlocked_achievements = []
+
     if user.is_authenticated:
 
         with transaction.atomic():
@@ -716,7 +716,8 @@ def _perform_gacha_pull(request: HttpRequest, banner_id: int, pull_count: int) -
         # 1. Initialize the service for this user.
         achievement_services = AchievementEngine(user)
         # 2. Check for luck achievements based on THIS pull's results.
-        achievement_services.check_luck_achievements(pulled_students)
+        unlocked_achievements.extend(achievement_services.check_luck_achievements(pulled_students))
+        
         
         # --- THE FIX: The view is now much cleaner ---
         # 3. Tell the service that new pulls have been made.
@@ -724,9 +725,25 @@ def _perform_gacha_pull(request: HttpRequest, banner_id: int, pull_count: int) -
         achievement_services.increment_pull_count(pull_count)
         
         # 4. Tell the service to check milestones with the new, updated count.
-        achievement_services.check_milestone_achievements()
+        unlocked_achievements.extend(achievement_services.check_milestone_achievements())
 
-    return JsonResponse({'success': True, 'results': results_json})
+    unlocked_achievements = [achievement.id for achievement in unlocked_achievements]
+
+    achievements_json = [
+        {
+            'id': ach.id,
+            'name': ach.name,
+        }
+        for ach in unlocked_achievements
+    ]
+
+    data_response = {
+        'success': True, 
+        'results': results_json,
+        'unlocked_achievements': achievements_json,
+    }    
+
+    return JsonResponse(data_response)
 
 @require_POST
 def draw_one_gacha(request: HttpRequest, banner_id: int) -> JsonResponse:

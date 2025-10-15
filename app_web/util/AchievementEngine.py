@@ -1,6 +1,6 @@
 import json
 import os
-from typing import List
+from typing import List, Optional
 from django.conf import settings
 from django.core.cache import cache
 from django.contrib.auth.models import User # Or your custom user model
@@ -32,13 +32,13 @@ class AchievementEngine:
         # --- NEW: Define a specific cache key for this user's pull count ---
         self.pull_count_cache_key = f"user_pull_count:{self.user.id}"
     
-    def _award(self, unlock_key: str):
+    def _award(self, unlock_key: str) -> Optional[Achievement]:
         """
         A private helper to safely award an achievement if it's not already unlocked.
         """
         # 1. Check our in-memory set first. This is extremely fast.
         if unlock_key in self.unlocked_keys:
-            return # User already has it.
+            return None # User already has it.
 
         try:
             # 2. If they don't have it, get the achievement from the database.
@@ -52,9 +52,11 @@ class AchievementEngine:
             print(f"ACHIEVEMENT UNLOCKED for {self.user.username}: {achievement_to_award.achievement_name}")
             
             # You can add logic here to send a notification to the user.
+            return achievement_to_award
 
         except Achievement.DoesNotExist:
             print(f"ERROR: Achievement with key '{unlock_key}' not found in DB.")
+            return None
 
     # --- NEW: A dedicated, cached method to get the total pull count ---
     def _get_total_pull_count(self) -> int:
@@ -69,25 +71,35 @@ class AchievementEngine:
     
     # --- "RULE" METHODS, ORGANIZED BY CATEGORY ---
 
-    def check_luck_achievements(self, pulled_students: List[Student]):
+    def check_luck_achievements(self, pulled_students: List[Student]) -> List[Achievement]:
         """
         Checks for achievements related to a single gacha pull (e.g., multi-3-star).
         TRIGGER: Called from the pull_gacha view.
         """
+        newly_unlocked = []
         r3_count = sum(1 for student in pulled_students if student.student_rarity == 3)
         
+        # --- THE LOGIC FIX ---
+        # We use two separate 'if' statements instead of 'if/elif'.
+        # This correctly awards the Double achievement even if the Triple is also awarded.
+        if r3_count >= 2:
+            achievement_obj = self._award('LUCK_DOUBLE_R3')
+            if achievement_obj:
+                newly_unlocked.append(achievement_obj)
+        
         if r3_count >= 3:
-            self._award('LUCK_TRIPLE_R3')
-            self._award('LUCK_DOUBLE_R3')
-
-        elif r3_count == 2:
-            self._award('LUCK_DOUBLE_R3')
+            achievement_obj = self._award('LUCK_TRIPLE_R3')
+            if achievement_obj:
+                newly_unlocked.append(achievement_obj)
+        
+        return newly_unlocked
     
-    def check_collection_achievements(self):
+    def check_collection_achievements(self) -> List[Achievement]:
         """
         Checks all collection-based achievements against the user's full inventory.
         TRIGGER: Called from a signal when the user's inventory changes.
         """
+        newly_unlocked = []
         collection_sets = [ach for ach in ACHIEVEMENT_DEFINITIONS if ach.get("category") == "COLLECTION"]
         
         owned_students = UserInventory.objects.filter(inventory_user=self.user).select_related('student_id')
@@ -98,21 +110,34 @@ class AchievementEngine:
             if unlock_key not in self.unlocked_keys:
                 required_students = ach_set.get('students', [])
                 if all(f"{req['name']}|{req['version']}" in user_owned_set for req in required_students):
-                    self._award(unlock_key)
+                    # If the check passes, call _award and capture the result
+                    achievement_obj = self._award(unlock_key)
+                    if achievement_obj:
+                        newly_unlocked.append(achievement_obj)
+        
+        return newly_unlocked
 
-    def check_milestone_achievements(self):
+    def check_milestone_achievements(self) -> List[Achievement]:
         """
         Checks for achievements related to overall account progression.
         TRIGGER: Called after a gacha pull is saved.
         """
+        newly_unlocked = []
+
         # Fetching the count here is acceptable as it's a single, fast query.
         total_pulls = self._get_total_pull_count()
         
-        if total_pulls >= 1000:
-            self._award('MILESTONE_PULLS_1000')
+        # --- Check for Total Pulls Milestones ---
+        # The order here is important to prevent multiple awards in one go.
         if total_pulls >= 10:
-            self._award('MILESTONE_PULLS_10')
-
+            achievement_obj = self._award('MILESTONE_PULLS_10')
+            if achievement_obj: newly_unlocked.append(achievement_obj)
+        
+        if total_pulls >= 1000:
+            achievement_obj = self._award('MILESTONE_PULLS_1000')
+            if achievement_obj: newly_unlocked.append(achievement_obj)
+            
+        return newly_unlocked
     # NEW: A method to handle updating the counter.
     def increment_pull_count(self, amount: int):
         """
@@ -127,5 +152,3 @@ class AchievementEngine:
             # force _get_total_pull_count() to re-prime it from the DB on the next call.
             cache.delete(self.pull_count_cache_key)
             print(f"Cache key for {self.pull_count_cache_key} expired or was missing. It will be re-primed.")
-
-    

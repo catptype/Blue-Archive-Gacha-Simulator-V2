@@ -429,6 +429,10 @@ class Achievement(models.Model):
         return self.achievement_name
     
     @property
+    def id(self):
+        return self.achievement_id
+
+    @property
     def name(self):
         return self.achievement_name
     
