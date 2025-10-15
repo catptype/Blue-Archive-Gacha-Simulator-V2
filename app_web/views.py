@@ -9,7 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles import finders
 from django.db import transaction
 from django.db.models import Count, Min
-
+import pprint
 from django.http import JsonResponse, HttpRequest, HttpResponse, FileResponse, HttpResponseNotFound, HttpResponseBadRequest
 from django.shortcuts import render, get_object_or_404
 from django.template.loader import render_to_string
@@ -167,33 +167,32 @@ def banner_details(request, banner_id):
 @require_POST
 def gacha_results(request: HttpRequest) -> HttpResponse:
     """
-    Takes a list of student IDs from a POST request (preserving order and
-    duplicates) and renders the student cards for the results modal.
+    Takes a list of augmented student OBJECTS from a POST request and renders
+    the student cards for the results modal.
     """
     try:
-        # --- Step 1: Get the list of IDs. This is our "source of truth" for order and duplicates. ---
-        student_ids = json.loads(request.body).get('student_ids', [])
-        if not student_ids:
-            return HttpResponse("No student IDs provided.", status=400)
+        request_data = json.loads(request.body)
+        pulled_data = request_data.get('results', [])
+        if not pulled_data:
+            return HttpResponse("No student data provided.", status=400)
         
-        # --- Step 2: Fetch all UNIQUE student objects we'll need in a single, efficient query. ---
-        # We get the unique set of IDs to avoid asking the database for the same student twice.
+        student_ids = [item['id'] for item in pulled_data]
+        
+        # Fetch the full student objects.
         unique_student_ids = set(student_ids)
         students_queryset = Student.objects.filter(pk__in=unique_student_ids)
-
-        # --- Step 3: Create an efficient lookup map (dictionary) for fast access. ---
-        # This maps each student's ID to its actual model object.
         student_map = {student.pk: student for student in students_queryset}
 
-        # --- Step 4: Re-assemble the final list, preserving the original order and duplicates. ---
-        # We loop through our original 'student_ids' list. For each ID, we find the
-        # corresponding object in our map. This is extremely fast and gives us the
-        # final list in the correct order with all duplicates included.
-        pulled_students_in_order = [student_map[sid] for sid in student_ids if sid in student_map]
+        # Re-assemble the list, now adding the flags from the original pull.
+        pulled_students_in_order = []
+        for item in pulled_data:
+            student_obj = student_map.get(item['id'])
+            if student_obj:
+                student_obj.is_new = item['is_new']
+                student_obj.is_pickup = item['is_pickup']
+                pulled_students_in_order.append(student_obj)
 
-        context = {
-            'pulled_students': pulled_students_in_order
-        }
+        context = {'pulled_students': pulled_students_in_order}
         return render(request, 'app_web/components/banner_result.html', context)
 
     except (json.JSONDecodeError, TypeError):
@@ -392,7 +391,6 @@ def dashboard_widget_chart_banner_activity(request: HttpRequest) -> HttpResponse
     }
     
     return render(request, 'app_web/components/widgets/chart_banner_activity.html', context)
-
 
 @login_required
 def dashboard_widget_performance_table(request: HttpRequest) -> HttpResponse:
@@ -661,44 +659,59 @@ def _perform_gacha_pull(request: HttpRequest, banner_id: int, pull_count: int) -
     - For guests, it does NOT save anything.
     - It returns the list of pulled student IDs.
     """
-    banner = get_object_or_404(GachaBanner, pk=banner_id)
+    banner = get_object_or_404(GachaBanner.objects.prefetch_related('banner_pickup'), pk=banner_id)
     user = request.user
 
-    # Step 1: Initialize the engine and perform the pulls
+    # --- Step 1: Get the user's state BEFORE the pull ---
+    owned_student_ids_before_pull = set()
+    if user.is_authenticated:
+        owned_student_ids_before_pull = set(
+            UserInventory.objects.filter(inventory_user=user).values_list('student_id', flat=True)
+        )
+
+    # --- Step 2: Initialize the engine and perform the pulls ---
     engine = GachaEngine(banner)
 
     if pull_count == 1:
-        pulled_students = engine.draw_1()
+        pulled_students = engine.draw_1() # Return List of Student object in model
     elif pull_count == 10:
-        pulled_students = engine.draw_10()
+        pulled_students = engine.draw_10() # Return List of Student object in model
     else:
-        return JsonResponse({'success': False})
+        return JsonResponse({'success': False, 'error': 'Invalid pull count'}, status=400)
     
-    print(pulled_students)
+    # --- Step 3: Augment, Save, and Prepare JSON ---
+    results_json = []
+    seen_in_this_pull = set()
+    transactions_to_create = []
+    
+    pickup_student_ids = set(banner.banner_pickup.values_list('pk', flat=True))
 
-    # --- THIS IS THE KEY LOGIC ---
+    for student in pulled_students:
+        is_new = (student.student_id not in owned_student_ids_before_pull) and \
+                 (student.student_id not in seen_in_this_pull)
+        is_pickup = student.student_id in pickup_student_ids
+        seen_in_this_pull.add(student.student_id)
+
+        results_json.append({
+            'id': student.student_id,
+            'is_new': is_new,
+            'is_pickup': is_pickup
+        })
+        
+        if user.is_authenticated:
+            transactions_to_create.append(GachaTransaction(transaction_user=user, banner_id=banner, student_id=student))
+    
+    # --- Step 4: Save to the database if the user is logged in ---
     if user.is_authenticated:
-        # For logged-in users, we run the database operations inside a transaction.
         with transaction.atomic():
-            # a) Save the transaction log
-            transactions = [GachaTransaction(transaction_user=user, banner_id=banner, student_id=s) for s in pulled_students]
-            GachaTransaction.objects.bulk_create(transactions)
-            
-            # b) Update the user's inventory
+            GachaTransaction.objects.bulk_create(transactions_to_create)
             for student in pulled_students:
-                inventory_item, created = UserInventory.objects.get_or_create(
-                    inventory_user=user,
-                    student_id=student
-                )
+                inventory_item, created = UserInventory.objects.get_or_create(inventory_user=user, student_id=student)
                 if not created:
                     inventory_item.inventory_num_obtained += 1
                     inventory_item.save()
 
-    # Step 2: Prepare the list of IDs for the JSON response.
-    # This happens for both guests and logged-in users.
-    pulled_student_ids = [student.id for student in pulled_students]
-    
-    return JsonResponse({'success': True, 'results': pulled_student_ids})
+    return JsonResponse({'success': True, 'results': results_json})
 
 @require_POST
 def draw_one_gacha(request: HttpRequest, banner_id: int) -> JsonResponse:

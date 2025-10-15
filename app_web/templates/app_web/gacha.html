@@ -388,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const renderResponse = await fetch('/banner-result/', {
                 method: 'POST',
                 headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ student_ids: pullData.results })
+                body: JSON.stringify({ results: pullData.results })
             });
             if (!renderResponse.ok) throw new Error('Failed to render gacha results.');
             
