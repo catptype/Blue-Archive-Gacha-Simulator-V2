@@ -2,7 +2,7 @@
 
 import random
 from typing import List
-from app_web.models import GachaBanner, Student
+from ..models import GachaBanner, Student
 
 class GachaEngine:
     """
