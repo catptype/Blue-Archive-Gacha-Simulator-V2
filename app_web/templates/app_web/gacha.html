@@ -165,6 +165,12 @@
             <!-- LEFT COLUMN: HERO PREVIEW                                       -->
             <!-- =============================================================== -->
             <div id="hero-section" class="relative w-full h-full bg-slate-900 border border-slate-700 rounded-lg shadow-2xl overflow-hidden">
+                <!-- NEW: Decorative corner brackets for a high-tech feel -->
+                <div class="absolute top-2 left-2 w-8 h-8 border-t-2 border-l-2 border-slate-600/50 rounded-tl-lg"></div>
+                <div class="absolute top-2 right-2 w-8 h-8 border-t-2 border-r-2 border-slate-600/50 rounded-tr-lg"></div>
+                <div class="absolute bottom-2 left-2 w-8 h-8 border-b-2 border-l-2 border-slate-600/50 rounded-bl-lg"></div>
+                <div class="absolute bottom-2 right-2 w-8 h-8 border-b-2 border-r-2 border-slate-600/50 rounded-br-lg"></div>
+
                 <img id="hero-image" src="" alt="Banner Preview" class="absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-500 opacity-0">
                 <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent z-10"></div>
                 <div id="hero-banner-name" class="absolute bottom-0 left-0 p-6 z-20 text-5xl font-black text-white uppercase tracking-widest opacity-0 transition-all duration-500 transform translate-y-4" style="text-shadow: 2px 2px 10px rgba(0,0,0,0.7);"></div>
@@ -212,22 +218,26 @@
                 <div class="row-span-3 w-full h-full bg-black/30 backdrop-blur-sm border border-slate-700 rounded-lg p-6 flex items-center justify-between">
                     <div class="flex flex-col gap-4">
                         <button id="details-button" class="px-6 py-3 text-lg font-semibold border-2 border-slate-500 hover:border-cyan-400 hover:text-cyan-400 rounded-lg transition-colors">Banner Details</button>
-                        <div class="text-center">
-                            <div class="text-4xl font-bold text-white">0<span class="text-2xl font-normal text-slate-400"> / 200</span></div>
-                            <div class="text-sm text-slate-400 tracking-widest">PITY PULLS</div>
-                        </div>
+                        
                     </div>
                     <div class="flex items-center gap-4">
                         <div class="flex flex-col items-center gap-1">
-                            <button id="one-pull-button" class="w-32 px-4 py-3 flex justify-center bg-slate-600 hover:bg-slate-500 rounded-lg text-xl font-bold transition-colors">PULL x1</button>
+                            <button id="one-pull-button" class="w-36 px-4 py-3 flex justify-center bg-slate-600 hover:bg-slate-500 rounded-lg text-xl font-bold transition-colors gap-2">
+                                <img src="{% static 'images/web/pull01.png' %}" alt="PULL x1" class="w-10 w-10 object-contain">
+                                <span>PULL x1</span>
+                            </button>
                             <span class="text-sm text-slate-400">120 Pyroxene</span>
                         </div>
                         <div class="flex flex-col items-center gap-1">
-                            <button id="ten-pull-button" class="w-32 px-4 py-3 flex justify-center bg-cyan-600 hover:bg-cyan-500 rounded-lg text-xl font-bold transition-colors">PULL x10</button>
+                            <button id="ten-pull-button" class="w-36 px-4 py-3 flex justify-center bg-cyan-600 hover:bg-cyan-500 rounded-lg text-xl font-bold transition-colors gap-2">
+                                <img src="{% static 'images/web/pull10.png' %}" alt="PULL x10" class="w-10 w-10 object-contain">
+                                <span>PULL x10</span> 
+                            </button>
                             <span class="text-sm text-slate-400">1200 Pyroxene</span>
                         </div>
                     </div>
                 </div>
+                
             </div>
         </div>
     </div>
@@ -255,8 +265,6 @@
             </div>
         </div>
     </div>
-</div>
-
 </div>
 
 
