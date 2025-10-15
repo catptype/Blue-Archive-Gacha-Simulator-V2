@@ -572,7 +572,7 @@ def get_dashboard_content(request: HttpRequest, tab_name: str) -> JsonResponse:
 
         for ach in all_achievements:
             ach.is_unlocked = ach.achievement_id in unlocked_achievement_ids
-            ach.unlocked_on = user_unlocks.get(ach.achievement_id)
+            ach.unlocked_on = user_unlocks.get(ach)
 
         context['all_achievements'] = all_achievements
         template_name = 'app_web/components/dashboard_achievement.html'

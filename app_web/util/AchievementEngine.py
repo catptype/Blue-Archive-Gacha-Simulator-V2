@@ -67,7 +67,6 @@ class AchievementEngine:
             cache.set(self.pull_count_cache_key, count, timeout=60)
         return count
     
-    
     # --- "RULE" METHODS, ORGANIZED BY CATEGORY ---
 
     def check_luck_achievements(self, pulled_students: List[Student]):
@@ -79,6 +78,8 @@ class AchievementEngine:
         
         if r3_count >= 3:
             self._award('LUCK_TRIPLE_R3')
+            self._award('LUCK_DOUBLE_R3')
+
         elif r3_count == 2:
             self._award('LUCK_DOUBLE_R3')
     
