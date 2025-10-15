@@ -3,7 +3,8 @@ from django.db import transaction
 from django.db.models.signals import post_delete, post_save, pre_delete
 from django.dispatch import receiver
 
-from .models import Student, Version, ImageAsset, GachaBanner
+from .models import Student, Version, ImageAsset, GachaBanner, UserInventory
+from .util.AchievementEngine import AchievementEngine
 
 @receiver(post_delete, sender=Student)
 def delete_asset_after_student(sender, instance:Student, using, **kwargs):
@@ -38,3 +39,13 @@ def remove_student_from_all_banners(sender, instance:Student, **kwargs):
     except Exception as e:
         # It's good practice to log errors in signals to avoid crashing the deletion process.
         print(f"Error in remove_student_from_all_banners signal for student {instance.pk}: {e}")
+
+@receiver(post_save, sender=UserInventory)
+def on_inventory_change(sender, instance: UserInventory, created, **kwargs):
+    """
+    When a user gets a new student, check all of their collection achievements.
+    """
+    if created and instance.inventory_user.is_authenticated:
+        # Initialize the service for the user and run the collection check.
+        achievement_service = AchievementEngine(instance.inventory_user)
+        achievement_service.check_collection_achievements()

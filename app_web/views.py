@@ -9,7 +9,6 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles import finders
 from django.db import transaction
 from django.db.models import Count, Min
-import pprint
 from django.http import JsonResponse, HttpRequest, HttpResponse, FileResponse, HttpResponseNotFound, HttpResponseBadRequest
 from django.shortcuts import render, get_object_or_404
 from django.template.loader import render_to_string
@@ -19,6 +18,7 @@ from collections import Counter, defaultdict
 
 from .models import School, Student, Version, GachaBanner, GachaTransaction, UserInventory, Achievement, UnlockAchievement
 from .util.GachaEngine import GachaEngine
+from .util.AchievementEngine import AchievementEngine
 
 CACHE_IMAGE_TIMEOUT = 300 # 5 minutes 
 
@@ -703,6 +703,7 @@ def _perform_gacha_pull(request: HttpRequest, banner_id: int, pull_count: int) -
     
     # --- Step 4: Save to the database if the user is logged in ---
     if user.is_authenticated:
+
         with transaction.atomic():
             GachaTransaction.objects.bulk_create(transactions_to_create)
             for student in pulled_students:
@@ -710,6 +711,20 @@ def _perform_gacha_pull(request: HttpRequest, banner_id: int, pull_count: int) -
                 if not created:
                     inventory_item.inventory_num_obtained += 1
                     inventory_item.save()
+
+        # --- Achievement Checks ---
+        # 1. Initialize the service for this user.
+        achievement_services = AchievementEngine(user)
+        # 2. Check for luck achievements based on THIS pull's results.
+        achievement_services.check_luck_achievements(pulled_students)
+        
+        # --- THE FIX: The view is now much cleaner ---
+        # 3. Tell the service that new pulls have been made.
+        #    The view doesn't know or care about *how* the cache works.
+        achievement_services.increment_pull_count(pull_count)
+        
+        # 4. Tell the service to check milestones with the new, updated count.
+        achievement_services.check_milestone_achievements()
 
     return JsonResponse({'success': True, 'results': results_json})
 
