@@ -727,8 +727,6 @@ def _perform_gacha_pull(request: HttpRequest, banner_id: int, pull_count: int) -
         # 4. Tell the service to check milestones with the new, updated count.
         unlocked_achievements.extend(achievement_services.check_milestone_achievements())
 
-    # unlocked_achievements = [achievement.id for achievement in unlocked_achievements]
-
     achievements_json = [
         {
             'id': ach.id,

@@ -290,6 +290,45 @@ document.addEventListener('DOMContentLoaded', () => {
     // Immediately remove the temporary div from the DOM.
     csrfTokenContainer.remove();
 
+    const toastContainer = document.getElementById('toast-container');
+
+    function showAchievementToast(achievement) {
+        if (!toastContainer) return;
+
+        // 1. Create the toast element
+        const toast = document.createElement('div');
+        toast.className = 'flex items-center gap-3 p-3 bg-slate-800 border border-slate-600 rounded-lg shadow-2xl w-80 transform translate-x-full opacity-0 transition-all duration-300 ease-in-out';
+        
+        // 2. Construct the icon URL on the frontend.
+        // This line perfectly matches your URL pattern: path('image/achievement/<int:achievement_id>/', ...)
+        const iconUrl = `/image/achievement/${achievement.id}/`;
+
+        // 3. Populate the toast's HTML using the constructed URL.
+        toast.innerHTML = `
+            <div class="flex-shrink-0 w-12 h-12 bg-slate-700 rounded-md">
+                <img src="${iconUrl}" class="w-full h-full object-cover rounded-md">
+            </div>
+            <div class="flex-grow">
+                <p class="text-xs text-cyan-400 font-semibold">Achievement Unlocked!</p>
+                <h4 class="font-bold text-white">${achievement.name}</h4>
+            </div>
+            <button class="toast-close-btn flex-shrink-0 text-slate-500 hover:text-white text-2xl leading-none">&times;</button>
+        `;
+
+        // 4. Add it to the container and manage its lifecycle (animations, timers).
+        toastContainer.appendChild(toast);
+        setTimeout(() => toast.classList.remove('translate-x-full', 'opacity-0'), 10);
+        const autoCloseTimer = setTimeout(() => {
+            toast.classList.add('opacity-0', 'translate-x-4'); // Fade and move out
+            setTimeout(() => toast.remove(), 300); // Remove from DOM after animation
+        }, 7000); // Stays on screen for 7 seconds
+        toast.querySelector('.toast-close-btn').addEventListener('click', () => {
+            clearTimeout(autoCloseTimer); // Stop the auto-close timer
+            toast.classList.add('opacity-0', 'translate-x-4');
+            setTimeout(() => toast.remove(), 300);
+        });
+    }
+
     // --- Get references to all key elements ---
     const heroImage = document.getElementById('hero-image');
     const heroBannerName = document.getElementById('hero-banner-name');
@@ -390,6 +429,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!pullResponse.ok) throw new Error('Gacha pull failed on server.');
             const pullData = await pullResponse.json();
             if (!pullData.success) throw new Error('Server indicated a pull failure.');
+
+            // --- THE TRIGGER ---
+            // After a successful pull, check for new achievements in the response.
+            if (pullData.unlocked_achievements && pullData.unlocked_achievements.length > 0) {
+                // Loop through the unlocked achievements and show a toast for each one.
+                pullData.unlocked_achievements.forEach((ach, index) => {
+                    // Stagger the notifications so they appear one after another.
+                    setTimeout(() => {
+                        showAchievementToast(ach);
+                    }, index * 500); // 500ms delay between each toast
+                });
+            }
 
             // Step 2: Call the rendering endpoint to get the HTML + Script content.
             const renderResponse = await fetch('/banner-result/', {
