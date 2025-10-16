@@ -74,15 +74,6 @@
             </div>
 
             <!-- =============================================================== -->
-            <!-- NEW: "NEW" INDICATOR (Top-Left)                                 -->
-            <!-- =============================================================== -->
-            {% if student.is_new %}
-            <div class="absolute top-0 left-0 w-20 h-20 transform -rotate-12 -translate-x-5 -translate-y-5 pointer-events-none">
-                <img src="{% static 'images/web/imgfont_new.png' %}" alt="New">
-            </div>
-            {% endif %}
-
-            <!-- =============================================================== -->
             <!-- NEW: "PICKUP" INDICATOR (Bottom-Right)                          -->
             <!-- =============================================================== -->
             {% if student.is_pickup %}
@@ -106,6 +97,15 @@
                     <div class="sparkle"></div>
                     <div class="sparkle"></div>
                 </div>
+            {% endif %}
+
+            <!-- =============================================================== -->
+            <!-- NEW: "NEW" INDICATOR (Top-Left)                                 -->
+            <!-- =============================================================== -->
+            {% if student.is_new %}
+            <div class="absolute top-0 left-0 w-20 h-20 transform -rotate-12 -translate-x-5 -translate-y-5 pointer-events-none">
+                <img src="{% static 'images/web/imgfont_new.png' %}" alt="New">
+            </div>
             {% endif %}
         </div>
 

@@ -228,6 +228,7 @@ class UnlockAchievementAdmin(admin.ModelAdmin):
         'unlock_id',
         'unlock_user',
         'achievement_id',
+        'achievement_id__achievement_key',
         'unlock_on',
     ]
 

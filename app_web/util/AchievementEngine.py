@@ -6,14 +6,36 @@ from django.core.cache import cache
 from django.contrib.auth.models import User # Or your custom user model
 from ..models import Achievement, UnlockAchievement, UserInventory, GachaTransaction, Student
 
-# --- DATA LOADING (from your achievements.json file) ---
-ACHIEVEMENT_DEFINITIONS = []
+# This dictionary will hold ONLY the data needed for collection checks.
+# Format: { "unlock_key": [ { "name": "Student", "version": "Ver" }, ... ] }
+COLLECTION_SETS = {}
+
 try:
-    file_path = os.path.join(settings.BASE_DIR, 'app_web', 'management', 'data', 'json', 'achievements')
-    with open(file_path, 'r') as f:
-        ACHIEVEMENT_DEFINITIONS = json.load(f)
+    achievements_dir = os.path.join(settings.BASE_DIR, 'app_web', 'management', 'data', 'json', 'achievements')
+
+    if os.path.isdir(achievements_dir):
+        for filename in os.listdir(achievements_dir):
+            if filename.endswith('.json'):
+                file_path = os.path.join(achievements_dir, filename)
+                try:
+                    with open(file_path, 'r') as f:
+                        data = json.load(f)
+                        
+                        # --- THE OPTIMIZATION ---
+                        # We ONLY process and store the data if it's a COLLECTION achievement
+                        # and has a 'students' list. All other types are ignored here.
+                        if data.get("category") == "COLLECTION" and "students" in data:
+                            COLLECTION_SETS[data["key"]] = data["students"]
+
+                except (json.JSONDecodeError, KeyError) as e:
+                    print(f"WARNING: Skipping achievement file {filename} due to parsing error: {e}")
+    else:
+        raise FileNotFoundError("Achievements directory not found.")
+
+except FileNotFoundError:
+    print(f"WARNING: Achievements directory not found. Collection achievements will be disabled.")
 except Exception as e:
-    print(f"WARNING: Could not load achievements.json. Achievements will be disabled. Error: {e}")
+    print(f"CRITICAL ERROR loading achievement definitions: {e}")
 
 # --- =============================================================== ---
 # --- CORE ACHIEVEMENT SERVICE                                        ---
@@ -100,17 +122,21 @@ class AchievementEngine:
         TRIGGER: Called from a signal when the user's inventory changes.
         """
         newly_unlocked = []
-        collection_sets = [ach for ach in ACHIEVEMENT_DEFINITIONS if ach.get("category") == "COLLECTION"]
         
         owned_students = UserInventory.objects.filter(inventory_user=self.user).select_related('student_id')
         user_owned_set = {f"{item.student_id.student_name}|{item.student_id.version}" for item in owned_students}
 
-        for ach_set in collection_sets:
-            unlock_key = ach_set['key']
+        print("=== COLLECTION ACHIEVEMENT ===")
+        print(user_owned_set)
+
+        # --- THE OPTIMIZATION ---
+        # We now loop over the much smaller, pre-filtered dictionary.
+        for unlock_key, required_students in COLLECTION_SETS.items():
+            
+            # Skip if the user already has this achievement.
             if unlock_key not in self.unlocked_keys:
-                required_students = ach_set.get('students', [])
+                # The check is now simpler and faster.
                 if all(f"{req['name']}|{req['version']}" in user_owned_set for req in required_students):
-                    # If the check passes, call _award and capture the result
                     achievement_obj = self._award(unlock_key)
                     if achievement_obj:
                         newly_unlocked.append(achievement_obj)
