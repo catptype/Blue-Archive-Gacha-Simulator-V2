@@ -8,8 +8,6 @@ A feature-rich web application built with Django and Tailwind CSS that simulates
 
 ## 📸 Screenshots
 
-*(This is the perfect place to add screenshots of your best pages!)*
-
 | Home Page | Gacha Page | Banner Details |
 | :---: | :---: | :---: |
 | ![Home](docs/images/screenshot_home.png) | ![Gacha](docs/images/screenshot_gacha.png) | ![Banner Details](docs/images/screenshot_banner_details.png) |
