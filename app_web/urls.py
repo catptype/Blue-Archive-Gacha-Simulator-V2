@@ -29,7 +29,7 @@ urlpatterns = [
     path('dashboard/widget/performance-table/', views.dashboard_widget_performance_table, name='dashboard_widget_performance_table'),
     path('dashboard/widget/milestone-timeline/', views.dashboard_widget_milestone_timeline, name='dashboard_widget_milestone_timeline'),
 
-    path('', views.home, name='register'),
+    path('register/', views.register, name='register'),
 
     # --- NEW API ENDPOINT ---
     path('api/school/<int:school_id>/students/', views.get_students_by_school, name='get_students_by_school'),

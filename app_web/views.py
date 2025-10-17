@@ -5,8 +5,9 @@ import tempfile
 from decimal import Decimal
 from django.core.cache import cache
 from django.core.paginator import Paginator
-from django.contrib.auth import logout
+from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import UserCreationForm
 from django.contrib.staticfiles import finders
 from django.db import transaction
 from django.db.models import Count, Min
@@ -86,6 +87,26 @@ def get_user_pull_data(user):
 def home(request:HttpRequest) -> HttpResponse:
     context = {}
     return render(request, 'app_web/index.html', context)
+
+def register(request: HttpRequest) -> HttpResponse:
+    """
+    Handles the user registration process using Django's built-in UserCreationForm.
+    """
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        # MODIFIED: Use the built-in form directly
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect('dashboard')
+    else:
+        # MODIFIED: Use the built-in form directly
+        form = UserCreationForm()
+        
+    return render(request, 'app_web/register.html', {'form': form})
 
 @require_GET
 def student(request:HttpRequest) -> HttpResponse:

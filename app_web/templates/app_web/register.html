@@ -1,0 +1,73 @@
+{% extends 'app_web/components/base.html' %} 
+{% load static %}
+{% block title %}Registration{% endblock %} 
+
+{% block body %}
+<div class="relative min-h-screen w-full bg-black antialiased text-white flex items-center justify-center">
+    
+    {% include 'app_web/components/background.html' %}
+
+    <div class="relative z-10 w-full max-w-md p-8 bg-slate-800/50 backdrop-blur-lg border border-slate-700 rounded-lg shadow-2xl">
+        
+        <h2 class="text-3xl font-bold text-center text-white mb-6">Create Your Account</h2>
+
+        <form method="POST" action="{% url 'register' %}">
+            {% csrf_token %}
+
+            <!-- Display any non-field errors (e.g., from custom validation) -->
+            {% if form.non_field_errors %}
+                <div class="bg-red-900/50 border border-red-500/50 text-red-300 text-sm p-3 rounded-lg mb-4">
+                    {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Form Fields -->
+            <div class="space-y-4">
+                <!-- Username Field -->
+                <div>
+                    <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-slate-300">Username</label>
+                    <input type="text" name="{{ form.username.name }}" id="{{ form.username.id_for_label }}" 
+                           class="mt-1 block w-full px-3 py-2 bg-slate-900/50 border border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                    <!-- Display errors for the username field -->
+                    {% for error in form.username.errors %}<p class="mt-1 text-xs text-red-400">{{ error }}</p>{% endfor %}
+                </div>
+
+                <!-- Password Field 1 -->
+                <div>
+                    <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium text-slate-300">Password</label>
+                    <input type="password" name="{{ form.password1.name }}" id="{{ form.password1.id_for_label }}"
+                           class="mt-1 block w-full px-3 py-2 bg-slate-900/50 border border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                    <!-- Display help text and errors for the password field -->
+                    <div class="mt-1 text-xs text-slate-400 space-y-1">
+                        {{ form.password1.help_text|safe }}
+                    </div>
+                    {% for error in form.password1.errors %}<p class="mt-1 text-xs text-red-400">{{ error }}</p>{% endfor %}
+                </div>
+
+                <!-- Password Field 2 (Confirmation) -->
+                <div>
+                    <label for="{{ form.password2.id_for_label }}" class="block text-sm font-medium text-slate-300">Confirm Password</label>
+                    <input type="password" name="{{ form.password2.name }}" id="{{ form.password2.id_for_label }}"
+                           class="mt-1 block w-full px-3 py-2 bg-slate-900/50 border border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                    {% for error in form.password2.errors %}<p class="mt-1 text-xs text-red-400">{{ error }}</p>{% endfor %}
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="mt-6">
+                <button type="submit" class="w-full py-3 px-4 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold rounded-lg shadow-md transition-colors duration-200">
+                    Register
+                </button>
+            </div>
+        </form>
+
+        <!-- Link to Login Page -->
+        <div class="mt-6 text-center">
+            <p class="text-sm text-slate-400">
+                Already have an account? 
+                <a href="{% url 'login' %}" class="font-medium text-cyan-400 hover:underline">Login here</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -164,13 +164,21 @@
             <!-- LEFT COLUMN: HERO PREVIEW                                       -->
             <!-- =============================================================== -->
             <div id="hero-section" class="relative w-full h-full bg-slate-900 border border-slate-700 rounded-lg shadow-2xl overflow-hidden">
+                
+                <!-- NEW: Default Video Background (Base Layer) -->
+                <!-- This video plays continuously in the background. -->
+                <video autoplay muted loop class="absolute inset-0 w-full h-full object-cover z-0">
+                    <source src="{% static 'video/plana-gacha.mov' %}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+
                 <!-- NEW: Decorative corner brackets for a high-tech feel -->
                 <div class="absolute top-2 left-2 w-8 h-8 border-t-2 border-l-2 border-slate-600/50 rounded-tl-lg"></div>
                 <div class="absolute top-2 right-2 w-8 h-8 border-t-2 border-r-2 border-slate-600/50 rounded-tr-lg"></div>
                 <div class="absolute bottom-2 left-2 w-8 h-8 border-b-2 border-l-2 border-slate-600/50 rounded-bl-lg"></div>
                 <div class="absolute bottom-2 right-2 w-8 h-8 border-b-2 border-r-2 border-slate-600/50 rounded-br-lg"></div>
 
-                <img id="hero-image" src="" alt="Banner Preview" class="absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-500 opacity-0">
+                <!-- <img id="hero-image" src="" alt="Banner Preview" class="absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-500 opacity-0"> -->
                 <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent z-10"></div>
                 <div id="hero-banner-name" class="absolute bottom-0 left-0 p-6 z-20 text-5xl font-black text-white uppercase tracking-widest opacity-0 transition-all duration-500 transform translate-y-4" style="text-shadow: 2px 2px 10px rgba(0,0,0,0.7);"></div>
             </div>
@@ -330,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Get references to all key elements ---
-    const heroImage = document.getElementById('hero-image');
+    // const heroImage = document.getElementById('hero-image');
     const heroBannerName = document.getElementById('hero-banner-name');
     const carousel = document.getElementById('banner-carousel');
     const cards = Array.from(carousel.querySelectorAll('.banner-card'));
@@ -494,13 +502,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!activeCard) return;
 
         heroBannerName.classList.add('opacity-0', 'translate-y-4');
-        heroImage.classList.add('opacity-0');
+        // heroImage.classList.add('opacity-0');
 
         setTimeout(() => {
             heroBannerName.textContent = activeCard.dataset.name;
-            heroImage.src = activeCard.dataset.heroImageUrl || '';
+            // heroImage.src = activeCard.dataset.heroImageUrl || '';
             heroBannerName.classList.remove('opacity-0', 'translate-y-4');
-            heroImage.classList.remove('opacity-0');
+            // heroImage.classList.remove('opacity-0');
         }, 300);
     }
 
