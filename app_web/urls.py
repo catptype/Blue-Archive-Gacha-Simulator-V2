@@ -11,7 +11,10 @@ urlpatterns = [
     path('banner-details/<int:banner_id>/', views.banner_details, name='banner_details'),
     path('banner-result/', views.gacha_results, name='gacha_results'),
     path('student-card/<int:student_id>/', views.student_card, name='student_card'),
-    path('', views.home, name='login'),
+    path('login/', auth_views.LoginView.as_view(
+        template_name='app_web/login.html',      # Tell Django where our custom template is
+        redirect_authenticated_user=True         # If a user is already logged in, redirect them from this page
+    ), name='login'),
     # path('logout/', views.home, name='logout'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('dashboard/', views.dashboard, name='dashboard'),
