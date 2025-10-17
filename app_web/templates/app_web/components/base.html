@@ -14,7 +14,9 @@
     </head>
     <body class="bg-gray-100 flex justify-center">
         {% include 'app_web/components/navbar.html' %}
+        <div id="csrf-token-container-logout" data-csrf="{{ csrf_token }}" style="display: none;"></div>
         {% block body %}{% endblock %}
         {% block js %}{% endblock %}
+        <script src="{% static 'js/logout.js' %}"></script>
     </body>
 </html>

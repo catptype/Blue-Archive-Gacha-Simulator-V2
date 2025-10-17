@@ -37,10 +37,7 @@
                 <hr class="border-slate-700">
               {% endif %}
               <a class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-cyan-400" href="{% url 'dashboard' %}">Dashboard</a>
-              <form action="{% url 'logout' %}" method="POST">
-                {% csrf_token %}
-                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-cyan-400">Logout</button>
-              </form>
+              <button id="logout-button-desktop" type="button" class="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-cyan-400">Logout</button>
             </div>
           </div>
         {% else %}
@@ -74,10 +71,8 @@
           <a class="block px-3 py-2 text-slate-300 hover:bg-slate-700 rounded-md" href="{% url 'admin:index' %}">Superuser</a>
         {% endif %}
         <a class="block px-3 py-2 text-slate-300 hover:bg-slate-700 rounded-md" href="{% url 'dashboard' %}">Dashboard</a>
-        <form action="{% url 'logout' %}" method="POST" class="w-full">
-          {% csrf_token %}
-          <button type="submit" class="w-full text-left block px-3 py-2 text-slate-300 hover:bg-slate-700 rounded-md">Logout</button>
-        </form>
+        <button id="logout-button-mobile" type="button" class="w-full text-left block px-3 py-2 text-slate-300 hover:bg-slate-700 rounded-md">Logout</button>
+        
       {% else %}
         <a class="block px-3 py-2 text-slate-300 hover:bg-slate-700 rounded-md" href="{% url 'register' %}">Register</a>
         <a class="block px-3 py-2 text-slate-300 hover:bg-slate-700 rounded-md" href="{% url 'login' %}">Login</a>

@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     # HTTPRESPONSE
@@ -11,7 +12,8 @@ urlpatterns = [
     path('banner-result/', views.gacha_results, name='gacha_results'),
     path('student-card/<int:student_id>/', views.student_card, name='student_card'),
     path('', views.home, name='login'),
-    path('', views.home, name='logout'),
+    # path('logout/', views.home, name='logout'),
+    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('dashboard/<str:tab_name>/', views.get_dashboard_content, name='get_dashboard_content'),
     path('dashboard/widget/kpis/', views.dashboard_widget_kpis, name='dashboard_widget_kpis'),

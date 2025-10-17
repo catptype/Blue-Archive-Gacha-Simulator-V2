@@ -5,12 +5,13 @@ import tempfile
 from decimal import Decimal
 from django.core.cache import cache
 from django.core.paginator import Paginator
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles import finders
 from django.db import transaction
 from django.db.models import Count, Min
-from django.http import JsonResponse, HttpRequest, HttpResponse, FileResponse, HttpResponseNotFound, HttpResponseBadRequest
-from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse, HttpRequest, HttpResponse, FileResponse, HttpResponseNotFound, HttpResponseBadRequest, HttpResponseRedirect
+from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.views.decorators.http import require_POST, require_GET
@@ -198,33 +199,6 @@ def gacha_results(request: HttpRequest) -> HttpResponse:
     except (json.JSONDecodeError, TypeError):
         return HttpResponseBadRequest("Invalid request body.")
 
-@login_required
-def get_top_students_by_rarity(request: HttpRequest, rarity: int) -> HttpResponse:
-    """
-    API endpoint that fetches the top 3 most-pulled students for a given rarity
-    and renders the podium partial template.
-    """
-    user = request.user
-
-    cache_key = f"user_podium:{user}:{rarity}"
-    top_students = cache.get(cache_key)
-
-    if top_students is None:
-        print(f"CACHE MISS for key: {cache_key}")
-        # Fetch the top 3 students for the requested rarity.
-        top_students = (
-            Student.objects.filter(gachatransaction__transaction_user=user, student_rarity=rarity)
-            .annotate(count=Count('pk'), first_obtained=Min('gachatransaction__transaction_create_on'))
-            .order_by( '-count', 'first_obtained')[:3]
-        )
-        cache.set(cache_key, top_students, timeout=CACHE_IMAGE_TIMEOUT)
-
-    context = {
-        'top_students': top_students,
-        'rarity': rarity, # Pass the rarity for styling in the template
-    }
-    # Render a NEW partial template just for the podium.
-    return render(request, 'app_web/components/dashboard_podium.html', context)
 
 @login_required
 def dashboard(request: HttpRequest) -> HttpResponse:
@@ -270,6 +244,34 @@ def dashboard_widget_top_students(request: HttpRequest) -> HttpResponse:
     context = {'top_r3_students': top_r3_students}
     
     return render(request, 'app_web/components/widgets/top_students.html', context)
+
+@login_required
+def get_top_students_by_rarity(request: HttpRequest, rarity: int) -> HttpResponse:
+    """
+    API endpoint that fetches the top 3 most-pulled students for a given rarity
+    and renders the podium partial template.
+    """
+    user = request.user
+
+    cache_key = f"user_podium:{user}:{rarity}"
+    top_students = cache.get(cache_key)
+
+    if top_students is None:
+        print(f"CACHE MISS for key: {cache_key}")
+        # Fetch the top 3 students for the requested rarity.
+        top_students = (
+            Student.objects.filter(gachatransaction__transaction_user=user, student_rarity=rarity)
+            .annotate(count=Count('pk'), first_obtained=Min('gachatransaction__transaction_create_on'))
+            .order_by( '-count', 'first_obtained')[:3]
+        )
+        cache.set(cache_key, top_students, timeout=10)
+
+    context = {
+        'top_students': top_students,
+        'rarity': rarity, # Pass the rarity for styling in the template
+    }
+    # Render a NEW partial template just for the podium.
+    return render(request, 'app_web/components/dashboard_podium.html', context)
 
 @login_required
 def dashboard_widget_first_r3_pull(request: HttpRequest) -> HttpResponse:
