@@ -126,9 +126,6 @@ class AchievementEngine:
         owned_students = UserInventory.objects.filter(inventory_user=self.user).select_related('student_id')
         user_owned_set = {f"{item.student_id.student_name}|{item.student_id.version}" for item in owned_students}
 
-        print("=== COLLECTION ACHIEVEMENT ===")
-        print(user_owned_set)
-
         # --- THE OPTIMIZATION ---
         # We now loop over the much smaller, pre-filtered dictionary.
         for unlock_key, required_students in COLLECTION_SETS.items():
