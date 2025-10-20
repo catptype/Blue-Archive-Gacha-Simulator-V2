@@ -829,7 +829,7 @@ def serve_banner_image(request: HttpRequest, banner_id: int) -> HttpResponse:
             # Create a lightweight dictionary with the raw data to cache.
             image_data = {
                 'name': banner['banner_name'],
-                'image_bytes': banner['banner_image']
+                'image_bytes': bytes(banner['banner_image']),
             }
             # Cache this dictionary for one hour.
             cache.set(cache_key, image_data, timeout=3600)
@@ -877,7 +877,7 @@ def serve_achievement_image(request: HttpRequest, achievement_id: int) -> HttpRe
             # Create a lightweight dictionary to cache.
             image_data = {
                 'name': achievement['achievement_name'],
-                'image_bytes': achievement['achievement_image']
+                'image_bytes': bytes(achievement['achievement_image']),
             }
             # Cache the dictionary.
             cache.set(cache_key, image_data, timeout=60)
