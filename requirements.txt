@@ -7,3 +7,5 @@ drf-yasg
 whitenoise
 opencv-python
 pillow
+whitenoise
+dj_database_url

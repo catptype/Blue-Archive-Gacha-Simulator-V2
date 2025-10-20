@@ -1,8 +1,10 @@
 # Blue Archive Gacha Simulator
 
-A feature-rich web application built with Django and Tailwind CSS that simulates the gacha and character collection experience of the mobile game Blue Archive.
+> **⚠️ Disclaimer**
+>
+> This is a fan-made, non-profit hobby project created purely for fun and educational purposes. There is no commercial benefit associated with this project. It is not affiliated with, authorized, or endorsed by Nexon Games, Yostar, or their affiliates in any way. All characters, images, and other intellectual property from Blue Archive are trademarks and copyrights of their respective owners.
 
-**This is a non-commercial, hobby project created for self-learning and portfolio purposes.** It is not affiliated with, endorsed by, or connected to Nexon Games, Yostar, or their affiliates in any way. All assets, characters, and names are the intellectual property of their respective owners.
+A feature-rich web application built with Django and Tailwind CSS that simulates the gacha and character collection experience of the mobile game Blue Archive.
 
 ---
 
@@ -130,6 +132,3 @@ The visual assets and fonts used in this project were sourced from the following
 
 ---
 
-## ⚠️ Disclaimer
-
-This is a fan-made, non-profit project created for educational and portfolio purposes only. It is not affiliated with, authorized, or endorsed by Nexon Games or Yostar. All characters, images, and other intellectual property from Blue Archive are trademarks and copyrights of their respective owners.
