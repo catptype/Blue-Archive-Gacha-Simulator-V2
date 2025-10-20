@@ -942,7 +942,7 @@ def serve_student_image(request: HttpRequest, student_id: int, image_type: str):
 
             # Prepare data for caching
             image_data = {
-                'image_bytes': image_bytes,
+                'image_bytes': bytes(image_bytes), # call bytes() in case use with PostgreSQL
                 'filename': f"{student_obj.student_name}_{student_obj.version_id.version_name}_{image_type}.png"
             }
             # Use a longer, more sensible timeout
