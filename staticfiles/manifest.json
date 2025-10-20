@@ -1,0 +1,23 @@
+{
+  "app.css": "/static/css/app.css",
+  "app.js": "/static/js/app.js",
+  "entrypoints": {
+    "app": {
+      "assets": {
+        "js": [
+          "/static/js/runtime.js",
+          "/static/js/app.js"
+        ],
+        "css": [
+          "/static/css/app.css"
+        ]
+      }
+    }
+  },
+  "frontend/vendors/images/sample.jpg": "/static/frontend/vendors/images/sample.jpg",
+  "runtime.js": "/static/js/runtime.js",
+  "vendors/.gitkeep": "/static/vendors/.gitkeep",
+  "vendors/images/.gitkeep": "/static/vendors/images/.gitkeep",
+  "vendors/images/sample.jpg": "/static/vendors/images/sample.jpg",
+  "vendors/images/webpack.png": "/static/vendors/images/webpack.png"
+}
