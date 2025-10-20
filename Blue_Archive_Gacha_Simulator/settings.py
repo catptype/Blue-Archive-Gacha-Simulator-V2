@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'drf_yasg',
     'rest_framework',
-    'webpack_boilerplate', 
+    'webpack_boilerplate',
     'whitenoise.runserver_nostatic',
 
     # Local apps
@@ -171,16 +171,16 @@ STATICFILES_DIRS = [
     BASE_DIR / "frontend/build",
     BASE_DIR / "static",
 ]
+
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # ==============================================================================
 # THIRD-PARTY & DEVELOPMENT-ONLY SETTINGS
 # ==============================================================================
 
-if not IS_PRODUCTION:
-    WEBPACK_LOADER = {
-        'MANIFEST_FILE': BASE_DIR / "frontend/build/manifest.json",
-    }
+WEBPACK_LOADER = {
+    'MANIFEST_FILE': BASE_DIR / "frontend/build/manifest.json",
+}
 
 # ==============================================================================
 # LOGGING CONFIGURATION
