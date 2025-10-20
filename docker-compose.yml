@@ -12,5 +12,6 @@ services:
       - USE_HTTPS=0
       - SECRET_KEY=YOUR_SECRET_KEY
       - ALLOW_HOSTS=127.0.0.1,localhost
-    command: python manage.py runserver 0.0.0.0:8000
+    # command: python manage.py runserver 0.0.0.0:8000
+    command: gunicorn --bind 0.0.0.0:8000 --workers 3 Blue_Archive_Gacha_Simulator.wsgi:application
   
