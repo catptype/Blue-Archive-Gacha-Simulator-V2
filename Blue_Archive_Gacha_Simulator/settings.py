@@ -92,13 +92,18 @@ TEMPLATES = [
 # DATABASE
 # ==============================================================================
 
+# DATABASES = {
+#     'default': { 'ENGINE': 'django.db.backends.sqlite3', 'NAME': BASE_DIR / 'db.sqlite3' }
+# }
+
 if IS_PRODUCTION:
-    # --- Production Database (PostgreSQL on Render) ---
+    # Use the DATABASE_URL environment variable provided by Render.
+    # ssl_require=True is essential for secure connections to Render's databases.
     DATABASES = {
         'default': dj_database_url.config(conn_max_age=600, ssl_require=True)
     }
 else:
-    # --- Development Database (SQLite) ---
+    # Keep using SQLite for local development
     DATABASES = {
         'default': { 'ENGINE': 'django.db.backends.sqlite3', 'NAME': BASE_DIR / 'db.sqlite3' }
     }

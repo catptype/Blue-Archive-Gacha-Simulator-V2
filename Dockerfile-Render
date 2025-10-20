@@ -1,28 +1,28 @@
 # Use a single, slim Python base image
 FROM python:3.10-slim
 
-# Set environment variables
+# Set environment variables for the container
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Set the working directory
+# Set the working directory in the container
 WORKDIR /app
 
-# Install system dependencies (both build-time and run-time for simplicity)
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        pkg-config default-libmysqlclient-dev build-essential curl libgl1 libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+# Copy the requirements file and install the packages
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the entire project code
+# Copy the rest of your application's source code
 COPY . .
 
-# Run collectstatic during the build. This is a Render best practice.
+# Run collectstatic during the build
 RUN python manage.py collectstatic --noinput
 
-# The command to run the application (Gunicorn is a must for production)
-CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "Blue_Archive_Gacha_Simulator.wsgi:application"]
+# Expose the port the app runs on
+EXPOSE 8000
+
+# Define the command to run the application using Gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "Blue_Archive_Gacha_Simulator.wsgi:application"]
