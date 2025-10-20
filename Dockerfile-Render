@@ -24,8 +24,5 @@ COPY . .
 # Run collectstatic during the build. This is a Render best practice.
 RUN python manage.py collectstatic --noinput
 
-# Expose the port
-EXPOSE 8000
-
 # The command to run the application (Gunicorn is a must for production)
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "Blue_Archive_Gacha_Simulator.wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "Blue_Archive_Gacha_Simulator.wsgi:application"]
