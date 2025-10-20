@@ -5,6 +5,12 @@ FROM python:3.10-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+# Set Application environment variables (use for deploy production)
+ENV PRODUCTION=0
+ENV USE_HTTPS=0
+ENV SECRET_KEY=offline-secret-key-need-to-change-when-deploy-production
+
+
 # Set Django superuser credentials (for development/initial setup)
 ENV DJANGO_SUPERUSER_USERNAME=admin
 ENV DJANGO_SUPERUSER_EMAIL=admin@example.com
