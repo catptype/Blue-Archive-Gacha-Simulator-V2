@@ -1,51 +1,32 @@
-# --- Stage 1: Builder ---
-FROM python:3.10-slim AS builder
-
-# Install build dependencies
-RUN apt-get update && apt-get install -y \
-    pkg-config \
-    default-libmysqlclient-dev \
-    build-essential \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-# Copy requirements and install them in isolated path
-COPY requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
-
-# --- Stage 2: Final Image ---
+# Use a slim, stable version of Python as the base
 FROM python:3.10-slim
 
-# Install runtime dependencies only
-RUN apt-get update && apt-get install -y \
-    curl \
-    libgl1 \
-    libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
-
+# Set environment variables for best practices
+# PYTHONUNBUFFERED ensures logs are sent directly to Render's log stream
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    DJANGO_SUPERUSER_USERNAME=admin \
-    DJANGO_SUPERUSER_EMAIL=admin@example.com \
-    DJANGO_SUPERUSER_PASSWORD=1234
+    PYTHONUNBUFFERED=1
 
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy installed packages from builder
-COPY --from=builder /install /usr/local
+# Install system dependencies needed by some Python packages
+RUN apt-get update && apt-get install -y \
+    # Needed for PostgreSQL
+    libpq-dev \
+    # build-essential contains tools like 'gcc'
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy project code
+# Copy the requirements file first to leverage Docker's layer caching
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of your project's code into the container
 COPY . .
 
-# Collect staticfiles for deploy production
-RUN python manage.py migrate && \
-    python manage.py unpack && \
-    python manage.py createsuperuser --noinput && \
-    python manage.py collectstatic --noinput
-
-# Expose necessary ports
+# Expose the port that gunicorn will run on
 EXPOSE 8000
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# The CMD is now gone. The start command will be handled by a separate script.
