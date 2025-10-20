@@ -13,6 +13,7 @@ IS_PRODUCTION = os.environ.get('PRODUCTION', '0') == '1'
 USE_HTTPS = os.environ.get('USE_HTTPS', '0') == '1'
 SECRET_KEY = os.environ.get('SECRET_KEY', 'a-default-development-secret-key')
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+# ALLOWED_HOSTS = ['*']
 
 # For Render deployments
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
@@ -40,7 +41,6 @@ INSTALLED_APPS = [
     'drf_yasg',
     'rest_framework',
     'webpack_boilerplate',
-    'whitenoise.runserver_nostatic',
 
     # Local apps
     'app_web',
@@ -91,10 +91,6 @@ TEMPLATES = [
 # ==============================================================================
 # DATABASE
 # ==============================================================================
-
-# DATABASES = {
-#     'default': { 'ENGINE': 'django.db.backends.sqlite3', 'NAME': BASE_DIR / 'db.sqlite3' }
-# }
 
 if IS_PRODUCTION:
     # Use the DATABASE_URL environment variable provided by Render.
