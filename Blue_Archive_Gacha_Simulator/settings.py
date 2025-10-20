@@ -177,9 +177,10 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # THIRD-PARTY & DEVELOPMENT-ONLY SETTINGS
 # ==============================================================================
 
-WEBPACK_LOADER = {
-    'MANIFEST_FILE': BASE_DIR / "frontend/build/manifest.json",
-}
+if not IS_PRODUCTION:
+    WEBPACK_LOADER = {
+        'MANIFEST_FILE': BASE_DIR / "frontend/build/manifest.json",
+    }
 
 # ==============================================================================
 # LOGGING CONFIGURATION
