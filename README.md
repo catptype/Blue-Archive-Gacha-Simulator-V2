@@ -6,6 +6,14 @@
 
 A feature-rich web application built with Django and Tailwind CSS that simulates the gacha and character collection experience of the mobile game Blue Archive.
 
+<div align="center">
+
+**[➡️ View the Live Demo on Render](https://gacha-sim.onrender.com/)**
+
+</div>
+
+> **Note on Free Tier:** The live demo is hosted on Render's free tier. The PostgreSQL database associated with this demo will be active until **November 19, 2025**. The application may experience slow initial load times ("cold starts") as the service spins up.
+
 ---
 
 ## 📸 Screenshots
@@ -21,6 +29,16 @@ A feature-rich web application built with Django and Tailwind CSS that simulates
 | Dashboard (part 1) | Dashboard (part 2) | Dashboard (part 3) |
 | :---: | :---: | :---: |
 | ![Dashboard 1](docs/images/screenshot_dashboard1.png) | ![Dashboard 2](docs/images/screenshot_dashboard2.png) | ![Dashboard 3](docs/images/screenshot_dashboard3.png) |
+
+---
+
+## 🛠️ Tech Stack
+
+*   **Backend:** Django, Python
+*   **Database:** PostgreSQL (Production on Render), SQLite (Local Development)
+*   **Frontend:** HTML, Tailwind CSS
+*   **JavaScript:** JavaScript, Alpine.js (for navbar interactivity), Chart.js (for data visualization)
+*   **Architecture:** Asynchronous widget-based loading, stateless service classes for core logic (Gacha Engine, Achievement Service).
 
 ---
 
@@ -57,16 +75,6 @@ This project goes beyond a simple gacha puller and implements a full suite of fe
 *   **Full User Authentication:**
     *   Secure user registration and login system powered by Django's built-in auth.
     *   All gacha history, inventory, and achievements are tied to the user account.
-
----
-
-## 🛠️ Tech Stack
-
-*   **Backend:** Django, Python
-*   **Database:** SQLite (default)
-*   **Frontend:** HTML, Tailwind CSS
-*   **JavaScript:** Vanilla JavaScript (ES6+), Alpine.js (for navbar interactivity), Chart.js (for data visualization)
-*   **Architecture:** Asynchronous widget-based loading, stateless service classes for core logic (Gacha Engine, Achievement Service).
 
 ---
 
