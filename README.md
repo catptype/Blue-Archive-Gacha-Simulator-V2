@@ -46,6 +46,11 @@ A feature-rich web application built with Django and Tailwind CSS that simulates
 
 This project goes beyond a simple gacha puller and implements a full suite of features found in modern web applications and games:
 
+*   **Optimized Performance & Architecture:**
+    *   **Asynchronous Widget-Based Dashboard:** The user dashboard loads instantly as a "shell," with each data widget (KPIs, charts, lists) fetching its own data in parallel for a fast, responsive experience.
+    *   **Advanced Caching Strategy:** Implements a robust cache-aside pattern for the data-intensive dashboard. All user pull data is fetched once and stored in a high-speed cache, making subsequent widget loads and data calculations nearly instantaneous and dramatically reducing database load.
+    *   **Stateless Service Classes:** Core business logic is encapsulated in clean, stateless service classes (e.g., [GachaEngine](app_web/util/GachaEngine.py), [AchievementEngine](app_web/util/AchievementEngine.py)), promoting a clear separation of concerns and making the code highly maintainable and testable.
+    
 *   **Realistic Gacha Simulation:**
     *   Pull for students on different banners, each with unique rates and pickup characters.
     *   A high-impact, multi-stage "Prismatic Burst" animation for revealing rare (★★★) students, complete with foil shines and sparkle effects.
