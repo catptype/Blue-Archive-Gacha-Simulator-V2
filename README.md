@@ -110,7 +110,7 @@ The application will be available at `http://localhost:8000/`.
 
 ### Method 2: Running with Docker Compose (Easy Setup)
 
-This method runs the entire application inside a container. The `Dockerfile` is configured to automatically handle all setup steps.
+This method runs the entire application inside a container. Both [Dockerfile](Dockerfile) and [docker-compose.yml](docker-compose.yml) are configured to automatically handle all setup steps.
 
 1.  **Clone the repository** and `cd` into it.
     ```sh
