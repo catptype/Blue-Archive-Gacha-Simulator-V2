@@ -72,53 +72,61 @@ This project goes beyond a simple gacha puller and implements a full suite of fe
 
 ## 🚀 Getting Started
 
-Instructions on how to set up and run a local development copy of the project.
+This project can be run in two ways: directly from the source code (recommended for development) or with Docker Compose (recommended for a quick and consistent setup).
 
-### Prerequisites
+### Environment Configuration
 
-*   Python 3.8+
-*   pip
+This project is configured using environment variables in [settings.py](Blue_Archive_Gacha_Simulator/settings.py).<br>
+For local development, **no configuration is needed.** The defaults are pre-configured to use a local `db.sqlite3` file and run in `DEBUG` mode.
 
-### Installation
+---
 
-1.  **Clone the repository:**
+### Method 1: Running from Source Code
+
+This method gives you a direct development environment on your local machine.
+
+1.  **Clone the repository** and `cd` into it.
     ```sh
-    git clone https://github.com/your-username/your-repo-name.git
-    cd your-repo-name
+    git clone https://github.com/catptype/Blue-Archive-Gacha-Simulator-V2.git
     ```
-
-2.  **Create and activate a virtual environment:**
-    ```sh
-    # For Windows
-    python -m venv venv
-    .\venv\Scripts\activate
-
-    # For macOS/Linux
-    python3 -m venv venv
-    source venv/bin/activate
-    ```
-
+2.  **Create and activate a Python virtual environment** using your preferred tool (e.g., `venv`, `conda`).
 3.  **Install dependencies:**
     ```sh
     pip install -r requirements.txt
     ```
-
-4.  **Run database migrations:**
+4.  **Initialize the database:**
     ```sh
     python manage.py migrate
+    python manage.py unpack
+    python manage.py createsuperuser
+    ```
+5.  **Run the development server:**
+    ```sh
+    python manage.py runserver 0.0.0.0:8000
+    ```
+The application will be available at `http://localhost:8000/`.
+
+---
+
+### Method 2: Running with Docker Compose (Easy Setup)
+
+This method runs the entire application inside a container. The `Dockerfile` is configured to automatically handle all setup steps.
+
+1.  **Clone the repository** and `cd` into it.
+    ```sh
+    git clone https://github.com/catptype/Blue-Archive-Gacha-Simulator-V2.git
     ```
 
-5.  **Import all initial data:**
-    This project uses a custom management command to populate the database from JSON files.
+2.  **Build and start the application:**
+    This single command will build the Docker image and start the web service in the background.
     ```sh
-    python manage.py unpack_data  # Or your custom command name
+    docker-compose up --build -d
     ```
 
-6.  **Run the development server:**
-    ```sh
-    python manage.py runserver
-    ```
-    The application will be available at `http://127.0.0.1:8000/`.
+3.  **Done!**
+    The application is now fully initialized and available at `http://localhost:8000/`.
+
+    > **Note:** The `Dockerfile` is configured to automatically run database migrations, unpack all initial data, and create a default superuser (`admin`/`1234`) during the image build process. **No manual setup commands are required.**
 
 ---
 
