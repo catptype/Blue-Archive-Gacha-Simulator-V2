@@ -50,6 +50,7 @@ This project goes beyond a simple gacha puller and implements a full suite of fe
     *   **Asynchronous Widget-Based Dashboard:** The user dashboard loads instantly as a "shell," with each data widget (KPIs, charts, lists) fetching its own data in parallel for a fast, responsive experience.
     *   **Advanced Caching Strategy:** Implements a robust cache-aside pattern for the data-intensive dashboard. All user pull data is fetched once and stored in a high-speed cache, making subsequent widget loads and data calculations nearly instantaneous and dramatically reducing database load.
     *   **Stateless Service Classes:** Core business logic is encapsulated in clean, stateless service classes (e.g., [GachaEngine](app_web/util/GachaEngine.py), [AchievementEngine](app_web/util/AchievementEngine.py)), promoting a clear separation of concerns and making the code highly maintainable and testable.
+    *   **Live Content Updates:** The application dynamically loads all core data from the database. This enables zero-downtime content updates—new information added to the database is reflected instantly on the website without requiring a server restart.
     
 *   **Realistic Gacha Simulation:**
     *   Pull for students on different banners, each with unique rates and pickup characters.
