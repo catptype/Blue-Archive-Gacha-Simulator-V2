@@ -15,6 +15,8 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'a-default-development-secret-key')
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 # ALLOWED_HOSTS = ['*']
 
+CORS_ALLOWED_ORIGINS = ["http://localhost:5173"]
+
 # For Render deployments
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:

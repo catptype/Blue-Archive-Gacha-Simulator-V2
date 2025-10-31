@@ -1,6 +1,12 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 from django.contrib.auth import views as auth_views
+from rest_framework.routers import DefaultRouter
+from .api import StudentViewSet
+
+# Create a router and register our viewset with it.
+router = DefaultRouter()
+router.register(r'students', StudentViewSet, basename='student')
 
 urlpatterns = [
     # HTTPRESPONSE
@@ -43,4 +49,5 @@ urlpatterns = [
     # path('image/student/<int:student_id>/artwork', views.serve_student_artwork, name='serve_student_artwork'),
     # path('image/student/<int:student_id>/portrait', views.serve_student_portrait, name='serve_student_portrait'),
 
+    path('api/', include(router.urls)),
 ]
