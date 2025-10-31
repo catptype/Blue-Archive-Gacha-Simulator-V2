@@ -781,7 +781,30 @@ def draw_ten_gacha(request: HttpRequest, banner_id: int) -> JsonResponse:
 #######################################
 #####   REQUEST -> FILERESPONSE   #####
 #######################################
-def serve_school_image(request:HttpRequest, school_id:int):
+def serve_school_image(request: HttpRequest, school_id: int):
+    try:
+        # Fetch the necessary fields in one go to reduce DB hits
+        school_obj = School.objects.values('school_name', 'school_image').get(school_id=school_id)
+        
+        school_bytes = school_obj['school_image']
+        school_name = school_obj['school_name']
+
+        if not school_bytes:
+            raise School.DoesNotExist
+
+        # Serve the bytes directly from memory
+        response = HttpResponse(bytes(school_bytes), content_type='image/png')
+        response['Content-Disposition'] = f'inline; filename="{school_name}.png"'
+        return response
+
+    except School.DoesNotExist:
+        # Your fallback logic is good
+        fallback_path = finders.find("icon/website/portrait_404.png")
+        if not fallback_path:
+            return HttpResponseNotFound("School image and fallback image not found.")
+        return FileResponse(open(fallback_path, "rb"), content_type="image/png")
+    
+def serve_school_image_OLD(request:HttpRequest, school_id:int):
 
     try:
         school_obj = School.objects.get(school_id=school_id)
