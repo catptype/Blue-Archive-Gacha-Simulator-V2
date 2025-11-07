@@ -17,10 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- =============================================================== ---
     // --- SECTION 2: CORE CAROUSEL & ANIMATION LOGIC                      ---
     // --- =============================================================== ---
-
-    // --- =============================================================== ---
-    // --- SECTION 2: CORE CAROUSEL & ANIMATION LOGIC                      ---
-    // --- =============================================================== ---
     
     /**
      * The main function that controls the carousel's appearance and position.
