@@ -20,8 +20,6 @@ A feature-rich web application built with Django and Tailwind CSS that simulates
 >
 > This project also serves as a personal case study to explore and compare different web development stacks. I am rebuilding this application with various tools to understand their unique complexities and advantages. The repository below will host all alternative implementations.
 >
-> *   **Current Alternative:** FastAPI (Backend) + Vue.js & TypeScript (Frontend)
->
 > **[➡️ View the Alternative Versions on GitHub](https://github.com/catptype/Blue-Archive-Gacha-Simulator-Alternative)**
 
 ---
