@@ -157,6 +157,7 @@ This method runs the entire application inside a container. Both [Dockerfile](Do
 The visual assets and fonts used in this project were sourced from the following excellent community resources.
 
 *   [Student Images Asset](https://bluearchive.wiki/wiki/Characters): Source for student character portraits and artworks.
+    > The process of scraping and downloading these assets is automated using a custom n8n workflow. The workflow is documented and available in **[this GitHub repository](https://github.com/catptype/n8n-personal-project-workflows#blue-archive-asset-web-scraping)**.
 *   [Web Logo Generator](https://tmp.nulla.top/ba-logo/): A tool for generating web logos related to Blue Archive.
 *   [RoGSanSrfStd-Bd Font](https://www.ffonts.net/RoGSanSrfStd-Bd.font): The font used in the project for a specific style or branding.
 
